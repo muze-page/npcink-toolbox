@@ -10,8 +10,9 @@ namespace Magick_AI_Toolbox;
 defined( 'ABSPATH' ) || exit;
 
 final class Plugin {
-	public const OPTION_NAME    = 'magick_ai_toolbox_settings';
-	public const REST_NAMESPACE = 'magick-ai-toolbox/v1';
+	public const OPTION_NAME         = 'magick_ai_toolbox_settings';
+	public const CONTEXT_OPTION_NAME = 'magick_ai_toolbox_content_context';
+	public const REST_NAMESPACE      = 'magick-ai-toolbox/v1';
 
 	private static ?Plugin $instance = null;
 

@@ -67,6 +67,10 @@ Then verify:
 - Escape output late and sanitize input early.
 - Never return provider keys in REST responses.
 - Never write provider keys into docs or tests.
+- Treat Toolbox abilities as server-side provider wrappers; AI callers pass task
+  input and receive normalized suggestions, not provider credentials.
+- Keep content context separate from connector settings so Abilities exposure
+  never returns provider keys or private credentials.
 - Keep provider output as suggestions unless a governed handoff is implemented.
 - Preserve Unsplash attribution and `download_location` metadata in image-source
   responses.

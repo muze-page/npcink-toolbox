@@ -8,22 +8,28 @@ Status: MVP architecture.
 | --- | --- |
 | `magick-ai-toolbox.php` | Plugin header and bootstrap. |
 | `Plugin` | Shared service construction and hook registration. |
-| `Settings` | Option defaults, sanitization, and connector secret lookup. |
+| `Settings` | Option defaults, sanitization, connector secret lookup, and content context export. |
 | `Provider_Client` | Minimal Tavily, Unsplash, SiliconFlow, Jina, and Qdrant HTTP calls for MVP tool actions. |
 | `Rest_Controller` | Admin-facing REST routes for tool execution. |
-| `Admin_Page` | WordPress admin tool surface, settings form, and Magick AI submenu fallback. |
+| `Admin_Page` | WordPress admin tool surface, connector settings form, content context form, and Magick AI submenu fallback. |
 | `Abilities` | WordPress Abilities API exposure for Toolbox actions. |
-| `assets/admin.js` | Vanilla JS for fixed tool form submission. |
-| `assets/admin.css` | Admin layout and tool result styling. |
+| `assets/admin.js` | Vanilla JS for fixed tool form submission and summary-first result rendering. |
+| `assets/admin.css` | Admin layout, summary/detail result panels, and tool result styling. |
 
 ## Current Data Storage
 
-The MVP stores only one WordPress option:
+The MVP stores two WordPress options:
 
 - `magick_ai_toolbox_settings`
+- `magick_ai_toolbox_content_context`
 
-The option may contain connector endpoints, feature flags, collection names,
-and connector keys when the operator chooses not to use environment variables.
+The settings option may contain connector endpoints, feature flags, collection
+names, and connector keys when the operator chooses not to use environment
+variables.
+
+The content context option stores non-secret SEO, AEO, and GEO guidance for
+third-party AI callers. It must not contain provider keys, private credentials,
+request logs, quotas, billing details, or write authorization.
 
 No custom database tables are used in the first version.
 
@@ -80,6 +86,9 @@ Reserved provider slots:
 ## Abilities Path
 
 Toolbox exposes its actions through the WordPress Abilities API when available.
+Abilities are server-side Toolbox tool wrappers: AI callers provide task input,
+Toolbox uses local connector configuration to execute the provider call, and the
+caller receives a normalized suggestion payload instead of provider secrets.
 
 If `magick-ai-abilities` is active, Toolbox uses its public helper functions.
 Otherwise, Toolbox falls back to native WordPress Abilities API registration.
@@ -91,6 +100,7 @@ Current ability ids:
 - `magick-ai-toolbox/vector-search`
 - `magick-ai-toolbox/build-article-brief`
 - `magick-ai-toolbox/build-media-brief`
+- `magick-ai-toolbox/get-content-discoverability-context`
 
 These are read/suggestion tools. They must not imply final WordPress write
 approval, media import approval, or indexing lifecycle ownership.
@@ -103,6 +113,11 @@ metadata declares Toolbox scopes:
 - `cap.toolbox.image_source`
 - `cap.toolbox.vector_search`
 - `cap.toolbox.workflow_suggest`
+- `cap.toolbox.context.read`
+
+Ability metadata also declares that provider execution is server-side, provider
+secret exposure is `none`, write posture is `suggestion_only`, final writes use
+Core proposals, and direct WordPress writes are disabled.
 
 The first admin REST surface remains `manage_options` gated by default.
 External AI access should be mediated by Core/app-key scope checks in the host
@@ -141,6 +156,18 @@ When no Magick AI parent menu exists, Toolbox falls back to:
 - `Tools -> Magick AI Toolbox`
 - `tools.php?page=magick-ai-toolbox`
 
+Tool result panels follow a summary-first display contract adapted from
+Content Assistant product-surface discipline:
+
+1. show the operator summary first;
+2. show source, image, vector, or planning candidates next;
+3. show governed handoff guidance before any write-like next step;
+4. keep provider raw responses and complete payloads inside collapsed result
+   disclosures.
+
+This is a display contract only. It does not add Content Assistant article,
+comment, media, preview, confirm, or apply responsibilities to Toolbox.
+
 ## Dependency Direction
 
 Allowed:
@@ -149,6 +176,7 @@ Allowed:
 - Toolbox may register WordPress abilities.
 - Toolbox may submit future write handoffs to Core through public REST.
 - Toolbox may consume `magick-ai-abilities` public helper functions.
+- Toolbox may expose non-secret content context as read-only Abilities guidance.
 
 Disallowed:
 
@@ -157,6 +185,7 @@ Disallowed:
 - Toolbox writing directly to Core tables.
 - Toolbox owning final write approval or audit truth.
 - Core depending on Toolbox.
+- Toolbox owning OpenClaw, Agent Gateway, Open API, or MCP projection truth.
 - Toolbox claiming Unsplash image search as AI image generation.
 - Toolbox treating vector search as complete RAG/indexing ownership.
 - Toolbox importing image candidates into the media library or setting featured

@@ -11,6 +11,7 @@ Done:
 - WordPress plugin scaffold.
 - Admin toolbox screen.
 - Tavily, Unsplash, SiliconFlow, Jina, and Qdrant connector settings.
+- Content discoverability context setting and read-only Abilities exposure.
 - REST routes.
 - Abilities registrations.
 - Static contract tests.
@@ -35,6 +36,7 @@ Target features:
   configured collection.
 - Article brief button.
 - Media brief button.
+- Content Context form for SEO, AEO, and GEO guidance.
 - Clear empty/error/loading states.
 - Local WordPress activation smoke.
 
@@ -56,6 +58,8 @@ Target features:
 - set featured image proposal handoff;
 - update media metadata proposal handoff;
 - set SEO meta proposal handoff;
+- use content discoverability context when preparing SEO/AEO/GEO proposal
+  payloads;
 - handoff status display that points operators to Core review.
 
 Rules:
@@ -96,6 +100,7 @@ Candidate buttons:
 - complete media alt and caption suggestions;
 - find internal-link opportunities;
 - build FAQ suggestions;
+- build content discoverability suggestions from the operator-filled context;
 - check source coverage.
 - rerank source, image, and vector candidates with Jina Reranker.
 - extract cleaner source content with Jina Reader.

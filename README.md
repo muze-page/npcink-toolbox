@@ -19,6 +19,8 @@ The first version provides:
   exists, with a **Tools -> Magick AI Toolbox** fallback for standalone installs;
 - Tavily, Unsplash, SiliconFlow, Jina, and Qdrant connector settings with
   environment-variable support;
+- an operator-filled content discoverability context for SEO, AEO, and GEO
+  guidance that can be exposed to third-party AI callers;
 - REST endpoints for web research, image-source candidates, vector search,
   article briefs, and media briefs;
 - WordPress Abilities API registrations for the same tool actions;
@@ -36,8 +38,12 @@ Project goals, ownership, and future-session instructions are documented in:
 - [Boundary](docs/boundary.md)
 - [Architecture](docs/architecture.md)
 - [Roadmap](docs/roadmap.md)
+- [Connector Ability Exposure](docs/connector-ability-exposure.md)
+- [Content Discoverability Context](docs/content-discoverability-context.md)
+- [Content Assistant Surface Lessons](docs/content-assistant-surface-lessons.md)
 - [Development Workflow](docs/development-workflow.md)
 - [ADR-001: Build Toolbox As A Product Surface](docs/decisions/ADR-001-toolbox-as-product-surface.md)
+- [ADR-002: Expose Content Context Through Abilities](docs/decisions/ADR-002-content-context-via-abilities.md)
 
 ## REST Routes
 
@@ -53,6 +59,10 @@ All routes require a logged-in user with `manage_options`.
 
 ## Abilities
 
+Toolbox abilities are server-side tool wrappers. External AI callers provide
+task input and receive normalized suggestion payloads; they do not receive
+provider API keys or direct provider credentials.
+
 When the WordPress Abilities API is available, Toolbox registers:
 
 - `magick-ai-toolbox/web-research`
@@ -60,6 +70,7 @@ When the WordPress Abilities API is available, Toolbox registers:
 - `magick-ai-toolbox/vector-search`
 - `magick-ai-toolbox/build-article-brief`
 - `magick-ai-toolbox/build-media-brief`
+- `magick-ai-toolbox/get-content-discoverability-context`
 
 When `magick-ai-abilities` is active, Toolbox uses its public registration
 helpers so the tools can be discovered by existing Magick AI consumers.
@@ -68,11 +79,25 @@ Core governance abilities or first-party WordPress abilities.
 
 Ability metadata includes Toolbox scopes such as `cap.toolbox.search`,
 `cap.toolbox.image_source`, `cap.toolbox.vector_search`, and
-`cap.toolbox.workflow_suggest`. The first admin REST surface remains
+`cap.toolbox.workflow_suggest`. Content context uses
+`cap.toolbox.context.read`. The first admin REST surface remains
 `manage_options` gated; external AI/app-key authorization should be enforced by
 Core or the host that consumes the ability scope metadata. First-version host
 integration hooks are `magick_ai_toolbox_rest_permission` and
 `magick_ai_toolbox_ability_permission`.
+
+## Content Discoverability Context
+
+The admin page includes a Content Context form for operator-maintained SEO, AEO,
+and GEO guidance: site positioning, target audience, brand voice, keywords,
+allowed and forbidden claims, rules, and proposal fields AI may suggest. It is
+stored in `magick_ai_toolbox_content_context`, separate from connector settings
+that may contain provider keys.
+
+The context is exposed only as read-only, suggestion-only guidance through
+`magick-ai-toolbox/get-content-discoverability-context`. Third-party AI callers
+may use it to prepare SEO/AEO/GEO suggestions, but final WordPress writes still
+require Core proposal approval.
 
 ## Connector Configuration
 

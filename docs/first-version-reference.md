@@ -16,6 +16,7 @@ Toolbox must not:
 - import media or set featured images directly;
 - own Core approval, audit, or proposal records;
 - own workflow runtime, queue, scheduler, MCP, Agent Gateway, or OpenClaw state;
+- own OpenClaw, Agent Gateway, Open API, or MCP projection truth;
 - own WordPress content indexing, re-indexing, stale-index detection, or vector
   collection lifecycle;
 - leak provider keys into logs, REST responses, proposals, docs, prompts, or
@@ -70,6 +71,12 @@ supplied vector length does not match `embedding_dimensions`.
 
 The settings page supports stored options plus env/constant fallback.
 
+Provider connector settings are stored in:
+
+```text
+magick_ai_toolbox_settings
+```
+
 Secrets:
 
 - `TAVILY_API_KEY` / `MAGICK_AI_TOOLBOX_TAVILY_API_KEY`
@@ -84,6 +91,37 @@ Provider raw payloads are excluded by default. Enable
 The first version is single-site global configuration. Do not add multisite or
 per-user isolation without a new decision.
 
+## Content Discoverability Context
+
+The admin page also includes an operator-filled Content Context form for SEO,
+AEO, and GEO guidance. It is stored separately from connector settings:
+
+```text
+magick_ai_toolbox_content_context
+```
+
+This option may contain:
+
+- site positioning;
+- target audience;
+- brand voice;
+- primary, long-tail, and entity keywords;
+- allowed claims and forbidden claims;
+- SEO, AEO, and GEO rules;
+- toggles for FAQ, AEO summary, GEO summary, and structured data suggestions;
+- fields that third-party AI may suggest in proposal-ready outputs.
+
+It must not contain provider keys, private credentials, billing details, quotas,
+request logs, or final write authorization.
+
+The Abilities payload is read-only and fixed to:
+
+```text
+write_posture: suggestion_only
+final_write_path: core_proposal_required
+direct_wordpress_write: false
+```
+
 ## Abilities API
 
 Toolbox ability ids stay under `magick-ai-toolbox/*`:
@@ -93,6 +131,7 @@ Toolbox ability ids stay under `magick-ai-toolbox/*`:
 - `magick-ai-toolbox/vector-search`
 - `magick-ai-toolbox/build-article-brief`
 - `magick-ai-toolbox/build-media-brief`
+- `magick-ai-toolbox/get-content-discoverability-context`
 
 Stable first-version scopes:
 
@@ -100,6 +139,7 @@ Stable first-version scopes:
 - `cap.toolbox.image_source`
 - `cap.toolbox.vector_search`
 - `cap.toolbox.workflow_suggest`
+- `cap.toolbox.context.read`
 
 Do not rename these scopes unless Magick AI Core explicitly changes the app-key
 scope contract.
@@ -133,6 +173,12 @@ When no shared Magick AI parent menu exists:
 - `tools.php?page=magick-ai-toolbox`
 
 Submenu position is `45`, after Abilities and before Cloud Addon.
+
+Toolbox may reuse Content Assistant's product-surface discipline, but only as a
+UI and contract pattern. The default result surface should show summary,
+candidates, governed handoff, and then collapsed details. Do not import Content
+Assistant article/comment/media lanes, local write flows, or runtime ownership
+into Toolbox.
 
 ## Local Smoke Environment
 

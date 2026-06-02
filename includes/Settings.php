@@ -20,6 +20,16 @@ final class Settings {
 				'default'           => $this->defaults(),
 			)
 		);
+
+		register_setting(
+			'magick_ai_toolbox_content_context',
+			Plugin::CONTEXT_OPTION_NAME,
+			array(
+				'type'              => 'array',
+				'sanitize_callback' => array( $this, 'sanitize_content_context' ),
+				'default'           => $this->content_context_defaults(),
+			)
+		);
 	}
 
 	public function defaults(): array {
@@ -56,6 +66,79 @@ final class Settings {
 	public function get_all(): array {
 		$value = get_option( Plugin::OPTION_NAME, array() );
 		return array_merge( $this->defaults(), is_array( $value ) ? $value : array() );
+	}
+
+	public function content_context_defaults(): array {
+		return array(
+			'site_positioning'                 => '',
+			'target_audience'                  => array(),
+			'brand_voice'                      => '',
+			'primary_keywords'                 => array(),
+			'long_tail_keywords'               => array(),
+			'entity_keywords'                  => array(),
+			'allowed_claims'                   => array(),
+			'forbidden_claims'                 => array(),
+			'seo_rules'                        => '',
+			'aeo_rules'                        => '',
+			'geo_rules'                        => '',
+			'allow_faq_generation'             => true,
+			'allow_aeo_summary'                => true,
+			'allow_geo_summary'                => true,
+			'allow_structured_data_suggestions' => true,
+			'proposal_allowed_fields'          => array(
+				'seo_title',
+				'seo_description',
+				'slug',
+				'excerpt',
+				'faq',
+				'answer_summary',
+				'geo_summary',
+			),
+		);
+	}
+
+	public function get_content_context(): array {
+		$value = get_option( Plugin::CONTEXT_OPTION_NAME, array() );
+		return array_merge( $this->content_context_defaults(), is_array( $value ) ? $value : array() );
+	}
+
+	public function get_content_context_for_ability(): array {
+		$context = $this->get_content_context();
+
+		return array(
+			'context_type'                    => 'content_discoverability',
+			'version'                         => 1,
+			'write_posture'                   => 'suggestion_only',
+			'final_write_path'                => 'core_proposal_required',
+			'direct_wordpress_write'          => false,
+			'site_positioning'                => $context['site_positioning'],
+			'target_audience'                 => $context['target_audience'],
+			'brand_voice'                     => $context['brand_voice'],
+			'keywords'                        => array(
+				'primary'   => $context['primary_keywords'],
+				'long_tail' => $context['long_tail_keywords'],
+				'entities'  => $context['entity_keywords'],
+			),
+			'claims'                          => array(
+				'allowed'   => $context['allowed_claims'],
+				'forbidden' => $context['forbidden_claims'],
+			),
+			'rules'                           => array(
+				'seo'                               => $context['seo_rules'],
+				'aeo'                               => $context['aeo_rules'],
+				'geo'                               => $context['geo_rules'],
+				'allow_faq_generation'              => (bool) $context['allow_faq_generation'],
+				'allow_aeo_summary'                 => (bool) $context['allow_aeo_summary'],
+				'allow_geo_summary'                 => (bool) $context['allow_geo_summary'],
+				'allow_structured_data_suggestions' => (bool) $context['allow_structured_data_suggestions'],
+			),
+			'proposal_allowed_fields'         => $context['proposal_allowed_fields'],
+			'handoff'                         => array(
+				'consumer'               => 'abilities_or_agent_gateway',
+				'final_writes'           => 'core_proposal_required',
+				'direct_wordpress_write' => false,
+			),
+		);
 	}
 
 	public function get( string $key ) {
@@ -149,6 +232,43 @@ final class Settings {
 		return $sanitized;
 	}
 
+	public function sanitize_content_context( $input ): array {
+		$input = is_array( $input ) ? $input : array();
+
+		$allowed_proposal_fields = array(
+			'seo_title',
+			'seo_description',
+			'slug',
+			'excerpt',
+			'faq',
+			'answer_summary',
+			'geo_summary',
+			'structured_data_hints',
+		);
+		$proposal_fields = isset( $input['proposal_allowed_fields'] ) && is_array( $input['proposal_allowed_fields'] )
+			? array_values( array_intersect( $allowed_proposal_fields, array_map( 'sanitize_key', $input['proposal_allowed_fields'] ) ) )
+			: array();
+
+		return array(
+			'site_positioning'                 => sanitize_textarea_field( (string) ( $input['site_positioning'] ?? '' ) ),
+			'target_audience'                  => $this->sanitize_context_list( $input['target_audience'] ?? array() ),
+			'brand_voice'                      => sanitize_textarea_field( (string) ( $input['brand_voice'] ?? '' ) ),
+			'primary_keywords'                 => $this->sanitize_context_list( $input['primary_keywords'] ?? array() ),
+			'long_tail_keywords'               => $this->sanitize_context_list( $input['long_tail_keywords'] ?? array() ),
+			'entity_keywords'                  => $this->sanitize_context_list( $input['entity_keywords'] ?? array() ),
+			'allowed_claims'                   => $this->sanitize_context_list( $input['allowed_claims'] ?? array() ),
+			'forbidden_claims'                 => $this->sanitize_context_list( $input['forbidden_claims'] ?? array() ),
+			'seo_rules'                        => sanitize_textarea_field( (string) ( $input['seo_rules'] ?? '' ) ),
+			'aeo_rules'                        => sanitize_textarea_field( (string) ( $input['aeo_rules'] ?? '' ) ),
+			'geo_rules'                        => sanitize_textarea_field( (string) ( $input['geo_rules'] ?? '' ) ),
+			'allow_faq_generation'             => ! empty( $input['allow_faq_generation'] ),
+			'allow_aeo_summary'                => ! empty( $input['allow_aeo_summary'] ),
+			'allow_geo_summary'                => ! empty( $input['allow_geo_summary'] ),
+			'allow_structured_data_suggestions' => ! empty( $input['allow_structured_data_suggestions'] ),
+			'proposal_allowed_fields'          => $proposal_fields,
+		);
+	}
+
 	private function get_secret( string $option_key, string $constant_name, string $env_name ): string {
 		if ( defined( $constant_name ) && '' !== (string) constant( $constant_name ) ) {
 			return (string) constant( $constant_name );
@@ -173,5 +293,20 @@ final class Settings {
 		}
 
 		return (string) ( $current[ $key ] ?? '' );
+	}
+
+	private function sanitize_context_list( $value ): array {
+		if ( is_array( $value ) ) {
+			$items = $value;
+		} else {
+			$items = preg_split( '/[\r\n,]+/', (string) $value );
+		}
+
+		$items = array_map(
+			static fn( $item ): string => sanitize_text_field( trim( (string) $item ) ),
+			is_array( $items ) ? $items : array()
+		);
+
+		return array_values( array_filter( array_unique( $items ) ) );
 	}
 }

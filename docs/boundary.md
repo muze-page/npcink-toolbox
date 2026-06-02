@@ -9,6 +9,8 @@ Owned here:
 - vector search actions;
 - query embedding actions for vector search;
 - fixed-flow buttons that return planning artifacts;
+- non-secret content discoverability context for SEO, AEO, and GEO suggestion
+  workflows;
 - operator-facing admin UI for the toolbox.
 
 Not owned here:
@@ -21,12 +23,32 @@ Not owned here:
 - long-term provider billing, quota, and request log ownership.
 - content indexing jobs, re-indexing, and vector collection lifecycle in the
   current stage.
+- final SEO meta, slug, excerpt, FAQ, schema, media, or post writes without
+  Core proposal approval.
+- OpenClaw, Agent Gateway, Open API, or MCP projection truth.
 
 First-version write posture:
 
 1. Run research, image-source, or vector-search actions.
 2. Return suggestions and handoff notes.
-3. Use WordPress abilities and Core proposals for final WordPress writes.
+3. Expose operator-filled content context as read-only Abilities guidance.
+4. Expose provider-backed actions through server-side Toolbox abilities without
+   exposing provider keys to AI callers.
+5. Use WordPress abilities and Core proposals for final WordPress writes.
+
+## Content Context Boundary
+
+Toolbox may store the non-secret `magick_ai_toolbox_content_context` option and
+expose it through `magick-ai-toolbox/get-content-discoverability-context`.
+
+The context can include site positioning, audience, brand voice, keywords,
+allowed claims, forbidden claims, SEO rules, AEO rules, GEO rules, and fields
+that third-party AI may suggest in a proposal-ready payload.
+
+The context must not include provider keys, private credentials, request logs,
+billing details, quotas, or final write authorization. Third-party AI callers
+may consume it as suggestion-only guidance; they must not mutate it or use it
+as permission to bypass Core governance.
 
 ## Connector Boundaries
 

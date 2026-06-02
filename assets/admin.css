@@ -1,49 +1,264 @@
 .magick-ai-toolbox {
-	max-width: 1440px;
+	max-width: 1280px;
 }
 
-.magick-ai-toolbox__layout {
+.magick-ai-toolbox__scope {
+	max-width: 760px;
+	margin: 4px 0 18px;
+	color: #50575e;
+	font-size: 14px;
+}
+
+.magick-ai-toolbox__status-strip {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 360px;
-	gap: 20px;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 10px;
+	margin: 0 0 18px;
+}
+
+.magick-ai-toolbox__status-pill {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	align-items: center;
+	min-height: 38px;
+	padding: 8px 10px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-left-width: 4px;
+	border-radius: 6px;
+	box-sizing: border-box;
+}
+
+.magick-ai-toolbox__status-pill.is-ok {
+	border-left-color: #00a32a;
+}
+
+.magick-ai-toolbox__status-pill.is-warning {
+	border-left-color: #dba617;
+}
+
+.magick-ai-toolbox__status-pill.is-inactive {
+	border-left-color: #8c8f94;
+}
+
+.magick-ai-toolbox__status-label {
+	font-weight: 600;
+}
+
+.magick-ai-toolbox__status-detail {
+	color: #50575e;
+	text-align: right;
+}
+
+.magick-ai-toolbox__tabs {
+	display: flex;
+	gap: 4px;
+	margin: 0 0 0;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.magick-ai-toolbox__tab {
+	appearance: none;
+	margin: 0;
+	padding: 10px 14px;
+	background: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	border-radius: 0;
+	color: #50575e;
+	cursor: pointer;
+	font: inherit;
+	font-weight: 600;
+}
+
+.magick-ai-toolbox__tab:hover,
+.magick-ai-toolbox__tab:focus {
+	color: #1d2327;
+}
+
+.magick-ai-toolbox__tab.is-active {
+	border-bottom-color: #2271b1;
+	color: #1d2327;
+}
+
+.magick-ai-toolbox__panel {
+	padding: 18px 0 0;
+}
+
+.magick-ai-toolbox__panel-header {
+	max-width: 760px;
+	margin: 0 0 14px;
+}
+
+.magick-ai-toolbox__panel-header h2 {
+	margin: 0 0 4px;
+	font-size: 20px;
+	line-height: 1.3;
+}
+
+.magick-ai-toolbox__panel-header p {
+	margin: 0;
+	color: #50575e;
+}
+
+.magick-ai-toolbox__tool-workspace {
+	display: grid;
+	grid-template-columns: 300px minmax(0, 1fr);
+	gap: 16px;
 	align-items: start;
 }
 
-.magick-ai-toolbox__grid {
+.magick-ai-toolbox__tool-list {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 16px;
+	gap: 8px;
 }
 
-.magick-ai-toolbox__card,
-.magick-ai-toolbox__side {
+.magick-ai-toolbox__tool-button {
+	appearance: none;
+	display: block;
+	width: 100%;
+	padding: 12px;
 	background: #fff;
 	border: 1px solid #dcdcde;
 	border-radius: 6px;
-	padding: 16px;
+	color: #1d2327;
+	cursor: pointer;
+	font: inherit;
+	text-align: left;
 }
 
-.magick-ai-toolbox__card h2,
-.magick-ai-toolbox__side h2 {
-	margin-top: 0;
+.magick-ai-toolbox__tool-button:hover,
+.magick-ai-toolbox__tool-button:focus {
+	border-color: #2271b1;
+}
+
+.magick-ai-toolbox__tool-button.is-active {
+	background: #f0f6fc;
+	border-color: #2271b1;
+	box-shadow: inset 3px 0 0 #2271b1;
+}
+
+.magick-ai-toolbox__tool-button span {
+	display: block;
+	margin: 0 0 3px;
+	font-weight: 600;
+}
+
+.magick-ai-toolbox__tool-button small {
+	display: block;
+	color: #646970;
+	line-height: 1.35;
+}
+
+.magick-ai-toolbox__card,
+.magick-ai-toolbox__disclosure {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	box-sizing: border-box;
+}
+
+.magick-ai-toolbox__card {
+	padding: 18px;
+}
+
+.magick-ai-toolbox__card h2 {
+	margin: 0 0 4px;
+	font-size: 20px;
+	line-height: 1.3;
+}
+
+.magick-ai-toolbox__card p {
+	max-width: 720px;
+	margin: 0 0 16px;
+	color: #50575e;
+}
+
+.magick-ai-toolbox__settings-form {
+	max-width: 920px;
+}
+
+.magick-ai-toolbox__draft-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin: 0 0 12px;
+	padding: 12px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+}
+
+.magick-ai-toolbox__draft-actions span {
+	flex-basis: 100%;
+	color: #646970;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.magick-ai-toolbox__disclosure {
+	margin: 0 0 10px;
+}
+
+.magick-ai-toolbox__disclosure summary {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	align-items: center;
+	padding: 12px 14px;
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.magick-ai-toolbox__disclosure summary:hover {
+	background: #f6f7f7;
+}
+
+.magick-ai-toolbox__disclosure summary small {
+	color: #646970;
+	font-weight: 400;
+	text-align: right;
+}
+
+.magick-ai-toolbox__disclosure-body {
+	padding: 0 14px 14px;
+	border-top: 1px solid #f0f0f1;
+}
+
+.magick-ai-toolbox__example {
+	display: grid;
+	gap: 2px;
+	margin: 12px 0 0;
+	padding: 10px 12px;
+	background: #f6f7f7;
+	border-left: 3px solid #72aee6;
+	color: #50575e;
+}
+
+.magick-ai-toolbox__example strong {
+	color: #1d2327;
 }
 
 .magick-ai-toolbox label {
 	display: block;
-	margin: 0 0 12px;
+	margin: 12px 0 0;
 }
 
 .magick-ai-toolbox label span {
 	display: block;
-	font-weight: 600;
 	margin: 0 0 4px;
+	font-weight: 600;
 }
 
 .magick-ai-toolbox textarea,
 .magick-ai-toolbox input[type='text'],
 .magick-ai-toolbox input[type='password'],
+.magick-ai-toolbox input[type='number'],
 .magick-ai-toolbox select {
 	width: 100%;
+	max-width: 100%;
 }
 
 .magick-ai-toolbox__check {
@@ -56,22 +271,250 @@
 	margin: 0 !important;
 }
 
+.magick-ai-toolbox__check-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 4px 16px;
+	margin: 12px 0 0;
+	padding: 0;
+	border: 0;
+}
+
+.magick-ai-toolbox__check-grid legend {
+	grid-column: 1 / -1;
+	margin: 0 0 4px;
+	font-weight: 600;
+}
+
+.magick-ai-toolbox__split {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+	margin: 8px 0 0;
+}
+
+.magick-ai-toolbox__split h3 {
+	margin: 10px 0 0;
+	font-size: 14px;
+}
+
 .magick-ai-toolbox__result {
 	box-sizing: border-box;
 	width: 100%;
 	min-height: 120px;
-	max-height: 360px;
-	overflow: auto;
-	margin: 12px 0 0;
+	margin: 14px 0 0;
 	padding: 12px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	color: #1d2327;
+}
+
+pre.magick-ai-toolbox__result {
+	max-height: 420px;
+	overflow: auto;
+	white-space: pre-wrap;
+}
+
+.magick-ai-toolbox__result-summary {
+	display: grid;
+	gap: 4px;
+	margin: 0 0 12px;
+	padding: 12px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-left: 4px solid #2271b1;
+}
+
+.magick-ai-toolbox__result-kicker {
+	color: #646970;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.magick-ai-toolbox__result-summary h3,
+.magick-ai-toolbox__result-section h3,
+.magick-ai-toolbox__result-item h4,
+.magick-ai-toolbox__image-item h4 {
+	margin: 0;
+}
+
+.magick-ai-toolbox__result-summary h3 {
+	font-size: 17px;
+	line-height: 1.3;
+}
+
+.magick-ai-toolbox__result-summary p,
+.magick-ai-toolbox__result-item p,
+.magick-ai-toolbox__image-item p {
+	margin: 0;
+	color: #50575e;
+	line-height: 1.45;
+}
+
+.magick-ai-toolbox__result-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 8px 0 0;
+}
+
+.magick-ai-toolbox__result-meta-item {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	padding: 3px 7px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	font-size: 12px;
+}
+
+.magick-ai-toolbox__result-meta-label {
+	color: #646970;
+	font-weight: 600;
+}
+
+.magick-ai-toolbox__result-section {
+	margin: 12px 0 0;
+}
+
+.magick-ai-toolbox__result-section h3 {
+	margin-bottom: 8px;
+	font-size: 14px;
+}
+
+.magick-ai-toolbox__result-list,
+.magick-ai-toolbox__image-list {
+	display: grid;
+	gap: 8px;
+}
+
+.magick-ai-toolbox__result-item,
+.magick-ai-toolbox__image-item {
+	display: grid;
+	gap: 6px;
+	padding: 10px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+}
+
+.magick-ai-toolbox__result-item h4,
+.magick-ai-toolbox__image-item h4 {
+	font-size: 14px;
+	line-height: 1.35;
+}
+
+.magick-ai-toolbox__image-item {
+	grid-template-columns: 96px minmax(0, 1fr);
+	align-items: start;
+}
+
+.magick-ai-toolbox__image-thumb {
+	width: 96px;
+	height: 72px;
+	object-fit: cover;
+	background: #f0f0f1;
+	border: 1px solid #dcdcde;
+}
+
+.magick-ai-toolbox__image-body {
+	display: grid;
+	gap: 6px;
+	min-width: 0;
+}
+
+.magick-ai-toolbox__result-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.magick-ai-toolbox__result-details {
+	margin: 8px 0 0;
+}
+
+.magick-ai-toolbox__result-details summary {
+	cursor: pointer;
+	color: #2271b1;
+	font-weight: 600;
+}
+
+.magick-ai-toolbox__result-raw {
+	max-height: 260px;
+	overflow: auto;
+	margin: 8px 0 0;
+	padding: 10px;
 	background: #f6f7f7;
 	border: 1px solid #dcdcde;
 	white-space: pre-wrap;
 }
 
+.magick-ai-toolbox__result-notice {
+	margin: 8px 0 0;
+	padding: 10px 12px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-left: 4px solid #8c8f94;
+}
+
+.magick-ai-toolbox__result-notice.is-ok {
+	border-left-color: #00a32a;
+}
+
+.magick-ai-toolbox__result-notice.is-warning,
+.magick-ai-toolbox__result-notice.is-pending {
+	border-left-color: #dba617;
+}
+
+.magick-ai-toolbox__result-notice.is-error {
+	border-left-color: #d63638;
+}
+
+.magick-ai-toolbox__step-list {
+	margin: 8px 0 0 20px;
+}
+
+.magick-ai-toolbox__preview {
+	max-width: 920px;
+	margin-top: 16px;
+}
+
 @media (max-width: 1100px) {
-	.magick-ai-toolbox__layout,
-	.magick-ai-toolbox__grid {
+	.magick-ai-toolbox__status-strip,
+	.magick-ai-toolbox__tool-workspace,
+	.magick-ai-toolbox__split {
 		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 782px) {
+	.magick-ai-toolbox__tabs {
+		overflow-x: auto;
+	}
+
+	.magick-ai-toolbox__status-pill,
+	.magick-ai-toolbox__disclosure summary {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.magick-ai-toolbox__status-detail,
+	.magick-ai-toolbox__disclosure summary small {
+		text-align: left;
+	}
+
+	.magick-ai-toolbox__check-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.magick-ai-toolbox__image-item {
+		grid-template-columns: 1fr;
+	}
+
+	.magick-ai-toolbox__image-thumb {
+		width: 100%;
+		height: auto;
+		max-height: 180px;
 	}
 }

@@ -28,7 +28,9 @@ connectors into safe, click-driven WordPress operator tools.
    embeddings, and Qdrant vector queries from a controlled WordPress UI.
 3. Convert repeated operator workflows into fixed buttons.
 4. Return planning artifacts, candidates, and handoff notes.
-5. Preserve Core and Abilities boundaries for final WordPress writes.
+5. Let operators fill non-secret SEO, AEO, and GEO content context for
+   suggestion workflows and third-party AI callers.
+6. Preserve Core and Abilities boundaries for final WordPress writes.
 
 ## Non-Goals
 
@@ -48,13 +50,16 @@ Magick AI Toolbox does not own:
 | --- | --- |
 | `magick-ai-core` | Governance, proposal records, approval boundaries, audit logs, and host policy. |
 | `magick-ai-abilities` | Reusable WordPress Abilities API definitions, schemas, callbacks, and dry-run previews. |
-| `magick-ai-toolbox` | Operator tool UI, fixed workflow buttons, Tavily research, Unsplash image-source candidates, configured query embeddings, and Qdrant vector search actions. |
+| `magick-ai-toolbox` | Operator tool UI, fixed workflow buttons, content discoverability context, Tavily research, Unsplash image-source candidates, configured query embeddings, and Qdrant vector search actions. |
 | Provider connector plugins | Durable provider configuration, key rotation, quotas, billing, and request logs when those surfaces mature. |
 
 ## Design Rule
 
 If a feature is a button or screen that helps an operator generate a suggestion,
 candidate, or planning artifact, it may belong in Toolbox.
+
+If a feature lets an operator fill non-secret site guidance that third-party AI
+can consume as suggestion-only context, it may belong in Toolbox.
 
 If a feature authorizes, commits, audits, schedules, or owns final WordPress
 writes, it belongs outside Toolbox.

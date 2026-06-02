@@ -491,8 +491,8 @@ final class Provider_Client {
 				'magick_ai_toolbox_provider_error',
 				$message,
 				array(
-					'status'        => $status,
-					'provider_body' => $data,
+					'status'          => $status,
+					'provider_status' => $status,
 				)
 			);
 		}
