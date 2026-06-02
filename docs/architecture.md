@@ -183,6 +183,12 @@ draft body, SEO hints, and risk level. Its result renderer shows
 `magick-ai/create-draft` action, and the Core from-plan handoff route. It does
 not submit the plan to Core or approve execution.
 
+Toolbox also renders additive `operator_feedback` payloads from governed
+handoff failures, including reasons, revision fields, next steps, retry state,
+and Core evidence. This is display-only feedback for the operator; Core remains
+the approval and preflight truth, and Adapter remains the OpenClaw execution
+channel.
+
 This is a display contract only. It does not add Content Assistant article,
 comment, media, preview, confirm, or apply responsibilities to Toolbox.
 

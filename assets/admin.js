@@ -131,6 +131,80 @@
 		result.appendChild(notice);
 	}
 
+	function extractOperatorFeedback(payload) {
+		if (!payload || typeof payload !== 'object') {
+			return null;
+		}
+
+		if (payload.operator_feedback && typeof payload.operator_feedback === 'object') {
+			return payload.operator_feedback;
+		}
+
+		if (payload.data && payload.data.operator_feedback && typeof payload.data.operator_feedback === 'object') {
+			return payload.data.operator_feedback;
+		}
+
+		return null;
+	}
+
+	function renderOperatorFeedback(form, payload) {
+		const feedback = extractOperatorFeedback(payload);
+		if (!feedback) {
+			return false;
+		}
+
+		const result = renderShell(
+			form,
+			{ provider: 'toolbox' },
+			'Operator feedback',
+			feedback.message || 'The governed handoff needs operator revision before it can continue.'
+		);
+		if (!result) {
+			return true;
+		}
+
+		const meta = el('div', 'magick-ai-toolbox__result-meta');
+		appendMeta(meta, 'Status', feedback.status ? formatLabel(feedback.status) : '');
+		appendMeta(meta, 'Severity', feedback.severity ? formatLabel(feedback.severity) : '');
+		appendMeta(meta, 'Retry after revision', feedback.can_retry_after_revision === true ? 'Yes' : 'No');
+		if (feedback.core_evidence && feedback.core_evidence.core_error_code) {
+			appendMeta(meta, 'Core code', feedback.core_evidence.core_error_code);
+		}
+		if (feedback.core_evidence && feedback.core_evidence.proposal_id) {
+			appendMeta(meta, 'Proposal', feedback.core_evidence.proposal_id);
+		}
+		if (meta.childNodes.length) {
+			result.appendChild(meta);
+		}
+
+		if (Array.isArray(feedback.reasons) && feedback.reasons.length) {
+			const section = createSection('Reasons');
+			const list = el('ul', 'magick-ai-toolbox__step-list');
+			feedback.reasons.forEach((reason) => {
+				list.appendChild(el('li', '', reason));
+			});
+			section.appendChild(list);
+			result.appendChild(section);
+		}
+
+		if (Array.isArray(feedback.revision_fields) && feedback.revision_fields.length) {
+			result.appendChild(el('div', 'magick-ai-toolbox__result-notice is-warning', 'Revise fields: ' + feedback.revision_fields.join(', ')));
+		}
+
+		if (Array.isArray(feedback.next_steps) && feedback.next_steps.length) {
+			const section = createSection('Next steps');
+			const list = el('ol', 'magick-ai-toolbox__step-list');
+			feedback.next_steps.forEach((step) => {
+				list.appendChild(el('li', '', step));
+			});
+			section.appendChild(list);
+			result.appendChild(section);
+		}
+
+		result.appendChild(createRawDetails(payload, 'Feedback payload'));
+		return true;
+	}
+
 	function renderSourceList(container, results) {
 		if (!Array.isArray(results) || !results.length) {
 			return;
@@ -434,6 +508,10 @@
 			return;
 		}
 
+		if (renderOperatorFeedback(form, payload)) {
+			return;
+		}
+
 		if (payload.provider === 'tavily') {
 			renderTavily(form, payload);
 			return;
@@ -688,6 +766,9 @@
 
 		event.preventDefault();
 		runTool(form).catch((error) => {
+			if (renderOperatorFeedback(form, error)) {
+				return;
+			}
 			renderTextResult(form, error && error.message ? error.message : (config.labels && config.labels.error ? config.labels.error : 'Request failed.'), 'error');
 		});
 	});

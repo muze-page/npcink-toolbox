@@ -61,6 +61,9 @@ toolbox_assert( false !== strpos( $admin_js, 'Download tracking' ) && false !== 
 toolbox_assert( false !== strpos( $admin_js, 'Governed handoff' ) && false !== strpos( $admin_js, 'Core proposal required' ), 'Workflow result rendering keeps governed handoff guidance visible.' );
 toolbox_assert( false !== strpos( $admin_js, 'renderArticlePlan' ) && false !== strpos( $admin_js, "payload.artifact_type === 'article_write_plan'" ), 'Admin JavaScript renders article write plans through a dedicated view.' );
 toolbox_assert( false !== strpos( $admin_js, 'Goal brief' ) && false !== strpos( $admin_js, 'Risk report' ) && false !== strpos( $admin_js, 'Final ability' ), 'Article write plan renderer shows artifacts, risk, and final ability summary.' );
+toolbox_assert( false !== strpos( $admin_js, 'renderOperatorFeedback' ) && false !== strpos( $admin_js, 'operator_feedback' ), 'Admin JavaScript renders operator feedback from governed handoffs.' );
+toolbox_assert( false !== strpos( $admin_js, 'can_retry_after_revision' ) && false !== strpos( $admin_js, 'core_evidence' ), 'Operator feedback renderer shows retry state and Core evidence.' );
+toolbox_assert( false !== strpos( $admin_js, 'Revise fields' ) && false !== strpos( $admin_js, 'Next steps' ), 'Operator feedback renderer shows revision fields and next steps.' );
 toolbox_assert( false === strpos( $admin_js, 'result.textContent = JSON.stringify(value, null, 2)' ), 'Tool results do not default to raw JSON in the main result surface.' );
 toolbox_assert( false !== strpos( $admin_js, 'initContextDrafts' ) && false !== strpos( $admin_js, 'applyContextDraft' ), 'Admin JavaScript can prefill editable content context drafts.' );
 toolbox_assert( false !== strpos( $admin_js, 'clearContextForm' ), 'Admin JavaScript can clear the content context form before a new draft.' );

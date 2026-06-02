@@ -58,6 +58,11 @@ All routes require a logged-in user with `manage_options`.
 - `POST /wp-json/magick-ai-toolbox/v1/flows/article-plan`
 - `POST /wp-json/magick-ai-toolbox/v1/flows/media-brief`
 
+Toolbox admin result panels can render governed `operator_feedback` payloads
+from Adapter/Core handoff failures. The feedback is for operator revision only;
+Toolbox still does not submit proposals, approve proposals, or execute
+WordPress writes.
+
 ## Abilities
 
 Toolbox abilities are server-side tool wrappers. External AI callers provide
