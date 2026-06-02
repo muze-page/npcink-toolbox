@@ -1,7 +1,6 @@
 {
   "name": "magick-ai/magick-ai-toolbox",
-  "version": "0.1.0",
-  "description": "WordPress AI toolbox plugin for research, image candidates, knowledge search, and fixed-flow operator actions.",
+  "description": "WordPress AI toolbox plugin for Tavily research, Unsplash image-source candidates, Qdrant vector search, and fixed-flow operator actions.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "require": {

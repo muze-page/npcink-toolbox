@@ -15,9 +15,9 @@ defined( 'ABSPATH' ) || exit;
 
 final class Rest_Controller {
 	private Settings $settings;
-	private OpenAI_Client $client;
+	private Provider_Client $client;
 
-	public function __construct( Settings $settings, OpenAI_Client $client ) {
+	public function __construct( Settings $settings, Provider_Client $client ) {
 		$this->settings = $settings;
 		$this->client   = $client;
 	}
@@ -25,6 +25,7 @@ final class Rest_Controller {
 	public function register_routes(): void {
 		$this->post( '/web-research', 'web_research' );
 		$this->post( '/image-candidates', 'image_candidates' );
+		$this->post( '/vector-search', 'knowledge_search' );
 		$this->post( '/knowledge-search', 'knowledge_search' );
 		$this->post( '/flows/article-brief', 'article_brief' );
 		$this->post( '/flows/media-brief', 'media_brief' );
@@ -40,20 +41,28 @@ final class Rest_Controller {
 		);
 	}
 
-	public function permission(): bool {
-		return current_user_can( 'manage_options' );
+	public function permission( $request = null ): bool {
+		return (bool) apply_filters( 'magick_ai_toolbox_rest_permission', current_user_can( 'manage_options' ), $request );
 	}
 
 	public function status(): WP_REST_Response {
 		return rest_ensure_response(
 			array(
-				'provider'                 => 'openai',
-				'has_api_key'              => $this->settings->has_api_key(),
+				'search_provider'          => 'tavily',
+				'image_provider'           => 'unsplash',
+				'vector_provider'          => 'qdrant',
+				'embedding_provider'       => sanitize_key( (string) $this->settings->get( 'embedding_provider' ) ),
+				'embedding_dimensions'     => (int) $this->settings->get( 'embedding_dimensions' ),
+				'tavily_configured'        => $this->settings->has_tavily_api_key(),
+				'unsplash_configured'      => $this->settings->has_unsplash_access_key(),
+				'qdrant_configured'        => $this->settings->has_qdrant_connection(),
+				'siliconflow_configured'   => $this->settings->has_siliconflow_api_key(),
+				'jina_configured'          => $this->settings->has_jina_api_key(),
+				'raw_responses_enabled'    => (bool) $this->settings->get( 'include_raw_responses' ),
 				'web_research_enabled'     => (bool) $this->settings->get( 'enable_web_research' ),
-				'image_generation_enabled' => (bool) $this->settings->get( 'enable_image_generation' ),
-				'knowledge_search_enabled' => (bool) $this->settings->get( 'enable_knowledge_search' ),
-				'vector_store_configured'  => '' !== trim( (string) $this->settings->get( 'openai_vector_store_id' ) ),
-				'boundary'                 => 'Toolbox returns research, image, and knowledge suggestions only. WordPress writes should be handed to Abilities/Core governance.',
+				'image_source_enabled'     => (bool) $this->settings->get( 'enable_image_source' ),
+				'vector_search_enabled'    => (bool) $this->settings->get( 'enable_vector_search' ),
+				'boundary'                 => 'Toolbox returns research, image-source, and vector-search suggestions only. WordPress writes should be handed to Abilities/Core governance.',
 			)
 		);
 	}
@@ -68,32 +77,22 @@ final class Rest_Controller {
 			return $query;
 		}
 
-		$domains = $this->csv_list( (string) $request->get_param( 'domains' ) );
-		return rest_ensure_response( $this->client->web_research( $query, $domains ) );
-	}
-
-	public function image_candidates( WP_REST_Request $request ) {
-		if ( ! $this->settings->get( 'enable_image_generation' ) ) {
-			return $this->disabled_error( 'image generation' );
-		}
-
-		$prompt = $this->required_text( $request, 'prompt' );
-		if ( is_wp_error( $prompt ) ) {
-			return $prompt;
-		}
-
 		return rest_ensure_response(
-			$this->client->generate_image_candidate(
-				$prompt,
-				sanitize_text_field( (string) ( $request->get_param( 'size' ) ?: '1024x1024' ) ),
-				sanitize_text_field( (string) ( $request->get_param( 'quality' ) ?: 'auto' ) )
+			$this->client->web_research(
+				$query,
+				array(
+					'include_domains' => $this->csv_list( (string) $request->get_param( 'include_domains' ) ),
+					'exclude_domains' => $this->csv_list( (string) $request->get_param( 'exclude_domains' ) ),
+					'time_range'      => sanitize_key( (string) $request->get_param( 'time_range' ) ),
+					'max_results'     => (int) ( $request->get_param( 'max_results' ) ?: 5 ),
+				)
 			)
 		);
 	}
 
-	public function knowledge_search( WP_REST_Request $request ) {
-		if ( ! $this->settings->get( 'enable_knowledge_search' ) ) {
-			return $this->disabled_error( 'knowledge search' );
+	public function image_candidates( WP_REST_Request $request ) {
+		if ( ! $this->settings->get( 'enable_image_source' ) ) {
+			return $this->disabled_error( 'image source search' );
 		}
 
 		$query = $this->required_text( $request, 'query' );
@@ -101,8 +100,37 @@ final class Rest_Controller {
 			return $query;
 		}
 
+		return rest_ensure_response(
+			$this->client->image_candidates(
+				$query,
+				array(
+					'orientation' => sanitize_key( (string) $request->get_param( 'orientation' ) ),
+					'color'       => sanitize_key( (string) $request->get_param( 'color' ) ),
+					'per_page'    => (int) ( $request->get_param( 'per_page' ) ?: 8 ),
+				)
+			)
+		);
+	}
+
+	public function knowledge_search( WP_REST_Request $request ) {
+		if ( ! $this->settings->get( 'enable_vector_search' ) ) {
+			return $this->disabled_error( 'vector search' );
+		}
+
+		$query = trim( sanitize_textarea_field( (string) $request->get_param( 'query' ) ) );
+		$vector = trim( sanitize_textarea_field( (string) $request->get_param( 'vector' ) ) );
+		if ( '' === $query && '' === $vector ) {
+			return new WP_Error(
+				'magick_ai_toolbox_missing_vector_input',
+				__( 'A query or vector field is required for vector search.', 'magick-ai-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$input_type = sanitize_key( (string) ( $request->get_param( 'input_type' ) ?: 'auto' ) );
+		$input = '' !== $query ? $query : $vector;
 		$max_results = max( 1, min( 10, (int) ( $request->get_param( 'max_results' ) ?: 4 ) ) );
-		return rest_ensure_response( $this->client->knowledge_search( $query, $max_results ) );
+		return rest_ensure_response( $this->client->vector_search( $input, $max_results, $input_type ) );
 	}
 
 	public function article_brief( WP_REST_Request $request ) {

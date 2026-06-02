@@ -11,10 +11,10 @@ defined( 'ABSPATH' ) || exit;
 
 final class Abilities {
 	private Settings $settings;
-	private OpenAI_Client $client;
+	private Provider_Client $client;
 	private bool $registered_with_helpers = false;
 
-	public function __construct( Settings $settings, OpenAI_Client $client ) {
+	public function __construct( Settings $settings, Provider_Client $client ) {
 		$this->settings = $settings;
 		$this->client   = $client;
 	}
@@ -42,15 +42,21 @@ final class Abilities {
 	}
 
 	public function register_native_category(): void {
-		if ( function_exists( 'wp_register_ability_category' ) ) {
-			wp_register_ability_category(
-				'magick-ai-toolbox',
-				array(
-					'label'       => __( 'Magick AI Toolbox', 'magick-ai-toolbox' ),
-					'description' => __( 'External research, image, knowledge, and fixed-flow tools.', 'magick-ai-toolbox' ),
-				)
-			);
+		if ( $this->registered_with_helpers || ! function_exists( 'wp_register_ability_category' ) ) {
+			return;
 		}
+
+		if ( function_exists( 'wp_has_ability_category' ) && wp_has_ability_category( 'magick-ai-toolbox' ) ) {
+			return;
+		}
+
+		wp_register_ability_category(
+			'magick-ai-toolbox',
+			array(
+				'label'       => __( 'Magick AI Toolbox', 'magick-ai-toolbox' ),
+				'description' => __( 'External research, image, knowledge, and fixed-flow tools.', 'magick-ai-toolbox' ),
+			)
+		);
 	}
 
 	public function register_native_abilities(): void {
@@ -68,10 +74,11 @@ final class Abilities {
 					'input_schema'        => $definition['input_schema'],
 					'output_schema'       => $definition['output_schema'],
 					'execute_callback'    => $definition['execute_callback'],
-					'permission_callback' => static fn(): bool => current_user_can( 'manage_options' ),
+					'permission_callback' => fn(): bool => $this->can_execute_ability( $ability_id ),
 					'meta'                => array(
-						'show_in_rest' => true,
-						'readonly'     => true,
+						'show_in_rest'   => true,
+						'readonly'       => true,
+						'required_scope' => $definition['required_scope'],
 					),
 				)
 			);
@@ -80,15 +87,15 @@ final class Abilities {
 
 	private function definitions(): array {
 		return array(
-			'magick-ai-toolbox/web-research'              => $this->definition( __( 'Web Research', 'magick-ai-toolbox' ), __( 'Research a topic using the configured external search provider.', 'magick-ai-toolbox' ), array( 'query' ), array( $this, 'web_research' ) ),
-			'magick-ai-toolbox/generate-image-candidate'  => $this->definition( __( 'Generate Image Candidate', 'magick-ai-toolbox' ), __( 'Generate one image candidate and return a base64 payload.', 'magick-ai-toolbox' ), array( 'prompt' ), array( $this, 'generate_image_candidate' ) ),
-			'magick-ai-toolbox/knowledge-search'          => $this->definition( __( 'Knowledge Search', 'magick-ai-toolbox' ), __( 'Search the configured vector store and return a grounded answer.', 'magick-ai-toolbox' ), array( 'query' ), array( $this, 'knowledge_search' ) ),
-			'magick-ai-toolbox/build-article-brief'       => $this->definition( __( 'Build Article Brief', 'magick-ai-toolbox' ), __( 'Build a research-backed article planning brief without writing WordPress content.', 'magick-ai-toolbox' ), array( 'topic' ), array( $this, 'build_article_brief' ) ),
-			'magick-ai-toolbox/build-media-brief'         => $this->definition( __( 'Build Media Brief', 'magick-ai-toolbox' ), __( 'Build image prompt and media SEO suggestions from supplied post context.', 'magick-ai-toolbox' ), array( 'post_context' ), array( $this, 'build_media_brief' ) ),
+			'magick-ai-toolbox/web-research'              => $this->definition( __( 'Web Research', 'magick-ai-toolbox' ), __( 'Research a topic using the configured external search provider.', 'magick-ai-toolbox' ), array( 'query' ), array( $this, 'web_research' ), 'cap.toolbox.search' ),
+			'magick-ai-toolbox/search-image-source'       => $this->definition( __( 'Search Image Source', 'magick-ai-toolbox' ), __( 'Search configured image source candidates without importing media.', 'magick-ai-toolbox' ), array( 'query' ), array( $this, 'search_image_source' ), 'cap.toolbox.image_source' ),
+			'magick-ai-toolbox/vector-search'             => $this->definition( __( 'Vector Search', 'magick-ai-toolbox' ), __( 'Query the configured vector database with text query embedding or vector JSON.', 'magick-ai-toolbox' ), array( 'query' ), array( $this, 'vector_search' ), 'cap.toolbox.vector_search' ),
+			'magick-ai-toolbox/build-article-brief'       => $this->definition( __( 'Build Article Brief', 'magick-ai-toolbox' ), __( 'Build a research-backed article planning brief without writing WordPress content.', 'magick-ai-toolbox' ), array( 'topic' ), array( $this, 'build_article_brief' ), 'cap.toolbox.workflow_suggest' ),
+			'magick-ai-toolbox/build-media-brief'         => $this->definition( __( 'Build Media Brief', 'magick-ai-toolbox' ), __( 'Build image prompt and media SEO suggestions from supplied post context.', 'magick-ai-toolbox' ), array( 'post_context' ), array( $this, 'build_media_brief' ), 'cap.toolbox.workflow_suggest' ),
 		);
 	}
 
-	private function definition( string $label, string $description, array $required, callable $callback ): array {
+	private function definition( string $label, string $description, array $required, callable $callback, string $required_scope ): array {
 		$properties = array();
 		foreach ( $required as $key ) {
 			$properties[ $key ] = array(
@@ -101,7 +108,7 @@ final class Abilities {
 			'description'         => $description,
 			'category'            => 'magick-ai-toolbox',
 			'capability'          => 'manage_options',
-			'required_scope'      => 'cap.toolbox.read',
+			'required_scope'      => $required_scope,
 			'input_schema'        => array(
 				'type'                 => 'object',
 				'properties'           => $properties,
@@ -122,18 +129,25 @@ final class Abilities {
 		return $this->client->web_research( sanitize_textarea_field( (string) ( $input['query'] ?? '' ) ) );
 	}
 
-	public function generate_image_candidate( $input = array() ) {
+	public function search_image_source( $input = array() ) {
 		$input = is_array( $input ) ? $input : array();
-		return $this->client->generate_image_candidate(
-			sanitize_textarea_field( (string) ( $input['prompt'] ?? '' ) ),
-			sanitize_text_field( (string) ( $input['size'] ?? '1024x1024' ) ),
-			sanitize_text_field( (string) ( $input['quality'] ?? 'auto' ) )
+		return $this->client->image_candidates(
+			sanitize_textarea_field( (string) ( $input['query'] ?? '' ) ),
+			array(
+				'orientation' => sanitize_key( (string) ( $input['orientation'] ?? '' ) ),
+				'color'       => sanitize_key( (string) ( $input['color'] ?? '' ) ),
+				'per_page'    => (int) ( $input['per_page'] ?? 8 ),
+			)
 		);
 	}
 
-	public function knowledge_search( $input = array() ) {
+	public function vector_search( $input = array() ) {
 		$input = is_array( $input ) ? $input : array();
-		return $this->client->knowledge_search( sanitize_textarea_field( (string) ( $input['query'] ?? '' ) ), (int) ( $input['max_results'] ?? 4 ) );
+		$query = sanitize_textarea_field( (string) ( $input['query'] ?? '' ) );
+		$vector = sanitize_textarea_field( (string) ( $input['vector'] ?? '' ) );
+		$payload = '' !== trim( $query ) ? $query : $vector;
+		$input_type = sanitize_key( (string) ( $input['input_type'] ?? 'auto' ) );
+		return $this->client->vector_search( $payload, (int) ( $input['max_results'] ?? 4 ), $input_type );
 	}
 
 	public function build_article_brief( $input = array() ) {
@@ -144,5 +158,9 @@ final class Abilities {
 	public function build_media_brief( $input = array() ) {
 		$input = is_array( $input ) ? $input : array();
 		return $this->client->build_media_brief( sanitize_textarea_field( (string) ( $input['post_context'] ?? '' ) ) );
+	}
+
+	private function can_execute_ability( string $ability_id ): bool {
+		return (bool) apply_filters( 'magick_ai_toolbox_ability_permission', current_user_can( 'manage_options' ), $ability_id );
 	}
 }

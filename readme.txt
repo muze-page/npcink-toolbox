@@ -7,13 +7,15 @@ Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Operator-facing AI tools for web research, image candidates, knowledge search,
-and repeatable content workflows.
+Operator-facing AI tools for Tavily research, Unsplash image-source candidates,
+SiliconFlow or Jina query embeddings, Qdrant vector search, and repeatable
+content workflows.
 
 == Description ==
 
 Magick AI Toolbox provides a WordPress admin toolbox for external research,
-image candidate generation, knowledge search, and fixed-flow planning actions.
+image-source candidate search, text-to-vector search, and fixed-flow planning
+actions.
 
 It returns suggestions and planning artifacts. WordPress writes should still go
 through host-governed WordPress abilities and Magick AI Core approval.
@@ -24,6 +26,8 @@ through host-governed WordPress abilities and Magick AI Core approval.
 
 * Initial plugin scaffold.
 * Added Toolbox settings page.
-* Added REST routes for web research, image candidates, knowledge search,
+* Added REST routes for web research, image-source candidates, vector search,
   article briefs, and media briefs.
 * Added WordPress Abilities API registrations for Toolbox actions.
+* Added SiliconFlow and Jina embedding configuration for text-based vector
+  search.

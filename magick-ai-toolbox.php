@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Magick AI Toolbox
- * Description: Operator-facing AI tools for web research, image candidates, knowledge search, and repeatable content workflows.
+ * Description: Operator-facing AI tools for Tavily research, Unsplash image-source candidates, Qdrant vector search, and repeatable content workflows.
  * Version: 0.1.0
  * Requires at least: 6.9
  * Requires PHP: 8.0
@@ -19,7 +19,7 @@ define( 'MAGICK_AI_TOOLBOX_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAGICK_AI_TOOLBOX_URL', plugin_dir_url( __FILE__ ) );
 
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Settings.php';
-require_once MAGICK_AI_TOOLBOX_DIR . 'includes/OpenAI_Client.php';
+require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Provider_Client.php';
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Rest_Controller.php';
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Admin_Page.php';
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Abilities.php';

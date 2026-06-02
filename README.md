@@ -1,7 +1,8 @@
 # Magick AI Toolbox
 
-Magick AI Toolbox is an operator-facing WordPress plugin for external research,
-image candidates, knowledge search, and fixed-flow AI actions.
+Magick AI Toolbox is an operator-facing WordPress plugin for Tavily research,
+Unsplash image-source candidates, SiliconFlow or Jina query embeddings, Qdrant
+vector search, and fixed-flow AI actions.
 
 It is intentionally separate from:
 
@@ -14,10 +15,12 @@ It is intentionally separate from:
 
 The first version provides:
 
-- a Tools admin page at **Tools -> Magick AI Toolbox**;
-- OpenAI provider settings with environment-variable support;
-- REST endpoints for web research, image candidates, knowledge search, article
-  briefs, and media briefs;
+- a Magick AI admin page at **Magick AI -> Toolbox** when a Magick AI host menu
+  exists, with a **Tools -> Magick AI Toolbox** fallback for standalone installs;
+- Tavily, Unsplash, SiliconFlow, Jina, and Qdrant connector settings with
+  environment-variable support;
+- REST endpoints for web research, image-source candidates, vector search,
+  article briefs, and media briefs;
 - WordPress Abilities API registrations for the same tool actions;
 - static tests and PHP syntax linting.
 
@@ -27,6 +30,15 @@ Toolbox returns suggestions and planning artifacts. It does not directly update
 posts, upload media, publish content, or bypass governance. WordPress writes
 should continue through WordPress abilities and Core proposal approval.
 
+Project goals, ownership, and future-session instructions are documented in:
+
+- [Product Positioning](docs/product-positioning.md)
+- [Boundary](docs/boundary.md)
+- [Architecture](docs/architecture.md)
+- [Roadmap](docs/roadmap.md)
+- [Development Workflow](docs/development-workflow.md)
+- [ADR-001: Build Toolbox As A Product Surface](docs/decisions/ADR-001-toolbox-as-product-surface.md)
+
 ## REST Routes
 
 All routes require a logged-in user with `manage_options`.
@@ -34,6 +46,7 @@ All routes require a logged-in user with `manage_options`.
 - `GET /wp-json/magick-ai-toolbox/v1/status`
 - `POST /wp-json/magick-ai-toolbox/v1/web-research`
 - `POST /wp-json/magick-ai-toolbox/v1/image-candidates`
+- `POST /wp-json/magick-ai-toolbox/v1/vector-search`
 - `POST /wp-json/magick-ai-toolbox/v1/knowledge-search`
 - `POST /wp-json/magick-ai-toolbox/v1/flows/article-brief`
 - `POST /wp-json/magick-ai-toolbox/v1/flows/media-brief`
@@ -43,24 +56,70 @@ All routes require a logged-in user with `manage_options`.
 When the WordPress Abilities API is available, Toolbox registers:
 
 - `magick-ai-toolbox/web-research`
-- `magick-ai-toolbox/generate-image-candidate`
-- `magick-ai-toolbox/knowledge-search`
+- `magick-ai-toolbox/search-image-source`
+- `magick-ai-toolbox/vector-search`
 - `magick-ai-toolbox/build-article-brief`
 - `magick-ai-toolbox/build-media-brief`
 
 When `magick-ai-abilities` is active, Toolbox uses its public registration
 helpers so the tools can be discovered by existing Magick AI consumers.
+Toolbox ability ids stay under `magick-ai-toolbox/*` so they do not collide with
+Core governance abilities or first-party WordPress abilities.
 
-## Provider Configuration
+Ability metadata includes Toolbox scopes such as `cap.toolbox.search`,
+`cap.toolbox.image_source`, `cap.toolbox.vector_search`, and
+`cap.toolbox.workflow_suggest`. The first admin REST surface remains
+`manage_options` gated; external AI/app-key authorization should be enforced by
+Core or the host that consumes the ability scope metadata. First-version host
+integration hooks are `magick_ai_toolbox_rest_permission` and
+`magick_ai_toolbox_ability_permission`.
 
-The plugin reads the OpenAI API key in this order:
+## Connector Configuration
 
-1. `MAGICK_AI_TOOLBOX_OPENAI_API_KEY` PHP constant;
-2. `OPENAI_API_KEY` environment variable;
+The plugin reads connector keys in this order:
+
+1. provider-specific PHP constant;
+2. provider-specific environment variable;
 3. stored WordPress option from the Toolbox settings page.
 
-The text model, image model, vector store id, and feature toggles are
-configurable in wp-admin.
+Supported environment variables:
+
+- `TAVILY_API_KEY`
+- `UNSPLASH_ACCESS_KEY`
+- `QDRANT_API_KEY`
+- `SILICONFLOW_API_KEY`
+- `JINA_API_KEY`
+
+Supported PHP constants:
+
+- `MAGICK_AI_TOOLBOX_TAVILY_API_KEY`
+- `MAGICK_AI_TOOLBOX_UNSPLASH_ACCESS_KEY`
+- `MAGICK_AI_TOOLBOX_QDRANT_API_KEY`
+- `MAGICK_AI_TOOLBOX_SILICONFLOW_API_KEY`
+- `MAGICK_AI_TOOLBOX_JINA_API_KEY`
+
+The current vector MVP accepts a natural-language `query` and uses the
+configured embedding provider to create an embedding before querying Qdrant.
+SiliconFlow remains the default provider with `BAAI/bge-m3`. Jina AI is an
+optional embedding provider with `jina-embeddings-v3`. It also accepts a
+supplied vector JSON payload or full Qdrant query object for clients that
+already own embedding.
+
+The default embedding dimension is `1024`, matching `BAAI/bge-m3` guidance.
+Create the Qdrant collection with vector size `1024` and `Cosine` distance for
+the default configuration. If the embedding provider returns a vector whose
+length does not match the configured dimension, Toolbox returns an explicit
+dimension mismatch error before querying Qdrant.
+
+Provider responses return normalized fields by default. Set **Include provider
+raw responses** to include raw provider payloads for debugging.
+
+Reserved future provider slots:
+
+- image source: Pixabay and Pexels;
+- vector database: Pinecone and Weaviate;
+- workflow-level enhancement: Jina Reader for source extraction and Jina
+  Reranker for candidate reranking.
 
 ## Development
 

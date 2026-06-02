@@ -41,7 +41,8 @@
 
 .magick-ai-toolbox textarea,
 .magick-ai-toolbox input[type='text'],
-.magick-ai-toolbox input[type='password'] {
+.magick-ai-toolbox input[type='password'],
+.magick-ai-toolbox select {
 	width: 100%;
 }
 
