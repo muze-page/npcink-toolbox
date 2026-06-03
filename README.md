@@ -22,7 +22,7 @@ The first version provides:
 - an operator-filled content discoverability context for SEO, AEO, and GEO
   guidance that can be exposed to third-party AI callers;
 - REST endpoints for web research, image-source candidates, vector search,
-  article briefs, and media briefs;
+  article briefs, media briefs, and media derivative handoffs;
 - WordPress Abilities API registrations for the same tool actions;
 - static tests and PHP syntax linting.
 
@@ -59,6 +59,7 @@ All routes require a logged-in user with `manage_options`.
 - `POST /wp-json/magick-ai-toolbox/v1/flows/article-brief`
 - `POST /wp-json/magick-ai-toolbox/v1/flows/article-plan`
 - `POST /wp-json/magick-ai-toolbox/v1/flows/media-brief`
+- `POST /wp-json/magick-ai-toolbox/v1/media-derivative-handoff`
 
 Toolbox admin result panels can render governed `operator_feedback` payloads
 from Adapter/Core handoff failures. The feedback is for operator revision only;
@@ -122,6 +123,12 @@ call Core, approve proposals, publish content, or write WordPress data.
 The admin **Try Tools** surface includes an **Article Write Plan** panel that
 renders the plan artifacts, risk report, final `magick-ai/create-draft` action,
 and Core handoff route for operator review.
+
+The media derivative handoff flow reads Core media optimization defaults when
+available, accepts one-run operator overrides, and returns ability input for
+`magick-ai/build-media-derivative-cloud-request`. Toolbox does not store the
+site media policy, call Cloud, import media, replace files, submit proposals, or
+write attachment metadata.
 
 ## Connector Configuration
 

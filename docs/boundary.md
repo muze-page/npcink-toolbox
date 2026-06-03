@@ -71,6 +71,7 @@ planning flows:
 - `/flows/article-brief`
 - `/flows/article-plan`
 - `/flows/media-brief`
+- `/media-derivative-handoff`
 
 Do not add Toolbox REST routes for publishing, delivery, workflow runs, queues,
 schedulers, approvals, write confirmation, featured image setting, media
@@ -81,6 +82,12 @@ proposal handoffs, not executed by Toolbox.
 `/flows/article-plan` prepares a Core-ready `article_write_plan` for
 `magick-ai-toolbox/build-article-write-plan`. It is a planning artifact route,
 not a WordPress write route and not a Core proposal execution route.
+
+`/media-derivative-handoff` prepares one-run ability input for
+`magick-ai/build-media-derivative-cloud-request` from Core media policy defaults
+and operator overrides. It is a planning artifact route. Toolbox must not store
+site media policy truth, upload/import media, call Cloud, submit Core proposals,
+replace attachment files, or update attachment metadata.
 
 ## Content Context Boundary
 

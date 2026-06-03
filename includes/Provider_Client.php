@@ -452,6 +452,91 @@ final class Provider_Client {
 		return $this->image_candidates( $this->post_context_to_image_query( $post_context ), array( 'per_page' => 8 ) );
 	}
 
+	public function build_media_derivative_handoff( array $input ) {
+		$attachment_id = absint( $input['attachment_id'] ?? 0 );
+		if ( $attachment_id <= 0 ) {
+			return new WP_Error(
+				'magick_ai_toolbox_missing_attachment_id',
+				__( 'An attachment_id is required to build a media derivative handoff.', 'magick-ai-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$overrides = array( 'attachment_id' => $attachment_id );
+		if ( '' !== trim( (string) ( $input['target_format'] ?? '' ) ) ) {
+			$overrides['target_format'] = sanitize_key( (string) $input['target_format'] );
+		}
+		if ( '' !== trim( (string) ( $input['max_width'] ?? '' ) ) ) {
+			$overrides['max_width'] = absint( $input['max_width'] );
+		}
+		if ( '' !== trim( (string) ( $input['quality'] ?? '' ) ) ) {
+			$overrides['quality'] = absint( $input['quality'] );
+		}
+
+		$core_policy_available = function_exists( 'magick_ai_core_get_media_derivative_settings' );
+		$core_policy = $core_policy_available ? magick_ai_core_get_media_derivative_settings() : $this->fallback_media_derivative_policy();
+		$ability_input = function_exists( 'magick_ai_core_build_media_derivative_ability_input' )
+			? magick_ai_core_build_media_derivative_ability_input( $overrides )
+			: $this->fallback_media_derivative_ability_input( $overrides, $core_policy );
+
+		$warnings = array();
+		if ( ! $core_policy_available ) {
+			$warnings[] = __( 'Magick AI Core media policy helper is unavailable; fallback defaults were used for this one-run handoff.', 'magick-ai-toolbox' );
+		}
+		if ( ! empty( $core_policy['watermark_enabled'] ) && empty( $core_policy['watermark_configured'] ) ) {
+			$warnings[] = __( 'Watermark is enabled in policy but no logo attachment is configured.', 'magick-ai-toolbox' );
+		}
+
+		return array(
+			'artifact_type'          => 'media_derivative_handoff',
+			'composition_role'       => 'media_derivative_operator_handoff',
+			'version'                => 1,
+			'write_posture'          => 'core_proposal_handoff',
+			'direct_wordpress_write' => false,
+			'provider'               => 'toolbox',
+			'attachment_id'          => $attachment_id,
+			'core_policy_available'  => $core_policy_available,
+			'core_policy'            => $this->sanitize_payload( $core_policy ),
+			'ability_id'             => 'magick-ai/build-media-derivative-cloud-request',
+			'ability_input'          => $this->sanitize_payload( $ability_input ),
+			'warnings'               => $warnings,
+			'handoff'                => array(
+				'final_write_path'       => 'core_proposal_required',
+				'direct_wordpress_write' => false,
+				'next_steps'             => array(
+					'Run the local media derivative request ability with ability_input.',
+					'Use Cloud Addon only as a verified transport when available.',
+					'Review the derivative artifact through Core proposal governance before any WordPress media write.',
+				),
+			),
+		);
+	}
+
+	private function fallback_media_derivative_policy(): array {
+		return array(
+			'enabled'                  => false,
+			'target_format'            => 'webp',
+			'max_width'                => 1600,
+			'quality'                  => 82,
+			'watermark_enabled'        => false,
+			'watermark_configured'     => false,
+			'watermark_attachment_id'  => 0,
+			'watermark_position'       => 'bottom_right',
+			'use_cloud_when_available' => true,
+			'policy_owner'             => 'magick_ai_core',
+			'final_write_owner'        => 'local_wordpress_host',
+		);
+	}
+
+	private function fallback_media_derivative_ability_input( array $overrides, array $policy ): array {
+		return array(
+			'attachment_id'    => absint( $overrides['attachment_id'] ?? 0 ),
+			'preferred_format' => sanitize_key( (string) ( $overrides['target_format'] ?? $policy['target_format'] ?? 'webp' ) ),
+			'target_max_width' => max( 320, min( 7680, absint( $overrides['max_width'] ?? $policy['max_width'] ?? 1600 ) ) ),
+			'quality'          => max( 1, min( 100, absint( $overrides['quality'] ?? $policy['quality'] ?? 82 ) ) ),
+		);
+	}
+
 	private function build_qdrant_query_body( array $decoded, int $max_results ): array {
 		$is_vector = $this->is_list( $decoded );
 		$limit = max( 1, min( 10, $max_results ) );

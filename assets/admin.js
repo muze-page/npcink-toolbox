@@ -497,6 +497,38 @@
 		result.appendChild(createRawDetails(payload, 'Complete payload'));
 	}
 
+	function renderMediaDerivativeHandoff(form, payload) {
+		const abilityInput = payload.ability_input || {};
+		const result = renderShell(
+			form,
+			payload,
+			'Media derivative handoff',
+			'One-run planning artifact. Run the local ability and review the derivative through Core governance before any WordPress media write.'
+		);
+		if (!result) {
+			return;
+		}
+
+		const meta = el('div', 'magick-ai-toolbox__result-meta');
+		appendMeta(meta, 'Attachment', payload.attachment_id);
+		appendMeta(meta, 'Ability', payload.ability_id);
+		appendMeta(meta, 'Format', abilityInput.preferred_format ? String(abilityInput.preferred_format).toUpperCase() : '');
+		appendMeta(meta, 'Max width', abilityInput.target_max_width ? abilityInput.target_max_width + 'px' : '');
+		appendMeta(meta, 'Quality', abilityInput.quality);
+		appendMeta(meta, 'Core policy', payload.core_policy_available ? 'Available' : 'Fallback defaults');
+		result.appendChild(meta);
+
+		if (Array.isArray(payload.warnings) && payload.warnings.length) {
+			payload.warnings.forEach((warning) => {
+				result.appendChild(el('div', 'magick-ai-toolbox__result-notice is-warning', warning));
+			});
+		}
+
+		renderArtifactSummary(result, 'Ability input', abilityInput);
+		renderHandoff(result, payload.handoff);
+		result.appendChild(createRawDetails(payload, 'Complete payload'));
+	}
+
 	function renderStructuredResult(form, payload) {
 		if (typeof payload === 'string') {
 			renderTextResult(form, payload, 'pending');
@@ -529,6 +561,11 @@
 
 		if (payload.artifact_type === 'article_write_plan') {
 			renderArticlePlan(form, payload);
+			return;
+		}
+
+		if (payload.artifact_type === 'media_derivative_handoff') {
+			renderMediaDerivativeHandoff(form, payload);
 			return;
 		}
 

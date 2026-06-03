@@ -153,6 +153,19 @@ final class Abilities {
 					'composition_role' => 'media_planning_bundle',
 				)
 			),
+			'magick-ai-toolbox/build-media-derivative-handoff'     => $this->definition(
+				__( 'Build Media Derivative Handoff', 'magick-ai-toolbox' ),
+				__( 'Build a one-run Core/Abilities media derivative handoff from Core defaults without writing WordPress media.', 'magick-ai-toolbox' ),
+				array( 'attachment_id' ),
+				array( $this, 'build_media_derivative_handoff' ),
+				'cap.toolbox.workflow_suggest',
+				array(
+					'data_classification' => 'planning_artifact',
+					'composition_role'    => 'media_derivative_operator_handoff',
+					'provider_execution'  => 'none',
+					'write_posture'       => 'core_proposal_handoff',
+				)
+			),
 			'magick-ai-toolbox/get-content-discoverability-context' => $this->definition(
 				__( 'Get Content Discoverability Context', 'magick-ai-toolbox' ),
 				__( 'Return the operator-maintained SEO, AEO, and GEO context for third-party AI callers without exposing provider secrets or writing WordPress content.', 'magick-ai-toolbox' ),
@@ -274,6 +287,10 @@ final class Abilities {
 	public function build_media_brief( $input = array() ) {
 		$input = is_array( $input ) ? $input : array();
 		return $this->client->build_media_brief( sanitize_textarea_field( (string) ( $input['post_context'] ?? '' ) ) );
+	}
+
+	public function build_media_derivative_handoff( $input = array() ) {
+		return $this->client->build_media_derivative_handoff( is_array( $input ) ? $input : array() );
 	}
 
 	public function get_content_discoverability_context( $input = array() ) {

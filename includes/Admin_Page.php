@@ -779,6 +779,13 @@ final class Admin_Page {
 				'button'      => __( 'Plan media', 'magick-ai-toolbox' ),
 			),
 			array(
+				'id'          => 'media-derivative',
+				'endpoint'    => 'media-derivative-handoff',
+				'title'       => __( 'Media Derivative Handoff', 'magick-ai-toolbox' ),
+				'description' => __( 'Prepare a one-run optimized derivative handoff from Core media policy. This does not call Cloud, create a proposal, or write media.', 'magick-ai-toolbox' ),
+				'custom'      => 'media_derivative',
+			),
+			array(
 				'id'           => 'web-research',
 				'endpoint'     => 'web-research',
 				'title'        => __( 'Web Research', 'magick-ai-toolbox' ),
@@ -856,6 +863,16 @@ final class Admin_Page {
 						);
 						continue;
 					}
+					if ( 'media_derivative' === (string) ( $tool['custom'] ?? '' ) ) {
+						$this->render_media_derivative_tool(
+							(string) $tool['endpoint'],
+							(string) $tool['title'],
+							(string) $tool['description'],
+							(string) $tool['id'],
+							0 === $index
+						);
+						continue;
+					}
 
 					$this->render_text_tool(
 						(string) $tool['endpoint'],
@@ -872,6 +889,66 @@ final class Admin_Page {
 				?>
 			</div>
 		</div>
+		<?php
+	}
+
+	private function render_media_derivative_tool( string $endpoint, string $title, string $description, string $tool_id, bool $active = false ): void {
+		$core_policy = function_exists( 'magick_ai_core_get_media_derivative_settings' )
+			? magick_ai_core_get_media_derivative_settings()
+			: array(
+				'target_format'            => 'webp',
+				'max_width'                => 1600,
+				'quality'                  => 82,
+				'watermark_enabled'        => false,
+				'watermark_configured'     => false,
+				'use_cloud_when_available' => true,
+			);
+		?>
+		<form class="magick-ai-toolbox__card" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" <?php echo $active ? '' : 'hidden'; ?>>
+			<h2><?php echo esc_html( $title ); ?></h2>
+			<p><?php echo esc_html( $description ); ?></p>
+			<div class="magick-ai-toolbox__example">
+				<strong><?php esc_html_e( 'Core defaults', 'magick-ai-toolbox' ); ?></strong>
+				<span>
+					<?php
+					printf(
+						/* translators: 1: format, 2: max width, 3: quality. */
+						esc_html__( '%1$s, %2$dpx, quality %3$d. Watermark: %4$s.', 'magick-ai-toolbox' ),
+						esc_html( strtoupper( (string) $core_policy['target_format'] ) ),
+						(int) $core_policy['max_width'],
+						(int) $core_policy['quality'],
+						! empty( $core_policy['watermark_configured'] ) ? esc_html__( 'configured', 'magick-ai-toolbox' ) : esc_html__( 'off or incomplete', 'magick-ai-toolbox' )
+					);
+					?>
+				</span>
+			</div>
+			<label>
+				<span><?php esc_html_e( 'Attachment ID', 'magick-ai-toolbox' ); ?></span>
+				<input type="number" min="1" step="1" name="attachment_id" placeholder="<?php esc_attr_e( 'Attachment ID', 'magick-ai-toolbox' ); ?>" />
+			</label>
+			<div class="magick-ai-toolbox__split">
+				<label>
+					<span><?php esc_html_e( 'Format override', 'magick-ai-toolbox' ); ?></span>
+					<select name="target_format">
+						<option value=""><?php esc_html_e( 'Use Core default', 'magick-ai-toolbox' ); ?></option>
+						<?php foreach ( array( 'webp', 'avif', 'jpeg', 'png', 'original' ) as $format ) : ?>
+							<option value="<?php echo esc_attr( $format ); ?>"><?php echo esc_html( strtoupper( $format ) ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+				<label>
+					<span><?php esc_html_e( 'Max width override', 'magick-ai-toolbox' ); ?></span>
+					<input type="number" min="320" max="7680" step="1" name="max_width" placeholder="<?php echo esc_attr( (string) $core_policy['max_width'] ); ?>" />
+				</label>
+			</div>
+			<label>
+				<span><?php esc_html_e( 'Quality override', 'magick-ai-toolbox' ); ?></span>
+				<input type="number" min="1" max="100" step="1" name="quality" placeholder="<?php echo esc_attr( (string) $core_policy['quality'] ); ?>" />
+			</label>
+			<p class="description"><?php esc_html_e( 'The returned handoff contains ability input for magick-ai/build-media-derivative-cloud-request. Core remains the policy and final write owner.', 'magick-ai-toolbox' ); ?></p>
+			<button type="submit" class="button button-primary"><?php esc_html_e( 'Build handoff', 'magick-ai-toolbox' ); ?></button>
+			<div class="magick-ai-toolbox__result is-empty" aria-live="polite" hidden></div>
+		</form>
 		<?php
 	}
 

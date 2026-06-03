@@ -30,6 +30,7 @@ final class Rest_Controller {
 		$this->post( '/flows/article-brief', 'article_brief' );
 		$this->post( '/flows/article-plan', 'article_plan' );
 		$this->post( '/flows/media-brief', 'media_brief' );
+		$this->post( '/media-derivative-handoff', 'media_derivative_handoff' );
 
 		register_rest_route(
 			Plugin::REST_NAMESPACE,
@@ -180,6 +181,11 @@ final class Rest_Controller {
 		);
 
 		return rest_ensure_response( $this->client->build_media_brief( (string) $context ) );
+	}
+
+	public function media_derivative_handoff( WP_REST_Request $request ) {
+		$params = method_exists( $request, 'get_params' ) ? $request->get_params() : array();
+		return rest_ensure_response( $this->client->build_media_derivative_handoff( is_array( $params ) ? $params : array() ) );
 	}
 
 	private function post( string $route, string $method ): void {
