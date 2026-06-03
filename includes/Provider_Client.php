@@ -353,6 +353,10 @@ final class Provider_Client {
 			'artifact_type'          => 'article_write_plan',
 			'composition_role'       => 'core_article_write_plan',
 			'version'                => 1,
+			'source_recipe_id'       => 'article_draft_v1',
+			'source_recipe_ref'      => 'workflow/wordpress_article_draft',
+			'source_recipe_provider' => 'magick-ai-abilities',
+			'recipe_execution'       => 'local_operator_orchestration',
 			'write_posture'          => 'core_proposal_handoff',
 			'direct_wordpress_write' => false,
 			'batch_id'               => 'article_write_' . substr( md5( $title . '|' . $content ), 0, 12 ),
@@ -370,6 +374,7 @@ final class Provider_Client {
 				array(
 					'action_id'         => 'create_article_draft',
 					'target_ability_id' => 'magick-ai/create-draft',
+					'recipe_step'       => 'host_governed_create_draft',
 					'input'             => array(
 						'title'   => $title,
 						'content' => $content,
@@ -387,6 +392,8 @@ final class Provider_Client {
 			),
 			'handoff'                => array(
 				'plan_ability_id'        => 'magick-ai-toolbox/build-article-write-plan',
+				'recipe_id'              => 'article_draft_v1',
+				'recipe_ref'             => 'workflow/wordpress_article_draft',
 				'core_route'             => '/wp-json/magick-ai-core/v1/proposals/from-plan',
 				'final_write_path'       => 'core_proposal_required',
 				'direct_wordpress_write' => false,

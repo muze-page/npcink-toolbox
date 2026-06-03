@@ -139,6 +139,8 @@ final class Abilities {
 				array(
 					'data_classification' => 'planning_artifact',
 					'composition_role'    => 'core_article_write_plan',
+					'local_recipe_id'     => 'article_draft_v1',
+					'ability_recipe_ref'  => 'workflow/wordpress_article_draft',
 					'provider_execution'  => 'none',
 					'write_posture'       => 'core_proposal_handoff',
 				)
