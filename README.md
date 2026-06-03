@@ -119,6 +119,10 @@ to get a suggestion-only SEO/AEO/GEO instruction pack, proposal template, and
 conservative candidates from supplied post or topic input. Final WordPress
 writes still require Core proposal approval.
 
+Article Assistant Workbench is the accepted article surface: one local article,
+reviewed artifacts, and one optional Core-ready draft proposal. It is not an
+article generator, Cloud writer, or batch publishing surface.
+
 The article plan flow and `magick-ai-toolbox/build-article-write-plan` ability
 assemble a Core-ready `article_write_plan` for a reviewed draft. They do not
 call Core, approve proposals, publish content, or write WordPress data.

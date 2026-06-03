@@ -5,6 +5,26 @@ Toolbox and Abilities outputs into one reviewable `article_draft_v1` artifact.
 It is not a cloud writing product, batch publishing surface, workflow runtime,
 or second approval plane.
 
+## Surface Budget
+
+This workbench is intentionally small. Its job is to arrange existing Toolbox
+and Abilities outputs into a reviewable local artifact, then optionally produce
+one Core-ready draft proposal when the operator supplies reviewed draft text.
+
+The accepted surface is Article Assistant Workbench. Do not present it as an
+article generator, autonomous writer, Cloud writing feature, or bulk publishing
+tool.
+
+The current budget is:
+
+- one article per run;
+- optional reviewed draft body supplied or approved locally by the operator;
+- one optional `article_write_plan` for `magick-ai/create-draft`;
+- no prompt library, authoring runtime, scheduler, background writing job, or
+  batch article console;
+- no Cloud article generation, Cloud article import, or Cloud-produced writing
+  plan.
+
 ## Contract
 
 - REST route: `POST /wp-json/magick-ai-toolbox/v1/flows/article-assistant`

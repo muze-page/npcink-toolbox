@@ -19,6 +19,11 @@ function toolbox_assert( bool $condition, string $message ): void {
 $main = file_get_contents( $root . '/magick-ai-toolbox.php' );
 toolbox_assert( false !== $main && str_contains( $main, 'Plugin Name: Magick AI Toolbox' ), 'Plugin header is present.' );
 
+$article_assistant_doc = file_get_contents( $root . '/docs/article-assistant-workbench.md' );
+foreach ( array( 'Surface Budget', 'Article Assistant Workbench', 'one article per run', 'Do not present it as an', 'article generator, autonomous writer', 'no Cloud article generation' ) as $required_article_assistant_doc ) {
+	toolbox_assert( false !== strpos( $article_assistant_doc, $required_article_assistant_doc ), 'Article Assistant workbench doc preserves surface budget: ' . $required_article_assistant_doc );
+}
+
 $admin_page = file_get_contents( $root . '/includes/Admin_Page.php' );
 toolbox_assert( false !== strpos( $admin_page, "private const PARENT_MENU_SLUG = 'magick-ai';" ), 'Admin page targets the shared Magick AI parent menu.' );
 toolbox_assert( false !== strpos( $admin_page, "private const MENU_SLUG        = 'magick-ai-toolbox';" ), 'Admin page uses stable Toolbox menu slug.' );
