@@ -1117,8 +1117,8 @@ final class Admin_Page {
 				<label>
 					<span><?php esc_html_e( 'Provider', 'magick-ai-toolbox' ); ?></span>
 					<select name="provider">
-						<option value="unsplash"><?php esc_html_e( 'Unsplash', 'magick-ai-toolbox' ); ?></option>
 						<option value="auto"><?php esc_html_e( 'Cloud auto', 'magick-ai-toolbox' ); ?></option>
+						<option value="unsplash"><?php esc_html_e( 'Unsplash', 'magick-ai-toolbox' ); ?></option>
 						<option value="pixabay"><?php esc_html_e( 'Pixabay', 'magick-ai-toolbox' ); ?></option>
 						<option value="pexels"><?php esc_html_e( 'Pexels', 'magick-ai-toolbox' ); ?></option>
 					</select>

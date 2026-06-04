@@ -2153,11 +2153,18 @@ final class Provider_Client {
 				'count'    => count( $contract_images ),
 			);
 		}
+		$resolved_provider = sanitize_key( (string) ( $result['resolved_provider'] ?? $result['provider_mode'] ?? '' ) );
+		if ( '' === $resolved_provider && is_array( $active_sources[0] ?? null ) ) {
+			$resolved_provider = sanitize_key( (string) ( $active_sources[0]['provider'] ?? '' ) );
+		}
 
 		$payload = $this->with_output_contract(
 			array(
 				'provider'                   => 'magick_ai_cloud',
 				'provider_mode'              => $provider_mode,
+				'requested_provider_mode'    => sanitize_key( (string) ( $result['requested_provider_mode'] ?? $provider_mode ) ),
+				'resolved_provider'          => $resolved_provider,
+				'auto_strategy'              => sanitize_key( (string) ( $result['auto_strategy'] ?? '' ) ),
 				'candidate_contract_version' => 'image_candidate.v1',
 				'cloud_ability'              => sanitize_text_field( (string) ( $runtime_payload['ability_name'] ?? 'magick-ai-toolbox/search-image-source' ) ),
 				'cloud_runtime'              => 'magick_ai_cloud_addon',

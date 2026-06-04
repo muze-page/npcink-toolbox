@@ -530,6 +530,8 @@
 		const meta = el('div', 'magick-ai-toolbox__result-meta');
 		appendMeta(meta, 'Cloud runtime', payload.cloud_runtime || 'magick_ai_cloud_addon');
 		appendMeta(meta, 'Provider mode', payload.provider_mode ? formatLabel(payload.provider_mode) : '');
+		appendMeta(meta, 'Auto strategy', payload.auto_strategy ? formatLabel(payload.auto_strategy) : '');
+		appendMeta(meta, 'Resolved provider', payload.resolved_provider ? formatLabel(payload.resolved_provider) : '');
 		appendMeta(meta, 'Candidate contract', payload.candidate_contract_version);
 		if (Array.isArray(payload.active_sources) && payload.active_sources.length) {
 			appendMeta(
