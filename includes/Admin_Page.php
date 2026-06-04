@@ -468,7 +468,7 @@ final class Admin_Page {
 		?>
 		<div class="magick-ai-toolbox__panel-header">
 			<h2><?php esc_html_e( 'Connectors', 'magick-ai-toolbox' ); ?></h2>
-			<p><?php esc_html_e( 'Review Cloud-managed web search, image-source, and vector ownership. Toolbox does not store provider keys locally.', 'magick-ai-toolbox' ); ?></p>
+			<p><?php esc_html_e( 'Review Cloud-managed web search and image-source ownership. Toolbox does not store provider keys locally.', 'magick-ai-toolbox' ); ?></p>
 		</div>
 
 		<form class="magick-ai-toolbox__settings-form" method="post" action="options.php">
@@ -479,10 +479,6 @@ final class Admin_Page {
 					<button type="button" class="magick-ai-toolbox__connector-tab is-active" data-toolbox-connector-target="image" aria-selected="true">
 						<span><?php esc_html_e( 'Image', 'magick-ai-toolbox' ); ?></span>
 						<small><?php echo esc_html( $image_ready ? __( 'Cloud managed', 'magick-ai-toolbox' ) : __( 'Cloud connection needed', 'magick-ai-toolbox' ) ); ?></small>
-					</button>
-					<button type="button" class="magick-ai-toolbox__connector-tab" data-toolbox-connector-target="vector" aria-selected="false">
-						<span><?php esc_html_e( 'Vector', 'magick-ai-toolbox' ); ?></span>
-						<small><?php esc_html_e( 'Cloud managed', 'magick-ai-toolbox' ); ?></small>
 					</button>
 				</nav>
 
@@ -516,34 +512,6 @@ final class Admin_Page {
 						?>
 					</section>
 
-					<section class="magick-ai-toolbox__card" data-toolbox-connector-panel="vector" hidden>
-						<h2><?php esc_html_e( 'Vector', 'magick-ai-toolbox' ); ?></h2>
-						<p><?php esc_html_e( 'Vector infrastructure is managed in Magick AI Cloud. Toolbox only displays Cloud-returned status.', 'magick-ai-toolbox' ); ?></p>
-						<?php
-						$this->render_connector_status_catalog(
-							array(
-								array(
-									'label'  => __( 'Cloud Site Knowledge', 'magick-ai-toolbox' ),
-									'state'  => 'inactive',
-									'status' => __( 'Cloud managed', 'magick-ai-toolbox' ),
-									'owner'  => __( 'Cloud service', 'magick-ai-toolbox' ),
-									'url'    => admin_url( 'admin.php?page=magick-ai-toolbox&toolbox_tab=site-knowledge' ),
-									'intro'  => __( 'Cloud owns the vector database, embedding model, dimensions, indexing, rerank, quotas, and detailed run health.', 'magick-ai-toolbox' ),
-									'note'   => __( 'Toolbox does not store vector provider keys, provider endpoints, collection names, or embedding settings.', 'magick-ai-toolbox' ),
-								),
-								array(
-									'label'  => __( 'Cloud Addon', 'magick-ai-toolbox' ),
-									'state'  => function_exists( 'magick_ai_cloud_addon_is_configured' ) && magick_ai_cloud_addon_is_configured() ? 'ok' : 'warning',
-									'status' => function_exists( 'magick_ai_cloud_addon_is_configured' ) && magick_ai_cloud_addon_is_configured() ? __( 'Connected', 'magick-ai-toolbox' ) : __( 'Connection needed', 'magick-ai-toolbox' ),
-									'owner'  => __( 'Cloud connection', 'magick-ai-toolbox' ),
-									'url'    => admin_url( 'admin.php?page=magick-ai-cloud-addon' ),
-									'intro'  => __( 'Configure the Cloud connection once; vector provider parameters stay in the Cloud operator console.', 'magick-ai-toolbox' ),
-									'note'   => __( 'Final WordPress writes still require local Core proposal approval.', 'magick-ai-toolbox' ),
-								),
-							)
-						);
-						?>
-					</section>
 				</div>
 			</div>
 
