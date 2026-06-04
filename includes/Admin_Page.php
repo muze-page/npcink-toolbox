@@ -381,6 +381,7 @@ final class Admin_Page {
 					<p class="description"><?php esc_html_e( 'Leave Post IDs empty to process the latest public posts/pages. Comments are included only when Cloud comments indexing is enabled.', 'magick-ai-toolbox' ); ?></p>
 					<div class="magick-ai-toolbox__inline-actions">
 						<button type="submit" class="button button-primary"><?php esc_html_e( 'Start sync', 'magick-ai-toolbox' ); ?></button>
+						<button type="button" class="button" data-toolbox-site-knowledge-action-status><?php esc_html_e( 'Refresh status', 'magick-ai-toolbox' ); ?></button>
 					</div>
 					<div class="magick-ai-toolbox__result is-empty" aria-live="polite" hidden></div>
 				</form>

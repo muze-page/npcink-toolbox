@@ -1599,6 +1599,45 @@
 		return payload;
 	}
 
+	function setSiteKnowledgeButtonsBusy(root, busy) {
+		root.querySelectorAll('[data-toolbox-site-knowledge-status], [data-toolbox-site-knowledge-action-status]').forEach((button) => {
+			button.disabled = busy;
+			button.setAttribute('aria-busy', busy ? 'true' : 'false');
+		});
+	}
+
+	function setSiteKnowledgeSyncBusy(form, busy) {
+		const submitButton = form.querySelector('button[type="submit"]');
+		if (!submitButton) {
+			return;
+		}
+		if (!submitButton.__magickOriginalText) {
+			submitButton.__magickOriginalText = submitButton.textContent;
+		}
+		submitButton.disabled = busy;
+		submitButton.setAttribute('aria-busy', busy ? 'true' : 'false');
+		submitButton.textContent = busy ? 'Sync queued...' : submitButton.__magickOriginalText;
+	}
+
+	function siteKnowledgeStatusStillActive(payload) {
+		const status = String(payload && payload.status ? payload.status : '').toLowerCase();
+		return status === 'queued' || status === 'running' || status === 'syncing';
+	}
+
+	async function pollSiteKnowledgeStatus(root, attempts) {
+		let payload = null;
+		for (let index = 0; index < attempts; index += 1) {
+			payload = await refreshSiteKnowledgeStatus(root);
+			if (!siteKnowledgeStatusStillActive(payload)) {
+				return payload;
+			}
+			await new Promise((resolve) => {
+				window.setTimeout(resolve, 2000);
+			});
+		}
+		return payload;
+	}
+
 	function initSiteKnowledge() {
 		document.querySelectorAll('[data-toolbox-site-knowledge]').forEach((root) => {
 			const renderStatusError = (error) => {
@@ -1609,26 +1648,37 @@
 					summary.appendChild(createRawDetails(error, 'Status error'));
 				}
 			};
-			const statusButton = root.querySelector('[data-toolbox-site-knowledge-status]');
-			if (statusButton) {
+			root.querySelectorAll('[data-toolbox-site-knowledge-status], [data-toolbox-site-knowledge-action-status]').forEach((statusButton) => {
 				statusButton.addEventListener('click', async () => {
+					setSiteKnowledgeButtonsBusy(root, true);
 					try {
 						await refreshSiteKnowledgeStatus(root);
 					} catch (error) {
 						renderStatusError(error);
+					} finally {
+						setSiteKnowledgeButtonsBusy(root, false);
 					}
 				});
-			}
+			});
 
 			const syncForm = root.querySelector('[data-toolbox-site-knowledge-sync]');
 			if (syncForm) {
 				syncForm.addEventListener('submit', async (event) => {
 					event.preventDefault();
+					setSiteKnowledgeSyncBusy(syncForm, true);
+					setSiteKnowledgeButtonsBusy(root, true);
 					try {
-						await runSiteKnowledgeForm(syncForm, 'site-knowledge/sync');
-						await refreshSiteKnowledgeStatus(root);
+						const payload = await runSiteKnowledgeForm(syncForm, 'site-knowledge/sync');
+						if (siteKnowledgeStatusStillActive(payload)) {
+							await pollSiteKnowledgeStatus(root, 8);
+						} else {
+							await refreshSiteKnowledgeStatus(root);
+						}
 					} catch (error) {
 						renderTextResult(syncForm, error.message || 'Site knowledge sync failed.', 'error');
+					} finally {
+						setSiteKnowledgeButtonsBusy(root, false);
+						setSiteKnowledgeSyncBusy(syncForm, false);
 					}
 				});
 			}

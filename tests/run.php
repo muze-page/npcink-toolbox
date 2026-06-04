@@ -58,6 +58,7 @@ toolbox_assert( false !== strpos( $admin_page, 'magick-ai-toolbox__status-strip'
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-tabs' ), 'Admin page separates tools, content context, and connectors into top-level tabs.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-tab-target="context" aria-selected="true"' ), 'Content Context is the default admin tab.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-tab-target="site-knowledge"' ) && false !== strpos( $admin_page, 'data-toolbox-site-knowledge' ), 'Admin page exposes a Site Knowledge operation panel.' );
+toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-site-knowledge-status' ) && false !== strpos( $admin_page, 'data-toolbox-site-knowledge-action-status' ), 'Site Knowledge exposes status refresh in both status and action sections.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-context-sections' ) && false !== strpos( $admin_page, 'data-toolbox-context-panel' ), 'Content context uses a focused tabbed workspace.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-context-target="brief" aria-selected="true"' ) && false !== strpos( $admin_page, 'data-toolbox-context-target="boundaries"' ), 'Content context defaults to Brief and keeps Boundaries as a focused section.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-context-groups' ) && false !== strpos( $admin_page, 'data-toolbox-context-group-target="brief-profile"' ) && false !== strpos( $admin_page, 'data-toolbox-context-group-target="boundaries-preview"' ), 'Content context sections use a left field list and right detail panel.' );
@@ -146,6 +147,7 @@ toolbox_assert( false === strpos( $admin_js, 'result.textContent = JSON.stringif
 toolbox_assert( false !== strpos( $admin_js, 'initContextDrafts' ) && false !== strpos( $admin_js, 'applyContextDraft' ), 'Admin JavaScript can prefill editable content context drafts.' );
 toolbox_assert( false !== strpos( $admin_js, 'clearContextForm' ), 'Admin JavaScript can clear the content context form before a new draft.' );
 toolbox_assert( false !== strpos( $admin_js, 'initSiteKnowledge' ) && false !== strpos( $admin_js, 'site-knowledge/sync' ) && false !== strpos( $admin_js, 'site-knowledge/status' ), 'Admin JavaScript runs Site Knowledge status and sync actions.' );
+toolbox_assert( false !== strpos( $admin_js, 'setSiteKnowledgeSyncBusy' ) && false !== strpos( $admin_js, 'pollSiteKnowledgeStatus' ) && false !== strpos( $admin_js, 'Sync queued...' ), 'Admin JavaScript disables duplicate Site Knowledge sync submissions and polls status.' );
 
 $admin_css = file_get_contents( $root . '/assets/admin.css' );
 toolbox_assert( false !== strpos( $admin_css, 'magick-ai-toolbox__result-summary' ), 'Admin CSS styles summary-first result panels.' );
