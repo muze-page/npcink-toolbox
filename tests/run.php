@@ -78,6 +78,7 @@ toolbox_assert( false !== strpos( $admin_page, 'magick-ai-toolbox__connector-tab
 toolbox_assert( false === strpos( $admin_page, 'data-toolbox-connector-providers' ) && false === strpos( $admin_page, 'data-toolbox-connector-provider-target' ) && false === strpos( $admin_page, 'data-toolbox-connector-provider-panel' ), 'Connector settings no longer expose provider rail configuration locally.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-connector-target="search" aria-selected="true"' ), 'Search is the default connector section for Cloud web search testing.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-endpoint="web-search/test"' ) && false !== strpos( $admin_page, 'Run search test' ), 'Connector settings expose a Cloud-managed Web Search test action.' );
+toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-endpoint="web-search/diagnostics"' ) && false !== strpos( $admin_page, 'Workflow diagnostic' ), 'Connector settings expose a Cloud web search workflow diagnostic action.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-connector-target="image" aria-selected="false"' ), 'Image connector stays available after the Cloud Search test section.' );
 toolbox_assert( false === strpos( $admin_page, 'data-toolbox-connector-target="vector"' ) && false === strpos( $admin_page, 'data-toolbox-connector-panel="vector"' ), 'Connector settings no longer expose a Vector section.' );
 toolbox_assert( false !== strpos( $admin_page, 'Cloud image sources' ) && false !== strpos( $admin_page, 'Cloud service' ) && false !== strpos( $admin_page, 'provider keys, quotas, health, and provider selection' ), 'Image connector surface is Cloud-managed and read-only locally.' );
@@ -131,6 +132,7 @@ toolbox_assert( false !== strpos( $admin_js, 'toolbox_tab' ) && false !== strpos
 toolbox_assert( false !== strpos( $admin_js, "result.hidden = false" ), 'Tool results stay hidden until a tool returns output.' );
 toolbox_assert( false !== strpos( $admin_js, 'renderStructuredResult' ) && false !== strpos( $admin_js, 'renderShell' ), 'Admin JavaScript renders tool results through a summary-first structured renderer.' );
 toolbox_assert( false !== strpos( $admin_js, 'renderWebSearchResults' ) && false !== strpos( $admin_js, "payload.artifact_type === 'web_search_results'" ), 'Admin JavaScript renders Cloud web search test results through a dedicated view.' );
+toolbox_assert( false !== strpos( $admin_js, 'renderWebSearchDiagnostics' ) && false !== strpos( $admin_js, "payload.artifact_type === 'web_search_diagnostics'" ), 'Admin JavaScript renders Cloud web search workflow diagnostics through a dedicated view.' );
 toolbox_assert( false !== strpos( $admin_js, 'createRawDetails' ) && false !== strpos( $admin_js, 'Complete payload' ), 'Complete payload output is moved behind a result disclosure.' );
 toolbox_assert( false !== strpos( $admin_js, 'Provider raw response' ), 'Provider raw responses are rendered only as disclosure details.' );
 toolbox_assert( false !== strpos( $admin_js, 'Download tracking' ) && false !== strpos( $admin_js, 'Attribution metadata' ), 'Image candidate rendering preserves Unsplash attribution and download tracking metadata.' );
@@ -206,6 +208,7 @@ $allowed_rest_routes = array(
 	'/vector-search',
 	'/knowledge-search',
 	'/web-search/test',
+	'/web-search/diagnostics',
 	'/site-knowledge/search',
 	'/site-knowledge/sync',
 	'/site-knowledge/status',
@@ -253,6 +256,8 @@ $client = file_get_contents( $root . '/includes/Provider_Client.php' );
 toolbox_assert( false === strpos( $client, 'https://api.tavily.com/search' ) && false === strpos( $client, 'search_bocha_web' ) && false === strpos( $client, 'enhance_results_with_jina_reader' ), 'Provider client no longer calls local web search providers.' );
 toolbox_assert( false !== strpos( $client, 'test_cloud_web_search' ) && false !== strpos( $client, "'ability_name'        => 'magick-ai-cloud/web-search'" ), 'Provider client can test Cloud-managed web search through the Cloud runtime seam.' );
 toolbox_assert( false !== strpos( $client, 'normalize_cloud_web_search_response' ) && false !== strpos( $client, "'web_search_results'" ), 'Provider client normalizes Cloud web search test output for operator review.' );
+toolbox_assert( false !== strpos( $client, 'diagnose_automatic_web_search' ) && false !== strpos( $client, "'web_search_diagnostics'" ), 'Provider client can diagnose whether Toolbox workflows attach Cloud web search evidence.' );
+toolbox_assert( false !== strpos( $client, 'cloud_web_search_for_content' ) && false !== strpos( $client, "'external_research'      => \$external_research" ), 'Article and discoverability flows can attach Cloud web search evidence without local provider keys.' );
 toolbox_assert( false !== strpos( $client, 'execute_image_source_cloud_request' ) && false !== strpos( $client, 'magick_ai_toolbox_image_source_cloud_request' ), 'Image candidates use a Cloud-managed image-source runtime seam.' );
 toolbox_assert( false === strpos( $client, 'https://api.unsplash.com/search/photos' ) && false === strpos( $client, 'https://pixabay.com/api/' ) && false === strpos( $client, 'https://api.pexels.com/v1/search' ), 'Image candidates do not directly call public image provider APIs locally.' );
 toolbox_assert( false !== strpos( $client, 'magick_ai_toolbox_ai_image_generation_request' ) && false !== strpos( $client, "'ai_generated'" ), 'Image candidates support an explicit AI-generated candidate runtime seam.' );

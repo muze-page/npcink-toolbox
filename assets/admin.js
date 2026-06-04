@@ -697,6 +697,59 @@
 		result.appendChild(createRawDetails(payload, 'Search payload'));
 	}
 
+	function renderWebSearchDiagnostics(form, payload) {
+		const search = payload.workflow_search && typeof payload.workflow_search === 'object' ? payload.workflow_search : {};
+		const result = renderShell(
+			form,
+			payload,
+			'Workflow search diagnostic',
+			payload.search_triggered === true
+				? 'The selected Toolbox workflow attached Cloud web search evidence.'
+				: 'The selected Toolbox workflow did not attach usable Cloud web search evidence.'
+		);
+		if (!result) {
+			return;
+		}
+
+		const meta = el('div', 'magick-ai-toolbox__result-meta');
+		appendMeta(meta, 'Scenario', payload.scenario ? formatLabel(payload.scenario) : '');
+		appendMeta(meta, 'Triggered', payload.search_triggered === true ? 'Yes' : 'No');
+		appendMeta(meta, 'Status', payload.status ? formatLabel(payload.status) : '');
+		appendMeta(meta, 'Workflow', payload.workflow_artifact_type ? formatLabel(payload.workflow_artifact_type) : '');
+		appendMeta(meta, 'Provider', payload.cloud_provider ? formatLabel(payload.cloud_provider) : '');
+		appendMeta(meta, 'Provider mode', payload.provider_mode ? formatLabel(payload.provider_mode) : '');
+		appendMeta(meta, 'Results', payload.result_count);
+		appendMeta(meta, 'Sources', payload.source_count);
+		result.appendChild(meta);
+
+		if (payload.search_triggered !== true) {
+			result.appendChild(el('div', 'magick-ai-toolbox__result-notice is-warning', 'Check Cloud connection and provider configuration before relying on external evidence.'));
+		}
+
+		if (Array.isArray(search.sources) && search.sources.length) {
+			const section = createSection('Attached sources');
+			const list = el('div', 'magick-ai-toolbox__result-list');
+			search.sources.forEach((item) => {
+				const row = el('article', 'magick-ai-toolbox__result-item');
+				row.appendChild(el('h4', '', item.title || item.url || 'Attached source'));
+				if (item.url) {
+					row.appendChild(createLink(item.url, item.url));
+				}
+				row.appendChild(el('p', '', truncate(item.summary || item.snippet || '', 280)));
+				const rowMeta = el('div', 'magick-ai-toolbox__result-meta');
+				appendMeta(rowMeta, 'Source', item.source_type ? formatLabel(item.source_type) : item.source ? formatLabel(item.source) : '');
+				appendMeta(rowMeta, 'Status', item.verification_status ? formatLabel(item.verification_status) : '');
+				row.appendChild(rowMeta);
+				list.appendChild(row);
+			});
+			section.appendChild(list);
+			result.appendChild(section);
+		}
+
+		renderHandoff(result, payload.handoff);
+		result.appendChild(createRawDetails(payload, 'Diagnostic payload'));
+	}
+
 	function renderArticleBrief(form, payload) {
 		const result = renderShell(
 			form,
@@ -795,6 +848,10 @@
 		appendMeta(meta, 'Ready', ready ? 'Yes' : 'No');
 		appendMeta(meta, 'Write plan', hasWritePlan ? 'Included' : 'Not ready');
 		appendMeta(meta, 'Final path', payload.final_write_path || (payload.handoff && payload.handoff.final_write_path));
+		if (payload.research_evidence_pack && payload.research_evidence_pack.research_status) {
+			appendMeta(meta, 'Search', payload.research_evidence_pack.research_status.status ? formatLabel(payload.research_evidence_pack.research_status.status) : '');
+			appendMeta(meta, 'Search results', payload.research_evidence_pack.research_status.result_count);
+		}
 		result.appendChild(meta);
 
 		if (Array.isArray(risk.needs_review) && risk.needs_review.length) {
@@ -1443,6 +1500,11 @@
 
 		if (payload.artifact_type === 'web_search_results') {
 			renderWebSearchResults(form, payload);
+			return;
+		}
+
+		if (payload.artifact_type === 'web_search_diagnostics') {
+			renderWebSearchDiagnostics(form, payload);
 			return;
 		}
 

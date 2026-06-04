@@ -27,6 +27,7 @@ final class Rest_Controller {
 		$this->post( '/vector-search', 'knowledge_search' );
 		$this->post( '/knowledge-search', 'knowledge_search' );
 		$this->post( '/web-search/test', 'web_search_test' );
+		$this->post( '/web-search/diagnostics', 'web_search_diagnostics' );
 		$this->post( '/site-knowledge/search', 'site_knowledge_search' );
 		$this->post( '/site-knowledge/sync', 'site_knowledge_sync' );
 		$this->post( '/flows/article-brief', 'article_brief' );
@@ -149,6 +150,23 @@ final class Rest_Controller {
 					'provider'            => sanitize_key( (string) ( $request->get_param( 'provider' ) ?: 'auto' ) ),
 					'max_results'         => max( 1, min( 5, (int) ( $request->get_param( 'max_results' ) ?: 3 ) ) ),
 					'recency_days'        => max( 0, min( 30, (int) ( $request->get_param( 'recency_days' ) ?: 7 ) ) ),
+				)
+			)
+		);
+	}
+
+	public function web_search_diagnostics( WP_REST_Request $request ) {
+		$topic = $this->required_text( $request, 'topic' );
+		if ( is_wp_error( $topic ) ) {
+			return $topic;
+		}
+
+		return rest_ensure_response(
+			$this->client->diagnose_automatic_web_search(
+				array(
+					'topic'    => $topic,
+					'title'    => sanitize_text_field( (string) ( $request->get_param( 'title' ) ?: $topic ) ),
+					'scenario' => sanitize_key( (string) ( $request->get_param( 'scenario' ) ?: 'article_assistant' ) ),
 				)
 			)
 		);
@@ -325,6 +343,8 @@ final class Rest_Controller {
 						'topic'   => $query,
 						'excerpt' => (string) ( $context['excerpt'] ?? '' ),
 						'content' => (string) ( $context['content_text'] ?? '' ),
+						'external_search_intent' => 'publish_preflight' === $intent ? 'fact_check' : 'writing_context',
+						'include_external_search' => true,
 					)
 				)
 			);

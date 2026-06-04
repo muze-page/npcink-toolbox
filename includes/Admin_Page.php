@@ -537,6 +537,30 @@ final class Admin_Page {
 						<button type="submit" class="button button-primary"><?php esc_html_e( 'Run search test', 'magick-ai-toolbox' ); ?></button>
 						<div class="magick-ai-toolbox__result is-empty" aria-live="polite" hidden></div>
 					</form>
+					<form class="magick-ai-toolbox__inline-form" data-toolbox-endpoint="web-search/diagnostics">
+						<h3><?php esc_html_e( 'Workflow diagnostic', 'magick-ai-toolbox' ); ?></h3>
+						<p><?php esc_html_e( 'Run a Toolbox content workflow and verify whether it attached Cloud web search evidence.', 'magick-ai-toolbox' ); ?></p>
+						<div class="magick-ai-toolbox__split">
+							<label>
+								<span><?php esc_html_e( 'Scenario', 'magick-ai-toolbox' ); ?></span>
+								<select name="scenario">
+									<option value="article_assistant"><?php esc_html_e( 'Article Assistant', 'magick-ai-toolbox' ); ?></option>
+									<option value="discoverability"><?php esc_html_e( 'Discoverability', 'magick-ai-toolbox' ); ?></option>
+									<option value="publish_preflight"><?php esc_html_e( 'Publish preflight', 'magick-ai-toolbox' ); ?></option>
+								</select>
+							</label>
+							<label>
+								<span><?php esc_html_e( 'Topic', 'magick-ai-toolbox' ); ?></span>
+								<input type="text" name="topic" value="latest WordPress AI search trends" />
+							</label>
+						</div>
+						<label>
+							<span><?php esc_html_e( 'Working title', 'magick-ai-toolbox' ); ?></span>
+							<input type="text" name="title" placeholder="<?php esc_attr_e( 'Optional title override', 'magick-ai-toolbox' ); ?>" />
+						</label>
+						<button type="submit" class="button"><?php esc_html_e( 'Run workflow diagnostic', 'magick-ai-toolbox' ); ?></button>
+						<div class="magick-ai-toolbox__result is-empty" aria-live="polite" hidden></div>
+					</form>
 				</section>
 
 				<section class="magick-ai-toolbox__card" data-toolbox-connector-panel="image" hidden>

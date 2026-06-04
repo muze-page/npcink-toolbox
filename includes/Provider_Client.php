@@ -499,6 +499,30 @@ final class Provider_Client {
 		);
 	}
 
+	private function cloud_web_search_error_notice( WP_Error $error ): array {
+		$notice                 = $this->cloud_web_search_notice();
+		$notice['status']       = 'failed';
+		$notice['error_code']   = sanitize_key( (string) $error->get_error_code() );
+		$notice['error']        = sanitize_text_field( $error->get_error_message() );
+		$notice['result_count'] = 0;
+
+		return $notice;
+	}
+
+	private function cloud_web_search_for_content( string $query, string $intent = 'writing_context', int $max_results = 3 ): array {
+		$result = $this->test_cloud_web_search(
+			array(
+				'query'        => $query,
+				'intent'       => $intent,
+				'provider'     => 'auto',
+				'max_results'  => $max_results,
+				'recency_days' => 'news' === $intent ? 7 : 30,
+			)
+		);
+
+		return is_wp_error( $result ) ? $this->cloud_web_search_error_notice( $result ) : $result;
+	}
+
 	public function test_cloud_web_search( array $input ) {
 		$query = trim( sanitize_textarea_field( (string) ( $input['query'] ?? '' ) ) );
 		if ( '' === $query ) {
@@ -591,6 +615,74 @@ final class Provider_Client {
 		return $this->normalize_cloud_web_search_response( is_array( $response ) ? $response : array(), $runtime_payload );
 	}
 
+	public function diagnose_automatic_web_search( array $input ) {
+		$topic = trim( sanitize_text_field( (string) ( $input['topic'] ?? $input['query'] ?? '' ) ) );
+		if ( '' === $topic ) {
+			return new WP_Error(
+				'magick_ai_toolbox_missing_web_search_diagnostic_topic',
+				__( 'A topic is required for the Cloud web search workflow diagnostic.', 'magick-ai-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$scenario = sanitize_key( (string) ( $input['scenario'] ?? 'article_assistant' ) );
+		if ( ! in_array( $scenario, array( 'article_assistant', 'discoverability', 'publish_preflight' ), true ) ) {
+			$scenario = 'article_assistant';
+		}
+
+		if ( 'article_assistant' === $scenario ) {
+			$artifact = $this->build_article_assistant(
+				array(
+					'topic'         => $topic,
+					'title'         => sanitize_text_field( (string) ( $input['title'] ?? $topic ) ),
+					'source_policy' => 'strict_sources',
+					'draft_notes'   => sanitize_textarea_field( (string) ( $input['draft_notes'] ?? '' ) ),
+				)
+			);
+		} else {
+			$artifact = $this->build_content_discoverability_brief(
+				array(
+					'topic'                  => $topic,
+					'title'                  => sanitize_text_field( (string) ( $input['title'] ?? $topic ) ),
+					'external_search_intent' => 'publish_preflight' === $scenario ? 'fact_check' : 'writing_context',
+					'include_external_search' => true,
+				)
+			);
+		}
+
+		if ( is_wp_error( $artifact ) ) {
+			return $artifact;
+		}
+
+		$artifact = is_array( $artifact ) ? $artifact : array();
+		$search   = $this->extract_workflow_web_search_report( $artifact, $scenario );
+		$status   = sanitize_key( (string) ( $search['status'] ?? '' ) );
+		$triggered = array() !== $search && ! in_array( $status, array( '', 'cloud_managed', 'skipped' ), true );
+
+		return $this->with_output_contract(
+			array(
+				'provider'              => 'toolbox',
+				'scenario'              => $scenario,
+				'topic'                 => $topic,
+				'status'                => $triggered ? $status : 'not_triggered',
+				'search_triggered'      => $triggered,
+				'workflow_artifact_type' => sanitize_key( (string) ( $artifact['artifact_type'] ?? '' ) ),
+				'workflow_search'       => $search,
+				'result_count'          => absint( $search['result_count'] ?? 0 ),
+				'source_count'          => absint( $search['source_count'] ?? 0 ),
+				'provider_mode'         => sanitize_key( (string) ( $search['provider_mode'] ?? '' ) ),
+				'cloud_provider'        => sanitize_key( (string) ( $search['provider'] ?? '' ) ),
+				'handoff'               => array(
+					'cloud_runtime'          => 'magick_ai_cloud_addon',
+					'final_writes'           => 'core_proposal_required',
+					'direct_wordpress_write' => false,
+				),
+			),
+			'web_search_diagnostics',
+			'workflow_search_diagnostic'
+		);
+	}
+
 	public function build_article_brief( string $topic, bool $include_vector = true ) {
 		$research  = $this->cloud_web_search_notice();
 		$images    = $this->image_candidates( $topic, array( 'per_page' => 6 ) );
@@ -652,15 +744,18 @@ final class Provider_Client {
 		$validation     = $this->settings->validate_content_context_for_ability();
 		$context_status = sanitize_key( (string) ( $validation['status'] ?? 'needs_attention' ) );
 
-			$research = $this->cloud_web_search_notice();
-			$images   = $this->image_candidates( $topic, array( 'per_page' => 6 ) );
-			$knowledge = $this->vector_search( $topic, 4, 'text' );
+		$research = 'operator_notes_only' === $source_policy
+			? $this->cloud_web_search_notice()
+			: $this->cloud_web_search_for_content( $topic, 'writing_context', 4 );
+		$images   = $this->image_candidates( $topic, array( 'per_page' => 6 ) );
+		$knowledge = $this->vector_search( $topic, 4, 'text' );
 
 		$discoverability = $this->build_content_discoverability_brief(
 			array(
 				'topic'            => $topic,
 				'title'            => $title,
 				'content_markdown' => '' !== $reviewed_draft ? $reviewed_draft : $draft_notes,
+				'include_external_search' => false,
 			)
 		);
 
@@ -1487,6 +1582,14 @@ final class Provider_Client {
 		$exceptions        = is_array( $context['exceptions'] ?? null ) ? $this->sanitize_payload( $context['exceptions'] ) : array();
 		$proposal_template = array();
 		$candidates        = array();
+		$include_external_search = ! array_key_exists( 'include_external_search', $input ) || ! empty( $input['include_external_search'] );
+		$external_search_intent  = sanitize_key( (string) ( $input['external_search_intent'] ?? 'writing_context' ) );
+		if ( ! in_array( $external_search_intent, array( 'fact_check', 'news', 'writing_context', 'competitor_research', 'source_discovery', 'external_links' ), true ) ) {
+			$external_search_intent = 'writing_context';
+		}
+		$external_research = $include_external_search
+			? $this->cloud_web_search_for_content( sanitize_text_field( (string) ( $source['topic'] ?? $source['title'] ?? '' ) ), $external_search_intent, 3 )
+			: $this->cloud_web_search_notice();
 		$sections          = array(
 			'seo' => array(
 				'rules'              => sanitize_textarea_field( (string) ( $context['rules']['seo'] ?? '' ) ),
@@ -1541,12 +1644,14 @@ final class Provider_Client {
 			'exceptions'             => $exceptions,
 			'special_cases'          => $exceptions,
 			'source'                 => $source,
+			'external_research'      => $external_research,
 			'seo'                    => $sections['seo'],
 			'aeo'                    => $sections['aeo'],
 			'geo'                    => $sections['geo'],
 			'ai_instructions'        => array(
 				'Use the content_context as the site-level rule source.',
 				'Use only facts present in the supplied source, public site context, or cited evidence.',
+				'Use external_research only as suggestion evidence and preserve source URLs for operator review.',
 				'Do not invent customer cases, ranking guarantees, source citations, or unavailable product features.',
 				'Return suggestions only for proposal_allowed_fields.',
 				'Respect forbidden claims and preserve the requested brand voice.',
@@ -2442,6 +2547,8 @@ final class Provider_Client {
 			) : array(
 				'provider'        => is_array( $research ) ? sanitize_key( (string) ( $research['provider'] ?? 'cloud_web_search' ) ) : 'cloud_web_search',
 				'provider_mode'   => is_array( $research ) ? sanitize_key( (string) ( $research['provider_mode'] ?? '' ) ) : '',
+				'status'          => is_array( $research ) ? sanitize_key( (string) ( $research['status'] ?? '' ) ) : '',
+				'result_count'    => is_array( $research ) ? absint( $research['result_count'] ?? 0 ) : 0,
 				'active_sources'  => is_array( $research ) ? $this->sanitize_payload( $research['active_sources'] ?? array() ) : array(),
 			),
 			'site_knowledge'       => is_wp_error( $knowledge ) ? array(
@@ -2451,6 +2558,39 @@ final class Provider_Client {
 			),
 			'evidence_policy'      => 'Source candidates are planning evidence only. Operators must verify citations and factual claims before Core proposal handoff.',
 			'direct_wordpress_write' => false,
+		);
+	}
+
+	private function extract_workflow_web_search_report( array $artifact, string $scenario ): array {
+		if ( 'article_assistant' === $scenario ) {
+			$evidence = is_array( $artifact['research_evidence_pack'] ?? null ) ? $artifact['research_evidence_pack'] : array();
+			$status   = is_array( $evidence['research_status'] ?? null ) ? $evidence['research_status'] : array();
+			$sources  = array_filter(
+				is_array( $evidence['sources'] ?? null ) ? $evidence['sources'] : array(),
+				static fn( $source ): bool => is_array( $source ) && 'cloud_web_search' === (string) ( $source['source_type'] ?? '' )
+			);
+
+			return array(
+				'status'        => sanitize_key( (string) ( $status['status'] ?? '' ) ),
+				'provider'      => sanitize_key( (string) ( $status['provider'] ?? 'cloud_web_search' ) ),
+				'provider_mode' => sanitize_key( (string) ( $status['provider_mode'] ?? '' ) ),
+				'result_count'  => absint( $status['result_count'] ?? count( $sources ) ),
+				'source_count'  => count( $sources ),
+				'sources'       => $this->sanitize_payload( array_values( $sources ) ),
+			);
+		}
+
+		$research = is_array( $artifact['external_research'] ?? null ) ? $artifact['external_research'] : array();
+		$results  = is_array( $research['results'] ?? null ) ? $research['results'] : array();
+
+		return array(
+			'status'        => sanitize_key( (string) ( $research['status'] ?? '' ) ),
+			'provider'      => sanitize_key( (string) ( $research['provider'] ?? 'cloud_web_search' ) ),
+			'provider_mode' => sanitize_key( (string) ( $research['provider_mode'] ?? '' ) ),
+			'result_count'  => absint( $research['result_count'] ?? count( $results ) ),
+			'source_count'  => count( $results ),
+			'evidence_gate' => is_array( $research['evidence_gate'] ?? null ) ? $this->sanitize_payload( $research['evidence_gate'] ) : array(),
+			'sources'       => $this->sanitize_payload( array_slice( $results, 0, 5 ) ),
 		);
 	}
 
