@@ -89,6 +89,9 @@ sequence:
      brief is useful.
 9. `magick-ai-toolbox/build-article-write-plan`
    - Convert a reviewed draft into a Core-ready `article_write_plan` handoff.
+10. `magick-ai-toolbox/build-article-media-batch-write-plan`
+   - Convert reviewed drafts and selected image-source candidates into a
+     Core-ready `article_media_batch_write_plan` handoff.
 
 The AI caller may skip unavailable optional steps, but it must preserve the
 write posture from the abilities it calls.
@@ -109,6 +112,8 @@ write posture from the abilities it calls.
 | `magick-ai-toolbox/build-ai-article-writing-pack` | `ai_article_writing_pack` | Convenience fallback for OpenClaw-style natural-language article requests. |
 | `magick-ai-toolbox/build-article-brief` | `article_planning_bundle` | Compact research, image, vector, and handoff notes. |
 | `magick-ai-toolbox/build-article-write-plan` | `core_article_write_plan` | Reviewed draft plan for Core proposal intake. |
+| `magick-ai-toolbox/build-article-batch-write-plan` | `core_article_batch_write_plan` | Reviewed draft batch plan for one Core batch proposal. |
+| `magick-ai-toolbox/build-article-media-batch-write-plan` | `core_article_media_batch_write_plan` | Reviewed article plus image-source plan for Core-governed draft, media upload, metadata, and featured-image actions. |
 | `magick-ai-toolbox/build-media-brief` | `media_planning_bundle` | Image-source planning for existing post context. |
 
 ## Output Contract

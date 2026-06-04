@@ -1255,6 +1255,262 @@ final class Provider_Client {
 		);
 	}
 
+	public function build_article_media_batch_write_plan( array $input ) {
+		$articles = is_array( $input['articles'] ?? null ) ? array_values( $input['articles'] ) : array();
+		if ( count( $articles ) < 1 || count( $articles ) > 5 ) {
+			return new WP_Error(
+				'magick_ai_toolbox_article_media_batch_size_invalid',
+				__( 'Article media batch write plans require 1 to 5 reviewed draft articles.', 'magick-ai-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$topic          = sanitize_text_field( (string) ( $input['topic'] ?? 'Article media batch draft plan' ) );
+		$search_images  = true === (bool) ( $input['search_images'] ?? false );
+		$image_provider = sanitize_key( (string) ( $input['image_provider'] ?? $input['provider'] ?? '' ) );
+		$blocked_claims = $this->sanitize_string_list( $input['blocked_claims'] ?? array() );
+		$risk_level     = sanitize_key( (string) ( $input['risk_level'] ?? ( empty( $blocked_claims ) ? 'medium' : 'high' ) ) );
+		if ( ! in_array( $risk_level, array( 'low', 'medium', 'high' ), true ) ) {
+			$risk_level = 'medium';
+		}
+		$ready_for_proposal = empty( $blocked_claims ) && 'high' !== $risk_level;
+		$article_artifacts  = array();
+		$write_actions      = array();
+		$preview            = array();
+		$media_workflow     = array();
+
+		foreach ( $articles as $index => $article ) {
+			$article = is_array( $article ) ? $article : array();
+			$title   = trim( sanitize_text_field( (string) ( $article['title'] ?? '' ) ) );
+			$content = trim( sanitize_textarea_field( (string) ( $article['content_markdown'] ?? ( $article['content'] ?? '' ) ) ) );
+			if ( '' === $title || '' === $content ) {
+				return new WP_Error(
+					'magick_ai_toolbox_article_media_batch_item_invalid',
+					__( 'Every article media batch item requires title and content_markdown.', 'magick-ai-toolbox' ),
+					array(
+						'status' => 400,
+						'index'  => $index,
+					)
+				);
+			}
+
+			$candidate = $this->resolve_article_media_candidate( $article, $title, $topic, $search_images, $image_provider );
+			if ( is_wp_error( $candidate ) ) {
+				$candidate->add_data(
+					array_merge(
+						(array) $candidate->get_error_data(),
+						array(
+							'status' => 400,
+							'index'  => $index,
+						)
+					)
+				);
+				return $candidate;
+			}
+
+			$image_url = (string) ( $candidate['regular_url'] ?? $candidate['small_url'] ?? $candidate['url'] ?? '' );
+			if ( '' === $image_url ) {
+				return new WP_Error(
+					'magick_ai_toolbox_article_media_url_missing',
+					__( 'Every article media batch item requires a selected image URL.', 'magick-ai-toolbox' ),
+					array(
+						'status' => 400,
+						'index'  => $index,
+					)
+				);
+			}
+
+			$position      = $index + 1;
+			$create_id     = 'create_article_draft_' . $position;
+			$upload_id     = 'upload_featured_image_' . $position;
+			$metadata_id   = 'update_featured_image_details_' . $position;
+			$featured_id   = 'set_featured_image_' . $position;
+			$excerpt       = sanitize_textarea_field( (string) ( $article['excerpt'] ?? wp_trim_words( wp_strip_all_tags( $content ), 35, '' ) ) );
+			$provider      = sanitize_key( (string) ( $candidate['provider'] ?? 'external' ) );
+			$source_type   = in_array( $provider, array( 'unsplash', 'pixabay', 'pexels' ), true ) ? 'stock' : 'external';
+			$source_url    = esc_url_raw( (string) ( $candidate['source_url'] ?? $candidate['html_url'] ?? '' ) );
+			$photographer  = sanitize_text_field( (string) ( $candidate['photographer'] ?? $candidate['photographer_name'] ?? '' ) );
+			$attribution   = sanitize_textarea_field( (string) ( $candidate['attribution'] ?? $candidate['attribution_text'] ?? '' ) );
+			$alt           = sanitize_textarea_field( (string) ( $candidate['alt_description'] ?? $candidate['description'] ?? $title ) );
+			$description   = sanitize_textarea_field( (string) ( $candidate['description'] ?? $alt ) );
+
+			$article_artifacts[] = array(
+				'article_goal_brief'      => is_array( $article['article_goal_brief'] ?? null ) ? $this->sanitize_payload( $article['article_goal_brief'] ) : array(
+					'topic'       => $topic,
+					'title'       => $title,
+					'image_query' => sanitize_text_field( (string) ( $article['image_query'] ?? $title ) ),
+				),
+				'research_evidence_pack'  => is_array( $article['research_evidence_pack'] ?? null ) ? $this->sanitize_payload( $article['research_evidence_pack'] ) : array(
+					'sources' => is_array( $article['sources'] ?? null ) ? $this->sanitize_payload( $article['sources'] ) : array(),
+				),
+				'article_outline'         => is_array( $article['article_outline'] ?? null ) ? $this->sanitize_payload( $article['article_outline'] ) : array(
+					'title'    => $title,
+					'sections' => array(),
+				),
+				'article_draft_candidate' => is_array( $article['article_draft_candidate'] ?? null ) ? $this->sanitize_payload( $article['article_draft_candidate'] ) : array(
+					'content_markdown' => $content,
+				),
+				'discoverability_pack'    => is_array( $article['discoverability_pack'] ?? null ) ? $this->sanitize_payload( $article['discoverability_pack'] ) : array(
+					'excerpt' => $excerpt,
+				),
+				'article_risk_report'     => is_array( $article['article_risk_report'] ?? null ) ? $this->sanitize_payload( $article['article_risk_report'] ) : array(
+					'risk_level'         => $risk_level,
+					'blocked_claims'     => $blocked_claims,
+					'ready_for_proposal' => $ready_for_proposal,
+				),
+				'featured_image_candidate' => $this->sanitize_payload( $candidate ),
+			);
+
+			$write_actions[] = array(
+				'action_id'         => $create_id,
+				'target_ability_id' => 'magick-ai/create-draft',
+				'recipe_step'       => 'host_governed_create_draft',
+				'input'             => array(
+					'title'          => $title,
+					'content'        => $content,
+					'content_format' => sanitize_key( (string) ( $article['content_format'] ?? 'plain' ) ),
+					'excerpt'        => $excerpt,
+					'status'         => 'draft',
+					'dry_run'        => true,
+					'commit'         => false,
+					'idempotency_key' => 'article-media-draft-' . $position,
+				),
+				'risk'              => 'medium',
+				'requires_approval' => true,
+				'commit_execution'  => false,
+				'proposal_ready'    => $ready_for_proposal,
+				'reason'            => __( 'Create one reviewed AI-assisted article draft through Core governance.', 'magick-ai-toolbox' ),
+			);
+			$write_actions[] = array(
+				'action_id'         => $upload_id,
+				'target_ability_id' => 'magick-ai/upload-media-from-url',
+				'recipe_step'       => 'host_governed_upload_featured_image',
+				'depends_on'        => array( $create_id ),
+				'input'             => array(
+					'url'               => $image_url,
+					'title'             => $title,
+					'alt'               => $alt,
+					'caption'           => $attribution,
+					'description'       => $description,
+					'source_type'       => $source_type,
+					'source_page_url'   => $source_url,
+					'photographer_name' => $photographer,
+					'attribution_text'  => $attribution,
+					'copyright_notice'  => sanitize_text_field( (string) ( $candidate['copyright_notice'] ?? '' ) ),
+					'attach_to_post_id' => '$outputs.' . $create_id . '.post_id',
+					'dry_run'           => true,
+					'commit'            => false,
+					'idempotency_key'   => 'article-media-upload-' . $position,
+				),
+				'risk'              => 'medium',
+				'requires_approval' => true,
+				'commit_execution'  => false,
+				'proposal_ready'    => $ready_for_proposal,
+				'reason'            => __( 'Upload the reviewed image-source candidate into the media library after Core approval.', 'magick-ai-toolbox' ),
+			);
+			$write_actions[] = array(
+				'action_id'         => $metadata_id,
+				'target_ability_id' => 'magick-ai/update-media-details',
+				'recipe_step'       => 'host_governed_update_featured_image_metadata',
+				'depends_on'        => array( $upload_id ),
+				'input'             => array(
+					'attachment_id'     => '$outputs.' . $upload_id . '.attachment_id',
+					'alt'               => $alt,
+					'caption'           => $attribution,
+					'description'       => $description,
+					'source_type'       => $source_type,
+					'source_page_url'   => $source_url,
+					'photographer_name' => $photographer,
+					'attribution_text'  => $attribution,
+					'dry_run'           => true,
+					'commit'            => false,
+					'idempotency_key'   => 'article-media-details-' . $position,
+				),
+				'risk'              => 'medium',
+				'requires_approval' => true,
+				'commit_execution'  => false,
+				'proposal_ready'    => $ready_for_proposal,
+				'reason'            => __( 'Apply reviewed image attribution and accessibility metadata after upload.', 'magick-ai-toolbox' ),
+			);
+			$write_actions[] = array(
+				'action_id'         => $featured_id,
+				'target_ability_id' => 'magick-ai/set-post-featured-image',
+				'recipe_step'       => 'host_governed_set_featured_image',
+				'depends_on'        => array( $create_id, $upload_id ),
+				'input'             => array(
+					'post_id'        => '$outputs.' . $create_id . '.post_id',
+					'attachment_id'  => '$outputs.' . $upload_id . '.attachment_id',
+					'dry_run'        => true,
+					'commit'         => false,
+					'idempotency_key' => 'article-media-featured-' . $position,
+				),
+				'risk'              => 'medium',
+				'requires_approval' => true,
+				'commit_execution'  => false,
+				'proposal_ready'    => $ready_for_proposal,
+				'reason'            => __( 'Set the uploaded, reviewed media item as the draft featured image after Core approval.', 'magick-ai-toolbox' ),
+			);
+
+			$media_workflow[] = array(
+				'article_index'      => $index,
+				'title'              => $title,
+				'image_query'        => sanitize_text_field( (string) ( $article['image_query'] ?? $title ) ),
+				'candidate_provider' => $provider,
+				'source_url'         => $source_url,
+				'download_location'  => esc_url_raw( (string) ( $candidate['download_location'] ?? '' ) ),
+				'attribution'        => $attribution,
+				'action_ids'         => array( $create_id, $upload_id, $metadata_id, $featured_id ),
+			);
+			$preview[] = array(
+				'action_id'         => $create_id,
+				'title'             => $title,
+				'status'            => 'draft',
+				'excerpt'           => $excerpt,
+				'featured_image_url' => $image_url,
+				'attribution'       => $attribution,
+			);
+		}
+
+		return array(
+			'artifact_type'             => 'article_media_batch_write_plan',
+			'composition_role'          => 'core_article_media_batch_write_plan',
+			'version'                   => 1,
+			'source_recipe_id'          => 'article_media_batch_draft_v1',
+			'source_recipe_ref'         => 'workflow/wordpress_article_media_batch_draft',
+			'source_recipe_provider'    => 'magick-ai-toolbox',
+			'recipe_execution'          => 'local_operator_orchestration',
+			'write_posture'             => 'core_proposal_handoff',
+			'direct_wordpress_write'    => false,
+			'batch_id'                  => 'article_media_batch_write_' . substr( md5( $topic . '|' . wp_json_encode( $preview ) ), 0, 12 ),
+			'requires_approval'         => true,
+			'dry_run'                   => true,
+			'commit_execution'          => false,
+			'proposal_mode'             => 'batch',
+			'batch_approval'            => true,
+			'publish_allowed'           => false,
+			'partial_success'           => false,
+			'action_count'              => count( $write_actions ),
+			'articles'                  => $article_artifacts,
+			'media_workflow'            => $media_workflow,
+			'preview'                   => $preview,
+			'article_batch_risk_report' => array(
+				'risk_level'         => $risk_level,
+				'blocked_claims'     => $blocked_claims,
+				'needs_review'       => $this->sanitize_string_list( $input['needs_review'] ?? array() ),
+				'ready_for_proposal' => $ready_for_proposal,
+			),
+			'write_actions'             => $write_actions,
+			'handoff'                   => array(
+				'plan_ability_id'        => 'magick-ai-toolbox/build-article-media-batch-write-plan',
+				'recipe_id'              => 'article_media_batch_draft_v1',
+				'recipe_ref'             => 'workflow/wordpress_article_media_batch_draft',
+				'core_route'             => '/wp-json/magick-ai-core/v1/proposals/from-plan',
+				'final_write_path'       => 'core_proposal_required',
+				'direct_wordpress_write' => false,
+			),
+		);
+	}
+
 	public function build_content_discoverability_brief( array $input ) {
 		$source = $this->resolve_discoverability_source( $input );
 		if ( is_wp_error( $source ) ) {
@@ -2244,6 +2500,63 @@ final class Provider_Client {
 				static fn( string $item ): bool => '' !== $item
 			)
 		);
+	}
+
+	private function resolve_article_media_candidate( array $article, string $title, string $topic, bool $search_images, string $image_provider ) {
+		$candidate = array();
+		foreach ( array( 'image_candidate', 'featured_image', 'featured_image_candidate' ) as $key ) {
+			if ( is_array( $article[ $key ] ?? null ) ) {
+				$candidate = $article[ $key ];
+				break;
+			}
+		}
+
+		if ( empty( $candidate ) && ! empty( $article['image_url'] ) ) {
+			$candidate = array(
+				'url'             => esc_url_raw( (string) $article['image_url'] ),
+				'regular_url'     => esc_url_raw( (string) $article['image_url'] ),
+				'description'     => sanitize_textarea_field( (string) ( $article['image_alt'] ?? $title ) ),
+				'alt_description' => sanitize_textarea_field( (string) ( $article['image_alt'] ?? $title ) ),
+				'provider'        => sanitize_key( (string) ( $article['image_provider'] ?? 'external' ) ),
+				'source_url'      => esc_url_raw( (string) ( $article['image_source_url'] ?? '' ) ),
+				'photographer'    => sanitize_text_field( (string) ( $article['photographer_name'] ?? '' ) ),
+				'attribution'     => sanitize_textarea_field( (string) ( $article['attribution_text'] ?? '' ) ),
+			);
+		}
+
+		if ( empty( $candidate ) && $search_images ) {
+			$query  = trim( sanitize_text_field( (string) ( $article['image_query'] ?? $title . ' ' . $topic ) ) );
+			$result = $this->image_candidates(
+				$query,
+				array(
+					'provider' => $image_provider,
+					'per_page' => 1,
+				)
+			);
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+
+			$images = is_array( $result['images'] ?? null ) ? array_values( $result['images'] ) : array();
+			if ( empty( $images ) || ! is_array( $images[0] ?? null ) ) {
+				return new WP_Error(
+					'magick_ai_toolbox_article_media_candidate_missing',
+					__( 'Image-source search did not return a usable candidate for an article media batch item.', 'magick-ai-toolbox' ),
+					array( 'status' => 502 )
+				);
+			}
+			$candidate = $images[0];
+		}
+
+		if ( empty( $candidate ) ) {
+			return new WP_Error(
+				'magick_ai_toolbox_article_media_candidate_required',
+				__( 'Every article media batch item requires image_candidate, featured_image, image_url, or search_images=true.', 'magick-ai-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		return $this->sanitize_payload( $candidate );
 	}
 
 	private function sanitize_payload( $value ) {

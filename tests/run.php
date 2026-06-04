@@ -225,6 +225,11 @@ toolbox_assert( false !== strpos( $client, "'composition_role'          => 'core
 toolbox_assert( false !== strpos( $client, "'proposal_mode'             => 'batch'" ) && false !== strpos( $client, "'batch_approval'            => true" ), 'Article batch write plan uses one batch approval.' );
 toolbox_assert( false !== strpos( $client, "'articles'                  => \$article_artifacts" ) && false !== strpos( $client, "'article_draft_candidate' =>" ), 'Article batch write plan includes reviewed article artifacts.' );
 toolbox_assert( false !== strpos( $client, "'publish_allowed'           => false" ) && false !== strpos( $client, "'partial_success'           => false" ), 'Article batch write plan is draft-only and fail-closed.' );
+toolbox_assert( false !== strpos( $client, 'build_article_media_batch_write_plan' ), 'Provider client can build Core-ready article plus media batch write plans.' );
+toolbox_assert( false !== strpos( $client, "'artifact_type'             => 'article_media_batch_write_plan'" ), 'Article plus media batch write plan declares the Core contract artifact type.' );
+toolbox_assert( false !== strpos( $client, "'composition_role'          => 'core_article_media_batch_write_plan'" ), 'Article plus media batch write plan declares its composition role.' );
+toolbox_assert( false !== strpos( $client, "'target_ability_id' => 'magick-ai/upload-media-from-url'" ) && false !== strpos( $client, "'target_ability_id' => 'magick-ai/set-post-featured-image'" ), 'Article plus media batch write plan routes media upload and featured image writes through Core-governed abilities.' );
+toolbox_assert( false !== strpos( $client, "'attach_to_post_id' => '\$outputs.' . \$create_id . '.post_id'" ) && false !== strpos( $client, "'attachment_id'  => '\$outputs.' . \$upload_id . '.attachment_id'" ), 'Article plus media batch write plan uses output references for dependent media writes.' );
 toolbox_assert( false !== strpos( $client, 'build_media_derivative_handoff' ), 'Provider client can build media derivative handoffs.' );
 toolbox_assert( false !== strpos( $client, "'artifact_type'          => 'media_derivative_handoff'" ), 'Media derivative handoff declares its artifact type.' );
 toolbox_assert( false !== strpos( $client, "'composition_role'       => 'media_derivative_operator_handoff'" ), 'Media derivative handoff declares its composition role.' );
@@ -305,6 +310,7 @@ toolbox_assert( false !== strpos( $abilities, 'validate_content_discoverability_
 toolbox_assert( false !== strpos( $abilities, 'build_content_discoverability_brief' ), 'Content discoverability brief ability has an execution callback.' );
 toolbox_assert( false !== strpos( $abilities, 'build_ai_article_writing_pack' ), 'AI article writing pack ability has an execution callback.' );
 toolbox_assert( false !== strpos( $abilities, 'build_article_batch_write_plan' ) && false !== strpos( $abilities, 'magick-ai-toolbox/build-article-batch-write-plan' ), 'Article batch write plan ability has an execution callback.' );
+toolbox_assert( false !== strpos( $abilities, 'build_article_media_batch_write_plan' ) && false !== strpos( $abilities, 'magick-ai-toolbox/build-article-media-batch-write-plan' ), 'Article plus media batch write plan ability has an execution callback.' );
 toolbox_assert( false !== strpos( $abilities, 'search_site_knowledge' ) && false !== strpos( $abilities, 'get_site_knowledge_status' ) && false !== strpos( $abilities, 'request_site_knowledge_sync' ), 'Site knowledge abilities have execution callbacks.' );
 toolbox_assert( false !== strpos( $abilities, "'provider_execution'       => 'server_side_toolbox'" ), 'Provider-backed abilities declare server-side execution.' );
 toolbox_assert( false !== strpos( $abilities, "'provider_secret_exposure' => 'none'" ), 'Abilities declare that provider secrets are not exposed.' );

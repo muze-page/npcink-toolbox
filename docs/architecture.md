@@ -116,6 +116,8 @@ Current ability ids:
 - `magick-ai-toolbox/request-site-knowledge-sync`
 - `magick-ai-toolbox/build-article-brief`
 - `magick-ai-toolbox/build-article-write-plan`
+- `magick-ai-toolbox/build-article-batch-write-plan`
+- `magick-ai-toolbox/build-article-media-batch-write-plan`
 - `magick-ai-toolbox/build-media-brief`
 - `magick-ai-toolbox/get-content-discoverability-context`
 - `magick-ai-toolbox/validate-content-discoverability-context`
@@ -126,6 +128,10 @@ approval, media import approval, or indexing lifecycle ownership.
 `magick-ai-toolbox/build-article-write-plan` assembles a Core-ready
 `article_write_plan` for a reviewed draft and leaves proposal creation,
 approval, preflight, audit, and final execution outside Toolbox.
+`magick-ai-toolbox/build-article-media-batch-write-plan` assembles a
+Core-ready `article_media_batch_write_plan` from reviewed drafts and reviewed
+image-source candidates. It does not upload media, set featured images, approve
+proposals, or execute writes.
 `magick-ai-toolbox/build-content-discoverability-brief` assembles a
 suggestion-only SEO, AEO, and GEO instruction pack and proposal template for a
 post or topic. It does not mutate SEO meta, slugs, excerpts, schema, or post

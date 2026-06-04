@@ -90,6 +90,8 @@ When the WordPress Abilities API is available, Toolbox registers:
 - `magick-ai-toolbox/build-article-brief`
 - `magick-ai-toolbox/build-article-assistant`
 - `magick-ai-toolbox/build-article-write-plan`
+- `magick-ai-toolbox/build-article-batch-write-plan`
+- `magick-ai-toolbox/build-article-media-batch-write-plan`
 - `magick-ai-toolbox/build-media-brief`
 - `magick-ai-toolbox/get-content-discoverability-context`
 - `magick-ai-toolbox/validate-content-discoverability-context`

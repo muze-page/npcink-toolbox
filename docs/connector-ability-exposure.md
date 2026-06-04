@@ -37,6 +37,8 @@ External AI callers should discover and call Toolbox abilities such as:
 - `magick-ai-toolbox/request-site-knowledge-sync`
 - `magick-ai-toolbox/build-article-brief`
 - `magick-ai-toolbox/build-article-write-plan`
+- `magick-ai-toolbox/build-article-batch-write-plan`
+- `magick-ai-toolbox/build-article-media-batch-write-plan`
 - `magick-ai-toolbox/build-media-brief`
 - `magick-ai-toolbox/get-content-discoverability-context`
 - `magick-ai-toolbox/validate-content-discoverability-context`
@@ -148,6 +150,12 @@ Toolbox results are suggestions, candidates, briefs, context, or handoff notes.
 If an AI wants to publish a post, update SEO meta, set a slug, import media,
 set a featured image, or mutate any WordPress record, the write-like outcome
 must go through reusable WordPress abilities and Core proposal governance.
+
+`build-article-batch-write-plan` and `build-article-media-batch-write-plan`
+return Core handoff artifacts only. They may describe write action candidates
+such as `magick-ai/create-draft`, `magick-ai/upload-media-from-url`,
+`magick-ai/update-media-details`, or `magick-ai/set-post-featured-image`, but
+Toolbox does not approve, execute, upload media, or set featured images.
 
 Do not add `confirm_token`, `write_confirmed`, direct publish, direct media
 mutation, or direct SEO mutation behavior to Toolbox.
