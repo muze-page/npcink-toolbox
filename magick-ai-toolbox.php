@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Magick AI Toolbox
- * Description: Operator-facing AI tools for Tavily research, Unsplash image-source candidates, Qdrant vector search, and repeatable content workflows.
+ * Description: Operator-facing AI tools for Cloud-managed web search, Cloud-managed image-source candidates, Qdrant vector search, and repeatable content workflows.
  * Version: 0.1.0
  * Requires at least: 6.9
  * Requires PHP: 8.0

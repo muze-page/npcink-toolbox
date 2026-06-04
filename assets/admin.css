@@ -605,6 +605,16 @@
 	object-fit: cover;
 }
 
+.magick-ai-toolbox__image-preview {
+	display: block;
+	width: min(100%, 360px);
+	max-height: 240px;
+	object-fit: contain;
+	margin: 8px 0;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+}
+
 .magick-ai-toolbox__inline-actions {
 	display: flex;
 	flex-wrap: wrap;
@@ -980,6 +990,10 @@ pre.magick-ai-toolbox__result {
 	cursor: pointer;
 	color: #2271b1;
 	font-weight: 600;
+}
+
+.magick-ai-toolbox__result-details label {
+	margin-top: 10px;
 }
 
 .magick-ai-toolbox__result-raw {

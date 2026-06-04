@@ -418,25 +418,6 @@
 		container.appendChild(section);
 	}
 
-	function renderTavily(form, payload) {
-		const count = Array.isArray(payload.results) ? payload.results.length : 0;
-		const result = renderShell(
-			form,
-			payload,
-			'Web research',
-			payload.answer || (count ? count + ' source candidates returned for operator review.' : 'No source candidates were returned.')
-		);
-		if (!result) {
-			return;
-		}
-
-		renderSourceList(result, payload.results);
-		if (payload.raw) {
-			result.appendChild(createRawDetails(payload.raw, 'Provider raw response'));
-		}
-		result.appendChild(createRawDetails(payload, 'Complete payload'));
-	}
-
 	function renderUnsplash(form, payload, title) {
 		const count = Array.isArray(payload.images) ? payload.images.length : 0;
 		const result = renderShell(
@@ -750,6 +731,59 @@
 		}
 
 		renderArtifactSummary(result, 'Ability input', abilityInput);
+		renderHandoff(result, payload.handoff);
+		result.appendChild(createRawDetails(payload, 'Complete payload'));
+	}
+
+	function renderImageCandidateAdoptionPlan(form, payload) {
+		const candidate = payload.selected_image_candidate || {};
+		const preview = Array.isArray(payload.preview) ? payload.preview[0] || {} : {};
+		const actions = Array.isArray(payload.write_actions) ? payload.write_actions : [];
+		const result = renderShell(
+			form,
+			payload,
+			'Image import proposal plan',
+			'Review the selected image and source evidence, then submit this plan to Core for approval before any media import or featured-image write.'
+		);
+		if (!result) {
+			return;
+		}
+
+		const meta = el('div', 'magick-ai-toolbox__result-meta');
+		appendMeta(meta, 'Source type', candidate.source_type ? formatLabel(candidate.source_type) : '');
+		appendMeta(meta, 'Provider', candidate.provider ? formatLabel(candidate.provider) : '');
+		appendMeta(meta, 'License', candidate.license_review_status ? formatLabel(candidate.license_review_status) : '');
+		appendMeta(meta, 'Actions', actions.length);
+		appendMeta(meta, 'Post', preview.post_id || '');
+		appendMeta(meta, 'Featured image', preview.set_featured_image ? 'Yes' : 'No');
+		result.appendChild(meta);
+
+		if (preview.thumbnail_url || candidate.thumbnail_url || candidate.download_url) {
+			const section = createSection('Selected image');
+			const image = document.createElement('img');
+			image.alt = candidate.alt_description || candidate.description || 'Selected image candidate';
+			image.src = preview.thumbnail_url || candidate.thumbnail_url || candidate.download_url;
+			image.loading = 'lazy';
+			image.className = 'magick-ai-toolbox__image-preview';
+			section.appendChild(image);
+			if (candidate.download_url) {
+				section.appendChild(createLink(candidate.download_url, 'Open selected image'));
+			}
+			if (candidate.source_url) {
+				section.appendChild(createLink(candidate.source_url, 'Open source page'));
+			}
+			result.appendChild(section);
+		}
+
+		if (candidate.attribution || preview.attribution) {
+			result.appendChild(el('div', 'magick-ai-toolbox__result-notice is-ok', 'Attribution: ' + (candidate.attribution || preview.attribution)));
+		}
+		if (candidate.requires_human_license_review) {
+			result.appendChild(el('div', 'magick-ai-toolbox__result-notice is-warning', 'License or source review is required before approval.'));
+		}
+
+		renderArtifactSummary(result, 'Candidate evidence', candidate);
+		renderArtifactSummary(result, 'Planned write actions', actions);
 		renderHandoff(result, payload.handoff);
 		result.appendChild(createRawDetails(payload, 'Complete payload'));
 	}
@@ -1258,11 +1292,6 @@
 			return;
 		}
 
-		if (payload.provider === 'tavily') {
-			renderTavily(form, payload);
-			return;
-		}
-
 		if (payload.provider === 'unsplash') {
 			renderUnsplash(form, payload);
 			return;
@@ -1300,6 +1329,11 @@
 
 		if (payload.artifact_type === 'media_derivative_handoff') {
 			renderMediaDerivativeHandoff(form, payload);
+			return;
+		}
+
+		if (payload.artifact_type === 'image_candidate_adoption_plan') {
+			renderImageCandidateAdoptionPlan(form, payload);
 			return;
 		}
 

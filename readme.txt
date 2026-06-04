@@ -7,11 +7,11 @@ Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Operator-facing AI tools for Tavily/Bocha research, Jina Reader result
-enhancement, Unsplash/Pixabay/Pexels image-source candidates, Cloud-managed
-site knowledge, SiliconFlow or Jina query embeddings, Qdrant vector search, and
-repeatable content workflows, with read-only SEO/AEO/GEO context for
-third-party AI.
+Operator-facing AI tools for Cloud-managed web search, Cloud-managed
+image-source candidates, Cloud-managed site knowledge, SiliconFlow or Jina
+query embeddings, Qdrant vector search, and
+repeatable content workflows, with read-only SEO/AEO/GEO context for third-party
+AI.
 
 == Description ==
 
@@ -33,12 +33,11 @@ through host-governed WordPress abilities and Magick AI Core approval.
 
 * Initial plugin scaffold.
 * Added Toolbox settings page.
-* Added REST routes for web research, image-source candidates, vector search,
-  article briefs, and media briefs.
-* Added Bocha search configuration and optional Jina Reader result enhancement
-  for the shared web research ability.
-* Added configurable Unsplash, Pixabay, and Pexels image-source provider
-  options for the shared image candidate ability.
+* Added REST routes for image-source candidates, vector search, article briefs,
+  and media briefs.
+* Moved web search provider configuration and execution to Magick AI Cloud.
+* Added Cloud-managed image-source provider support for the shared image
+  candidate ability.
 * Added WordPress Abilities API registrations for Toolbox actions.
 * Added Cloud-managed site knowledge abilities for semantic search, related
   content, status, and sync requests through the Cloud Addon runtime seam.
