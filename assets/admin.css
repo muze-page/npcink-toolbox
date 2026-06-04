@@ -668,6 +668,13 @@
 	border: 1px solid #dcdcde;
 }
 
+.magick-ai-toolbox__url-resolution {
+	margin: 10px 0 0;
+	padding: 10px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+}
+
 .magick-ai-toolbox__batch-list {
 	display: grid;
 	gap: 6px;
@@ -913,6 +920,13 @@ pre.magick-ai-toolbox__result {
 
 .magick-ai-toolbox__batch-plan {
 	margin: 12px 0 0;
+	padding: 12px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+}
+
+.magick-ai-toolbox__url-resolution {
+	margin: 10px 0 0;
 	padding: 12px;
 	background: #fff;
 	border: 1px solid #dcdcde;

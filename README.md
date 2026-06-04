@@ -152,7 +152,11 @@ and Core handoff route for operator review.
 
 The media derivative preview flow reads Core media optimization defaults when
 available, accepts one-run operator overrides, and lets an operator select one
-image attachment from the media library. The admin action surface dispatches the
+image attachment from the media library. If an operator starts from a hard-coded
+local uploads URL, the same surface can call the local read-only
+`magick-ai/resolve-media-attachment-by-url` ability through Adapter
+`run-read-ability`, show bounded match evidence, and fill the attachment ID for
+the same preview/proposal flow. The admin action surface dispatches the
 bounded Adapter media-derivative recipe, polls the short-lived Cloud artifact
 result, renders the same-origin signed Adapter preview proxy when available,
 and can submit a Core replacement proposal with the artifact evidence. The same

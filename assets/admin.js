@@ -831,6 +831,26 @@
 		return parseInt(field.value || '0', 10) || 0;
 	}
 
+	function mediaUrlValue(form) {
+		const field = form.querySelector('[data-toolbox-media-url]');
+		return field instanceof HTMLInputElement ? String(field.value || '').trim() : '';
+	}
+
+	function basenameFromPath(value) {
+		const parts = String(value || '').split('/');
+		return parts.length ? parts[parts.length - 1] : '';
+	}
+
+	function mediaResolutionCandidateAttachment(candidate) {
+		candidate = candidate || {};
+		return {
+			id: parseInt(candidate.attachment_id || '0', 10) || 0,
+			filename: candidate.title || basenameFromPath(candidate.relative_file || candidate.matched_relative_file || candidate.url || ''),
+			url: candidate.url || '',
+			alt: candidate.title || '',
+		};
+	}
+
 	function referenceRepairInput(form) {
 		return {
 			attachment_id: mediaAttachmentId(form),
@@ -1027,6 +1047,76 @@
 		}
 
 		panel.appendChild(createRawDetails(planEnvelope, 'Batch plan payload'));
+	}
+
+	function renderMediaUrlResolution(form, resolutionEnvelope, resolution) {
+		const panel = form.querySelector('[data-toolbox-media-url-resolution]');
+		if (!panel) {
+			return;
+		}
+
+		const candidates = Array.isArray(resolution.candidates) ? resolution.candidates : [];
+		panel.hidden = false;
+		clearNode(panel);
+
+		const heading = el('div', 'magick-ai-toolbox__batch-heading');
+		heading.appendChild(el('h4', '', 'URL resolution'));
+		const meta = el('div', 'magick-ai-toolbox__result-meta');
+		appendMeta(meta, 'Status', resolution.match_status ? formatLabel(resolution.match_status) : '');
+		appendMeta(meta, 'Quality', resolution.resolution_quality ? formatLabel(resolution.resolution_quality) : '');
+		appendMeta(meta, 'Attachment', resolution.attachment_id);
+		appendMeta(meta, 'Candidates', candidates.length);
+		appendMeta(meta, 'Requested', resolution.requested_relative_file || mediaUrlValue(form));
+		heading.appendChild(meta);
+		panel.appendChild(heading);
+
+		if (resolution.attachment_id) {
+			const resolved = candidates.find((candidate) => parseInt(candidate.attachment_id || '0', 10) === parseInt(resolution.attachment_id || '0', 10)) || {
+				attachment_id: resolution.attachment_id,
+				url: resolution.normalized_url || mediaUrlValue(form),
+				relative_file: resolution.requested_relative_file || '',
+			};
+			renderSelectedMedia(form, mediaResolutionCandidateAttachment(resolved));
+			panel.appendChild(el('div', 'magick-ai-toolbox__result-notice is-ok', 'Attachment ID resolved locally. Generate a preview before submitting a Core proposal.'));
+		} else if (!candidates.length) {
+			panel.appendChild(el('div', 'magick-ai-toolbox__result-notice is-warning', 'No attachment candidate matched this local uploads URL.'));
+		} else {
+			panel.appendChild(el('div', 'magick-ai-toolbox__result-notice is-warning', 'Review candidate evidence before choosing one attachment.'));
+		}
+
+		if (Array.isArray(resolution.warnings) && resolution.warnings.length) {
+			resolution.warnings.forEach((warning) => {
+				panel.appendChild(el('div', 'magick-ai-toolbox__result-notice is-warning', warning));
+			});
+		}
+
+		if (candidates.length) {
+			const list = el('div', 'magick-ai-toolbox__batch-list');
+			candidates.forEach((candidate) => {
+				const row = el('div', 'magick-ai-toolbox__batch-row');
+				row.setAttribute('data-toolbox-media-resolution-candidate', String(candidate.attachment_id || ''));
+				row.__magickMediaResolutionCandidate = candidate;
+				const button = el('button', 'button button-small', 'Use attachment');
+				button.type = 'button';
+				button.setAttribute('data-toolbox-use-media-resolution-candidate', String(candidate.attachment_id || ''));
+				row.appendChild(button);
+
+				const body = el('span', 'magick-ai-toolbox__batch-row-body');
+				body.appendChild(el('strong', '', '#' + String(candidate.attachment_id || '') + ' ' + String(candidate.title || 'Media attachment')));
+				const detail = [
+					candidate.match_type ? formatLabel(candidate.match_type) : '',
+					candidate.match_score ? 'score ' + String(candidate.match_score) : '',
+					candidate.mime_type || '',
+					candidate.relative_file || candidate.matched_relative_file || '',
+				].filter(Boolean).join(' · ');
+				body.appendChild(el('small', '', detail));
+				row.appendChild(body);
+				list.appendChild(row);
+			});
+			panel.appendChild(list);
+		}
+
+		panel.appendChild(createRawDetails(resolutionEnvelope, 'URL resolution payload'));
 	}
 
 	function selectedMediaBatchCandidates(form) {
@@ -1270,6 +1360,32 @@
 			submitButton.disabled = false;
 		}
 		renderMediaDerivativeRun(form, state);
+	}
+
+	async function resolveMediaAttachmentUrl(form) {
+		if (!config.adapterRestUrl) {
+			throw { message: 'Magick AI Adapter REST URL is unavailable.' };
+		}
+		const url = mediaUrlValue(form);
+		if (!url) {
+			throw { message: 'Paste a local uploads URL before resolving an attachment.' };
+		}
+
+		renderTextResult(form, 'Resolving media URL...', 'pending');
+		const resolutionEnvelope = await postJson(config.adapterRestUrl, 'run-read-ability', {
+			ability_id: 'magick-ai/resolve-media-attachment-by-url',
+			input: {
+				url,
+				max_candidates: 10,
+			},
+		});
+		const resolution = planDataFromEnvelope(resolutionEnvelope) || {};
+		renderMediaUrlResolution(form, resolutionEnvelope, resolution);
+		if (resolution.attachment_id) {
+			renderTextResult(form, 'Media URL resolved to attachment #' + String(resolution.attachment_id) + '. Generate a preview to continue.', 'ok');
+			return;
+		}
+		renderTextResult(form, 'Media URL resolution returned candidates. Choose one attachment before generating a preview.', 'warning');
 	}
 
 	async function buildMediaDerivativeBatchPlan(form) {
@@ -2035,6 +2151,27 @@
 						renderSelectedMedia(form, attachment ? attachment.toJSON() : null);
 					});
 					frame.open();
+					return;
+				}
+
+				const resolveButton = event.target.closest('[data-toolbox-resolve-media-url]');
+				if (resolveButton && form.contains(resolveButton)) {
+					event.preventDefault();
+					resolveMediaAttachmentUrl(form).catch((error) => {
+						renderTextResult(form, error && error.message ? error.message : (config.labels && config.labels.error ? config.labels.error : 'Request failed.'), 'error');
+					});
+					return;
+				}
+
+				const resolutionCandidateButton = event.target.closest('[data-toolbox-use-media-resolution-candidate]');
+				if (resolutionCandidateButton && form.contains(resolutionCandidateButton)) {
+					event.preventDefault();
+					const row = resolutionCandidateButton.closest('[data-toolbox-media-resolution-candidate]');
+					const candidate = row && row.__magickMediaResolutionCandidate ? row.__magickMediaResolutionCandidate : {
+						attachment_id: resolutionCandidateButton.getAttribute('data-toolbox-use-media-resolution-candidate') || '',
+					};
+					renderSelectedMedia(form, mediaResolutionCandidateAttachment(candidate));
+					renderTextResult(form, 'Attachment #' + String(candidate.attachment_id || '') + ' selected. Generate a preview to continue.', 'ok');
 					return;
 				}
 

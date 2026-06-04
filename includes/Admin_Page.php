@@ -1584,10 +1584,16 @@ final class Admin_Page {
 						<span><?php esc_html_e( 'Attachment ID', 'magick-ai-toolbox' ); ?></span>
 						<input type="number" min="1" step="1" name="attachment_id" placeholder="<?php esc_attr_e( 'Attachment ID', 'magick-ai-toolbox' ); ?>" data-toolbox-media-attachment />
 					</label>
+					<label>
+						<span><?php esc_html_e( 'Image URL', 'magick-ai-toolbox' ); ?></span>
+						<input type="url" name="attachment_url" placeholder="<?php esc_attr_e( 'Paste a local uploads URL', 'magick-ai-toolbox' ); ?>" data-toolbox-media-url />
+					</label>
 					<div class="magick-ai-toolbox__inline-actions">
 						<button type="button" class="button" data-toolbox-select-media><?php esc_html_e( 'Select from media library', 'magick-ai-toolbox' ); ?></button>
+						<button type="button" class="button" data-toolbox-resolve-media-url><?php esc_html_e( 'Resolve URL', 'magick-ai-toolbox' ); ?></button>
 						<span data-toolbox-media-name><?php esc_html_e( 'Choose one local image attachment.', 'magick-ai-toolbox' ); ?></span>
 					</div>
+					<div class="magick-ai-toolbox__url-resolution" data-toolbox-media-url-resolution hidden></div>
 				</div>
 			</div>
 			<div class="magick-ai-toolbox__split">
