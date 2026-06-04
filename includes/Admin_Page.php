@@ -511,7 +511,6 @@ final class Admin_Page {
 						);
 						?>
 					</section>
-
 				</div>
 			</div>
 

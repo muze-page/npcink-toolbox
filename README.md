@@ -180,24 +180,10 @@ attachment metadata, patch post content, or update options/theme mods directly.
 
 ## Connector Configuration
 
-The plugin reads connector keys in this order:
-
-1. provider-specific PHP constant;
-2. provider-specific environment variable;
-3. stored WordPress option from the Toolbox settings page.
-
-Supported environment variables:
-
-- `TAVILY_API_KEY`
-- `BOCHA_API_KEY`
-- `UNSPLASH_ACCESS_KEY`
-- `PIXABAY_API_KEY`
-- `PEXELS_API_KEY`
-
-Supported PHP constants:
-
-- `MAGICK_AI_TOOLBOX_TAVILY_API_KEY`
-- `MAGICK_AI_TOOLBOX_BOCHA_API_KEY`
+Toolbox no longer stores provider keys for web search, public image-source
+providers, or vector infrastructure. Configure Cloud connectivity in the Cloud
+Addon and configure provider keys, routing, quotas, and health in the Cloud
+operator surface.
 
 Image-source search supports `auto`, `cloud`, and provider hints such as
 `unsplash`, `pixabay`, or `pexels`, but the public provider keys and provider
