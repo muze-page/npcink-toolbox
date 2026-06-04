@@ -2058,6 +2058,15 @@ final class Provider_Client {
 				'evidence_gate'        => is_array( $result['evidence_gate'] ?? null ) ? $this->sanitize_payload( $result['evidence_gate'] ) : array(),
 				'reader_enhancement'   => is_array( $result['reader_enhancement'] ?? null ) ? $this->sanitize_payload( $result['reader_enhancement'] ) : array(),
 				'provider_call_count'  => absint( $response['provider_call_count'] ?? ( $response['data']['provider_call_count'] ?? 0 ) ),
+				'usage_summary'        => array(
+					'provider'             => sanitize_key( (string) ( $result['provider'] ?? $input['provider'] ?? 'cloud_web_search' ) ),
+					'provider_mode'        => sanitize_key( (string) ( $input['provider'] ?? 'auto' ) ),
+					'provider_call_count'  => absint( $response['provider_call_count'] ?? ( $response['data']['provider_call_count'] ?? 0 ) ),
+					'result_count'         => count( $results ),
+					'reader_status'        => sanitize_key( (string) ( $result['reader_enhancement']['status'] ?? '' ) ),
+					'evidence_status'      => sanitize_key( (string) ( $result['evidence_gate']['status'] ?? '' ) ),
+					'failure_reason'       => sanitize_text_field( (string) ( $result['error_code'] ?? $response['error_code'] ?? '' ) ),
+				),
 				'results'              => $results,
 				'handoff'              => array(
 					'cloud_runtime'          => 'magick_ai_cloud_addon',
@@ -2545,6 +2554,9 @@ final class Provider_Client {
 				'provider_mode'   => is_array( $research ) ? sanitize_key( (string) ( $research['provider_mode'] ?? '' ) ) : '',
 				'status'          => is_array( $research ) ? sanitize_key( (string) ( $research['status'] ?? '' ) ) : '',
 				'result_count'    => is_array( $research ) ? absint( $research['result_count'] ?? 0 ) : 0,
+				'provider_call_count' => is_array( $research ) ? absint( $research['provider_call_count'] ?? 0 ) : 0,
+				'usage_summary'   => is_array( $research ) && is_array( $research['usage_summary'] ?? null ) ? $this->sanitize_payload( $research['usage_summary'] ) : array(),
+				'error_code'      => is_array( $research ) ? sanitize_key( (string) ( $research['error_code'] ?? '' ) ) : '',
 				'active_sources'  => is_array( $research ) ? $this->sanitize_payload( $research['active_sources'] ?? array() ) : array(),
 			),
 			'site_knowledge'       => is_wp_error( $knowledge ) ? array(
@@ -2572,6 +2584,9 @@ final class Provider_Client {
 				'provider_mode' => sanitize_key( (string) ( $status['provider_mode'] ?? '' ) ),
 				'result_count'  => absint( $status['result_count'] ?? count( $sources ) ),
 				'source_count'  => count( $sources ),
+				'provider_call_count' => absint( $status['provider_call_count'] ?? 0 ),
+				'usage_summary' => is_array( $status['usage_summary'] ?? null ) ? $this->sanitize_payload( $status['usage_summary'] ) : array(),
+				'error_code'    => sanitize_key( (string) ( $status['error_code'] ?? '' ) ),
 				'sources'       => $this->sanitize_payload( array_values( $sources ) ),
 			);
 		}
@@ -2585,6 +2600,9 @@ final class Provider_Client {
 			'provider_mode' => sanitize_key( (string) ( $research['provider_mode'] ?? '' ) ),
 			'result_count'  => absint( $research['result_count'] ?? count( $results ) ),
 			'source_count'  => count( $results ),
+			'provider_call_count' => absint( $research['provider_call_count'] ?? 0 ),
+			'usage_summary' => is_array( $research['usage_summary'] ?? null ) ? $this->sanitize_payload( $research['usage_summary'] ) : array(),
+			'error_code'    => sanitize_key( (string) ( $research['error_code'] ?? '' ) ),
 			'evidence_gate' => is_array( $research['evidence_gate'] ?? null ) ? $this->sanitize_payload( $research['evidence_gate'] ) : array(),
 			'sources'       => $this->sanitize_payload( array_slice( $results, 0, 5 ) ),
 		);

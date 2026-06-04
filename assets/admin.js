@@ -739,6 +739,10 @@
 		appendMeta(meta, 'Provider mode', payload.provider_mode ? formatLabel(payload.provider_mode) : '');
 		appendMeta(meta, 'Provider calls', payload.provider_call_count);
 		appendMeta(meta, 'Run', payload.run_id);
+		if (payload.usage_summary && typeof payload.usage_summary === 'object') {
+			appendMeta(meta, 'Reader', payload.usage_summary.reader_status ? formatLabel(payload.usage_summary.reader_status) : '');
+			appendMeta(meta, 'Failure', payload.usage_summary.failure_reason ? formatLabel(payload.usage_summary.failure_reason) : '');
+		}
 		if (payload.evidence_gate && typeof payload.evidence_gate === 'object') {
 			appendMeta(meta, 'Evidence', payload.evidence_gate.status ? formatLabel(payload.evidence_gate.status) : '');
 			appendMeta(meta, 'Sources', payload.evidence_gate.source_count);
@@ -803,8 +807,14 @@
 		appendMeta(meta, 'Workflow', payload.workflow_artifact_type ? formatLabel(payload.workflow_artifact_type) : '');
 		appendMeta(meta, 'Provider', payload.cloud_provider ? formatLabel(payload.cloud_provider) : '');
 		appendMeta(meta, 'Provider mode', payload.provider_mode ? formatLabel(payload.provider_mode) : '');
+		appendMeta(meta, 'Provider calls', payload.provider_call_count);
 		appendMeta(meta, 'Results', payload.result_count);
 		appendMeta(meta, 'Sources', payload.source_count);
+		appendMeta(meta, 'Error code', payload.error_code ? formatLabel(payload.error_code) : '');
+		if (payload.usage_summary && typeof payload.usage_summary === 'object') {
+			appendMeta(meta, 'Reader', payload.usage_summary.reader_status ? formatLabel(payload.usage_summary.reader_status) : '');
+			appendMeta(meta, 'Evidence', payload.usage_summary.evidence_status ? formatLabel(payload.usage_summary.evidence_status) : '');
+		}
 		result.appendChild(meta);
 
 		if (payload.search_triggered !== true) {
