@@ -202,6 +202,21 @@ final class Abilities {
 					'write_posture'       => 'core_proposal_handoff',
 				)
 			),
+			'magick-ai-toolbox/build-article-batch-write-plan'     => $this->definition(
+				__( 'Build Article Batch Write Plan', 'magick-ai-toolbox' ),
+				__( 'Build a Core-ready article_batch_write_plan for 2 to 5 reviewed drafts without writing WordPress content.', 'magick-ai-toolbox' ),
+				array( 'articles' ),
+				array( $this, 'build_article_batch_write_plan' ),
+				'cap.toolbox.workflow_suggest',
+				array(
+					'data_classification' => 'planning_artifact',
+					'composition_role'    => 'core_article_batch_write_plan',
+					'local_recipe_id'     => 'article_batch_draft_v1',
+					'ability_recipe_ref'  => 'workflow/wordpress_article_batch_draft',
+					'provider_execution'  => 'none',
+					'write_posture'       => 'core_proposal_handoff',
+				)
+			),
 			'magick-ai-toolbox/build-media-brief'                  => $this->definition(
 				__( 'Build Media Brief', 'magick-ai-toolbox' ),
 				__( 'Build image prompt and media SEO suggestions from supplied post context.', 'magick-ai-toolbox' ),
@@ -378,6 +393,10 @@ final class Abilities {
 
 	public function build_article_write_plan( $input = array() ) {
 		return $this->client->build_article_write_plan( is_array( $input ) ? $input : array() );
+	}
+
+	public function build_article_batch_write_plan( $input = array() ) {
+		return $this->client->build_article_batch_write_plan( is_array( $input ) ? $input : array() );
 	}
 
 	public function build_media_brief( $input = array() ) {
