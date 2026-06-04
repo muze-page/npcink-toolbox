@@ -1973,10 +1973,7 @@ final class Provider_Client {
 			'timeout_seconds'     => 20,
 			'retry_max'           => 0,
 			'policy'              => array(
-				'allow_fallback'         => true,
-				'wordpress_write_owner'  => 'local_core',
-				'candidate_contract'     => 'image_candidate.v1',
-				'direct_wordpress_write' => false,
+				'allow_fallback' => true,
 			),
 		);
 
