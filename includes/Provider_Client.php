@@ -1814,7 +1814,8 @@ final class Provider_Client {
 		if ( ! $core_policy_available ) {
 			$warnings[] = __( 'Magick AI Core media policy helper is unavailable; fallback defaults were used for this one-run handoff.', 'magick-ai-toolbox' );
 		}
-		if ( ! empty( $core_policy['watermark_enabled'] ) && empty( $core_policy['watermark_configured'] ) ) {
+		$watermark_mode = sanitize_key( (string) ( $input['watermark_mode'] ?? $input['watermark_type'] ?? 'core' ) );
+		if ( ! empty( $core_policy['watermark_enabled'] ) && empty( $core_policy['watermark_configured'] ) && ! in_array( $watermark_mode, array( 'off', 'text' ), true ) ) {
 			$warnings[] = __( 'Watermark is enabled in policy but no logo attachment is configured.', 'magick-ai-toolbox' );
 		}
 
@@ -1884,11 +1885,14 @@ final class Provider_Client {
 	}
 
 	private function media_derivative_watermark_overrides( array $input ): array {
-		$mode = sanitize_key( (string) ( $input['watermark_mode'] ?? 'core' ) );
+		$mode = sanitize_key( (string) ( $input['watermark_mode'] ?? $input['watermark_type'] ?? 'core' ) );
 		if ( 'off' === $mode ) {
 			return array( 'watermark_enabled' => false );
 		}
-		if ( 'override' !== $mode ) {
+		if ( 'override' === $mode ) {
+			$mode = 'image';
+		}
+		if ( ! in_array( $mode, array( 'text', 'image' ), true ) ) {
 			return array();
 		}
 
@@ -1899,6 +1903,29 @@ final class Provider_Client {
 		$opacity = '' !== trim( (string) ( $input['watermark_opacity'] ?? '' ) )
 			? absint( $input['watermark_opacity'] )
 			: 80;
+		$margin = max( 0, min( 1000, absint( $input['watermark_margin'] ?? 24 ) ) );
+
+		if ( 'text' === $mode ) {
+			$text = trim( sanitize_text_field( (string) ( $input['watermark_text'] ?? 'AI' ) ) );
+			if ( '' === $text ) {
+				$text = 'AI';
+			}
+			$text = function_exists( 'mb_substr' ) ? mb_substr( $text, 0, 64 ) : substr( $text, 0, 64 );
+
+			return array(
+				'watermark_enabled' => true,
+				'watermark'         => array(
+					'type'       => 'text',
+					'text'       => $text,
+					'position'   => $position,
+					'opacity'    => round( max( 0, min( 100, $opacity ) ) / 100, 3 ),
+					'font_size'  => max( 8, min( 256, absint( $input['watermark_font_size'] ?? 48 ) ) ),
+					'color'      => $this->sanitize_media_derivative_watermark_color( $input['watermark_color'] ?? '#FFFFFF', '#FFFFFF' ),
+					'background' => $this->sanitize_media_derivative_watermark_color( $input['watermark_background'] ?? 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0.35)' ),
+					'margin_px'  => $margin,
+				),
+			);
+		}
 
 		return array(
 			'watermark_enabled' => true,
@@ -1907,9 +1934,31 @@ final class Provider_Client {
 				'position'      => $position,
 				'opacity'       => round( max( 0, min( 100, $opacity ) ) / 100, 3 ),
 				'scale_percent' => max( 1, min( 100, absint( $input['watermark_scale'] ?? 20 ) ) ),
-				'margin_px'     => max( 0, min( 1000, absint( $input['watermark_margin'] ?? 24 ) ) ),
+				'margin_px'     => $margin,
 			),
 		);
+	}
+
+	private function sanitize_media_derivative_watermark_color( $value, string $default ): string {
+		$color = trim( sanitize_text_field( (string) $value ) );
+		if ( 'transparent' === strtolower( $color ) ) {
+			return 'transparent';
+		}
+		if ( 1 === preg_match( '/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $color ) ) {
+			return strtoupper( $color );
+		}
+		if ( 1 === preg_match( '/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/', $color, $matches ) ) {
+			$r     = max( 0, min( 255, (int) $matches[1] ) );
+			$g     = max( 0, min( 255, (int) $matches[2] ) );
+			$b     = max( 0, min( 255, (int) $matches[3] ) );
+			$alpha = isset( $matches[4] ) && '' !== $matches[4] ? max( 0, min( 1, (float) $matches[4] ) ) : null;
+
+			return null === $alpha
+				? sprintf( 'rgb(%d,%d,%d)', $r, $g, $b )
+				: sprintf( 'rgba(%d,%d,%d,%s)', $r, $g, $b, rtrim( rtrim( sprintf( '%.3F', $alpha ), '0' ), '.' ) );
+		}
+
+		return $default;
 	}
 
 	private function execute_site_knowledge_cloud_request( string $ability_name, string $contract_version, string $execution_pattern, array $input, string $artifact_type, string $composition_role ) {

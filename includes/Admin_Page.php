@@ -1242,9 +1242,14 @@ final class Admin_Page {
 				'quality'                  => 82,
 				'watermark_enabled'        => false,
 				'watermark_configured'     => false,
+				'watermark_type'           => 'image',
+				'watermark_text'           => 'AI',
 				'watermark_position'       => 'bottom_right',
 				'watermark_opacity'        => 80,
 				'watermark_scale'          => 20,
+				'watermark_font_size'      => 48,
+				'watermark_color'          => '#FFFFFF',
+				'watermark_background'     => 'rgba(0,0,0,0.35)',
 				'watermark_margin'         => 24,
 				'use_cloud_when_available' => true,
 			);
@@ -1258,6 +1263,17 @@ final class Admin_Page {
 				(int) ( $core_policy['watermark_margin'] ?? 24 )
 			)
 			: __( 'off or incomplete', 'magick-ai-toolbox' );
+		if ( 'text' === (string) ( $core_policy['watermark_type'] ?? '' ) ) {
+			$watermark_details = sprintf(
+				/* translators: 1: text, 2: position, 3: opacity, 4: font size, 5: margin. */
+				__( 'text "%1$s", %2$s, %3$d%% opacity, %4$dpx font, %5$dpx margin', 'magick-ai-toolbox' ),
+				(string) ( $core_policy['watermark_text'] ?? 'AI' ),
+				ucwords( str_replace( '_', ' ', (string) ( $core_policy['watermark_position'] ?? 'bottom_right' ) ) ),
+				(int) ( $core_policy['watermark_opacity'] ?? 80 ),
+				(int) ( $core_policy['watermark_font_size'] ?? 48 ),
+				(int) ( $core_policy['watermark_margin'] ?? 24 )
+			);
+		}
 		?>
 		<form class="magick-ai-toolbox__card" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" data-toolbox-media-derivative <?php echo $active ? '' : 'hidden'; ?>>
 			<h2><?php echo esc_html( $title ); ?></h2>
@@ -1351,14 +1367,15 @@ final class Admin_Page {
 			</div>
 			<div class="magick-ai-toolbox__batch-panel">
 				<h3><?php esc_html_e( 'Watermark override', 'magick-ai-toolbox' ); ?></h3>
-				<p><?php esc_html_e( 'Use Core watermark policy by default. Override only changes this preview or batch run and still requires a configured Core logo attachment.', 'magick-ai-toolbox' ); ?></p>
+				<p><?php esc_html_e( 'Use Core watermark policy by default. Text watermark overrides do not need a logo attachment; image/logo overrides use the configured Core logo source for this run.', 'magick-ai-toolbox' ); ?></p>
 				<div class="magick-ai-toolbox__split">
 					<label>
 						<span><?php esc_html_e( 'Watermark mode', 'magick-ai-toolbox' ); ?></span>
 						<select name="watermark_mode">
 							<option value="core"><?php esc_html_e( 'Use Core default', 'magick-ai-toolbox' ); ?></option>
-							<option value="off"><?php esc_html_e( 'Disable for this run', 'magick-ai-toolbox' ); ?></option>
-							<option value="override"><?php esc_html_e( 'Override placement', 'magick-ai-toolbox' ); ?></option>
+							<option value="off"><?php esc_html_e( 'No watermark', 'magick-ai-toolbox' ); ?></option>
+							<option value="text"><?php esc_html_e( 'Text watermark', 'magick-ai-toolbox' ); ?></option>
+							<option value="image"><?php esc_html_e( 'Image/logo watermark', 'magick-ai-toolbox' ); ?></option>
 						</select>
 					</label>
 					<label>
@@ -1372,11 +1389,31 @@ final class Admin_Page {
 				</div>
 				<div class="magick-ai-toolbox__split">
 					<label>
+						<span><?php esc_html_e( 'Text', 'magick-ai-toolbox' ); ?></span>
+						<input type="text" maxlength="64" name="watermark_text" value="<?php echo esc_attr( (string) ( $core_policy['watermark_text'] ?? 'AI' ) ); ?>" />
+					</label>
+					<label>
+						<span><?php esc_html_e( 'Font size', 'magick-ai-toolbox' ); ?></span>
+						<input type="number" min="8" max="256" step="1" name="watermark_font_size" value="<?php echo esc_attr( (string) ( $core_policy['watermark_font_size'] ?? 48 ) ); ?>" />
+					</label>
+				</div>
+				<div class="magick-ai-toolbox__split">
+					<label>
+						<span><?php esc_html_e( 'Text color', 'magick-ai-toolbox' ); ?></span>
+						<input type="text" name="watermark_color" value="<?php echo esc_attr( (string) ( $core_policy['watermark_color'] ?? '#FFFFFF' ) ); ?>" />
+					</label>
+					<label>
+						<span><?php esc_html_e( 'Background', 'magick-ai-toolbox' ); ?></span>
+						<input type="text" name="watermark_background" value="<?php echo esc_attr( (string) ( $core_policy['watermark_background'] ?? 'rgba(0,0,0,0.35)' ) ); ?>" />
+					</label>
+				</div>
+				<div class="magick-ai-toolbox__split">
+					<label>
 						<span><?php esc_html_e( 'Opacity', 'magick-ai-toolbox' ); ?></span>
 						<input type="number" min="0" max="100" step="1" name="watermark_opacity" value="<?php echo esc_attr( (string) ( $core_policy['watermark_opacity'] ?? 80 ) ); ?>" />
 					</label>
 					<label>
-						<span><?php esc_html_e( 'Scale', 'magick-ai-toolbox' ); ?></span>
+						<span><?php esc_html_e( 'Image scale', 'magick-ai-toolbox' ); ?></span>
 						<input type="number" min="1" max="100" step="1" name="watermark_scale" value="<?php echo esc_attr( (string) ( $core_policy['watermark_scale'] ?? 20 ) ); ?>" />
 					</label>
 				</div>

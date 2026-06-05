@@ -128,7 +128,11 @@ set featured images, approve proposals, or execute writes.
 
 `/media-derivative-handoff` prepares one-run ability input for
 `magick-ai/build-media-derivative-cloud-request` from Core media policy defaults
-and operator overrides. It is a planning artifact route. The admin media
+and operator overrides. Watermark overrides must distinguish text and
+image/logo modes: text watermarks pass text/font/color/background/margin fields
+without requiring a logo artifact, while image/logo watermarks use the Core
+configured logo source or another reviewed image source before Cloud dispatch.
+It is a planning artifact route. The admin media
 derivative preview surface may call Adapter's bounded media-derivative recipe
 to create one short-lived Cloud artifact and, for the single-image optimize
 flow, may submit the returned Adapter `from_plan_request` so Core creates one

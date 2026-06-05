@@ -175,7 +175,12 @@ SEO fields.
 
 The media derivative preview flow reads Core media optimization defaults when
 available, accepts one-run operator overrides, and lets an operator select one
-image attachment from the media library. If an operator starts from a hard-coded
+image attachment from the media library. Operators can keep the Core default
+watermark, disable it for the run, use a text watermark, or use the configured
+Core image/logo watermark source with one-run placement settings. Text
+watermark overrides pass text, font, color, background, margin, position, and
+opacity directly to the same Cloud request shape used by OpenClaw handoffs. If
+an operator starts from a hard-coded
 local uploads URL, the same surface can call the local read-only
 `magick-ai/resolve-media-attachment-by-url` ability through Adapter
 `run-read-ability`, show bounded match evidence, and fill the attachment ID for

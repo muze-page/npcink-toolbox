@@ -116,12 +116,40 @@
 		const messages = [];
 		collectErrorText(error, messages, new WeakSet());
 		const unique = messages.filter((message, index) => message && messages.indexOf(message) === index);
+		const advice = watermarkErrorAdvice(error);
+		if (advice && unique.indexOf(advice) === -1) {
+			unique.push(advice);
+		}
 		if (unique.length) {
 			return unique.join('\n');
 		}
 
 		const text = stringifyDisplayValue(error).trim();
 		return text && text !== 'Array' ? text : (fallback || 'Request failed.');
+	}
+
+	function errorContainsCode(value, code, seen) {
+		if (!value || typeof value !== 'object') {
+			return false;
+		}
+		if (seen.has(value)) {
+			return false;
+		}
+		seen.add(value);
+		if (String(value.code || value.error_code || '') === code) {
+			return true;
+		}
+		return Object.keys(value).some((key) => errorContainsCode(value[key], code, seen));
+	}
+
+	function watermarkErrorAdvice(error) {
+		if (errorContainsCode(error, 'cloud_media_derivative_watermark_source_missing', new WeakSet())) {
+			return 'Image/logo watermarks need a configured Core logo source. Switch this run to Text watermark, or configure the Core media watermark logo before retrying.';
+		}
+		if (errorContainsCode(error, 'cloud_media_derivative_text_watermark_source_unexpected', new WeakSet())) {
+			return 'Text watermarks should not include a logo artifact or upload. Retry with Text watermark fields only.';
+		}
+		return '';
 	}
 
 	function createLink(url, label) {
@@ -1127,21 +1155,46 @@
 		if (mode === 'off') {
 			return { watermark_enabled: false };
 		}
-		if (mode !== 'override') {
+		if (mode !== 'text' && mode !== 'image' && mode !== 'override') {
 			return {};
 		}
 
-		const opacity = parseInt(raw.watermark_opacity || '80', 10);
+		const opacity = clampInteger(raw.watermark_opacity, 80, 0, 100) / 100;
+		const margin = clampInteger(raw.watermark_margin, 24, 0, 1000);
+		const position = String(raw.watermark_position || 'bottom_right');
+		if (mode === 'text') {
+			const text = String(raw.watermark_text || 'AI').trim().slice(0, 64) || 'AI';
+			return {
+				watermark_enabled: true,
+				watermark: {
+					type: 'text',
+					text,
+					position,
+					opacity,
+					font_size: clampInteger(raw.watermark_font_size, 48, 8, 256),
+					color: String(raw.watermark_color || '#FFFFFF').trim() || '#FFFFFF',
+					background: String(raw.watermark_background || 'rgba(0,0,0,0.35)').trim() || 'rgba(0,0,0,0.35)',
+					margin_px: margin,
+				},
+			};
+		}
+
 		return {
 			watermark_enabled: true,
 			watermark: {
 				type: 'image',
-				position: String(raw.watermark_position || 'bottom_right'),
-				opacity: Math.max(0, Math.min(100, Number.isNaN(opacity) ? 80 : opacity)) / 100,
-				scale_percent: Math.max(1, Math.min(100, parseInt(raw.watermark_scale || '20', 10) || 20)),
-				margin_px: Math.max(0, Math.min(1000, parseInt(raw.watermark_margin || '24', 10) || 24)),
+				position,
+				opacity,
+				scale_percent: clampInteger(raw.watermark_scale, 20, 1, 100),
+				margin_px: margin,
 			},
 		};
+	}
+
+	function clampInteger(value, fallback, min, max) {
+		const parsed = parseInt(value, 10);
+		const integer = Number.isNaN(parsed) ? fallback : parsed;
+		return Math.max(min, Math.min(max, integer));
 	}
 
 	function mediaDerivativeWatermarkLabel(input) {
@@ -1153,8 +1206,18 @@
 		}
 		if (input.watermark && typeof input.watermark === 'object') {
 			const watermark = input.watermark;
+			if (watermark.type === 'text') {
+				return [
+					'Text "' + String(watermark.text || 'AI') + '"',
+					watermark.position ? formatLabel(watermark.position) : '',
+					watermark.opacity !== undefined ? String(Math.round(Number(watermark.opacity) * 100)) + '% opacity' : '',
+					watermark.font_size ? String(watermark.font_size) + 'px font' : '',
+					watermark.margin_px !== undefined ? String(watermark.margin_px) + 'px margin' : '',
+				].filter(Boolean).join(' · ');
+			}
 			return [
-				watermark.position ? formatLabel(watermark.position) : 'Image',
+				'Image logo',
+				watermark.position ? formatLabel(watermark.position) : '',
 				watermark.opacity !== undefined ? String(Math.round(Number(watermark.opacity) * 100)) + '% opacity' : '',
 				watermark.scale_percent ? String(watermark.scale_percent) + '% scale' : '',
 				watermark.margin_px !== undefined ? String(watermark.margin_px) + 'px margin' : '',
