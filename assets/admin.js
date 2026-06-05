@@ -742,6 +742,44 @@
 			details.appendChild(pre);
 			container.appendChild(details);
 		}
+
+		renderSiteKnowledgeAutoSync(container, payload && payload.auto_sync && typeof payload.auto_sync === 'object' ? payload.auto_sync : {});
+	}
+
+	function renderSiteKnowledgeAutoSync(container, health) {
+		const status = String(health.status || 'idle');
+		const noticeKind = status === 'delayed' ? 'warning' : 'pending';
+		container.appendChild(el('div', 'magick-ai-toolbox__result-notice is-' + noticeKind, health.message || 'Site Knowledge auto-sync uses WP-Cron for background refreshes.'));
+
+		const meta = el('div', 'magick-ai-toolbox__result-meta');
+		appendMeta(meta, 'Auto-sync', formatLabel(status));
+		appendMeta(meta, 'Queued changes', health.queue_count);
+		appendMeta(meta, 'Next queue run', formatDateTime(health.next_queue_run_at));
+		appendMeta(meta, 'Daily check', formatDateTime(health.next_reconcile_at));
+		appendMeta(meta, 'WP-Cron disabled', health.wp_cron_disabled === true ? 'Yes' : 'No');
+		appendMeta(meta, 'Batch size', health.batch_size);
+		appendMeta(meta, 'Debounce', typeof health.debounce_seconds === 'number' ? health.debounce_seconds + 's' : '');
+		if (meta.childNodes.length) {
+			container.appendChild(meta);
+		}
+
+		if (health.cron_command || health.wp_cli_command) {
+			const details = el('details', 'magick-ai-toolbox__result-details');
+			details.appendChild(el('summary', '', 'Server cron suggestion'));
+			if (health.cron_command) {
+				details.appendChild(el('p', 'description', 'Use this when your host supports URL-based scheduled tasks.'));
+				const curl = el('pre', 'magick-ai-toolbox__result-raw');
+				curl.textContent = String(health.cron_command);
+				details.appendChild(curl);
+			}
+			if (health.wp_cli_command) {
+				details.appendChild(el('p', 'description', 'Use this when your server supports WP-CLI.'));
+				const cli = el('pre', 'magick-ai-toolbox__result-raw');
+				cli.textContent = String(health.wp_cli_command);
+				details.appendChild(cli);
+			}
+			container.appendChild(details);
+		}
 	}
 
 	function renderSiteKnowledgeStatus(form, payload) {
@@ -1025,6 +1063,35 @@
 		}
 
 		renderHandoff(result, payload.handoff);
+		result.appendChild(createRawDetails(payload, 'Complete payload'));
+	}
+
+	function renderFreeGpt55ContentSupport(form, payload) {
+		const result = renderShell(
+			form,
+			payload,
+			'Free GPT-5.5 suggestions',
+			'Review the hosted suggestions before moving anything into a Core proposal.'
+		);
+		if (!result) {
+			return;
+		}
+
+		const meta = el('div', 'magick-ai-toolbox__result-meta');
+		appendMeta(meta, 'Profile', payload.hosted_profile || 'text.free-gpt55');
+		appendMeta(meta, 'Model', payload.model_id || 'gpt-5.5');
+		appendMeta(meta, 'Intent', payload.intent ? formatLabel(payload.intent) : '');
+		appendMeta(meta, 'Status', payload.status ? formatLabel(payload.status) : '');
+		appendMeta(meta, 'Run', payload.run_id || '');
+		result.appendChild(meta);
+
+		if (payload.output_text) {
+			const pre = el('pre', 'magick-ai-toolbox__result-raw');
+			pre.textContent = String(payload.output_text);
+			result.appendChild(pre);
+		}
+
+		result.appendChild(el('div', 'magick-ai-toolbox__result-notice is-pending', 'Core proposal approval is required before any WordPress write.'));
 		result.appendChild(createRawDetails(payload, 'Complete payload'));
 	}
 
@@ -2015,6 +2082,11 @@
 
 		if (payload.artifact_type === 'editor_content_support_flow') {
 			renderEditorContentSupport(form, payload);
+			return;
+		}
+
+		if (payload.artifact_type === 'free_gpt55_content_support') {
+			renderFreeGpt55ContentSupport(form, payload);
 			return;
 		}
 

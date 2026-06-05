@@ -187,6 +187,7 @@ Current routes require `manage_options`:
 - `POST /wp-json/magick-ai-toolbox/v1/image-candidates`
 - `POST /wp-json/magick-ai-toolbox/v1/vector-search`
 - `POST /wp-json/magick-ai-toolbox/v1/knowledge-search`
+- `POST /wp-json/magick-ai-toolbox/v1/free-gpt55/content-support`
 - `POST /wp-json/magick-ai-toolbox/v1/flows/article-brief`
 - `POST /wp-json/magick-ai-toolbox/v1/flows/article-plan`
 - `POST /wp-json/magick-ai-toolbox/v1/flows/image-candidate-adoption-plan`

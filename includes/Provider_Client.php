@@ -1671,6 +1671,107 @@ final class Provider_Client {
 		);
 	}
 
+	public function run_free_gpt55_content_support( array $input ) {
+		$intent = sanitize_key( (string) ( $input['intent'] ?? 'discoverability' ) );
+		if ( ! in_array( $intent, array( 'discoverability', 'publish_preflight', 'image_candidates' ), true ) ) {
+			return new WP_Error(
+				'magick_ai_toolbox_invalid_free_gpt55_intent',
+				__( 'A supported free GPT-5.5 content-support intent is required.', 'magick-ai-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$title   = sanitize_text_field( (string) ( $input['title'] ?? '' ) );
+		$excerpt = sanitize_textarea_field( (string) ( $input['excerpt'] ?? '' ) );
+		$content = wp_trim_words( wp_strip_all_tags( (string) ( $input['content'] ?? '' ) ), 420, '' );
+		$post_id = absint( $input['post_id'] ?? 0 );
+		if ( '' === trim( $title . $excerpt . $content ) && 0 === $post_id ) {
+			return new WP_Error(
+				'magick_ai_toolbox_missing_free_gpt55_context',
+				__( 'A title, brief, draft text, or post ID is required for free GPT-5.5 content support.', 'magick-ai-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$context = $this->settings->get_content_context_for_ability();
+		$prompt  = $this->free_gpt55_content_support_prompt(
+			$intent,
+			array(
+				'post_id' => $post_id,
+				'title'   => $title,
+				'excerpt' => $excerpt,
+				'content' => $content,
+			),
+			$context
+		);
+
+		$runtime_payload = array(
+			'ability_name'        => 'magick-ai-toolbox/free-gpt55-content-support',
+			'contract_version'    => 'free_gpt55_content_support.v1',
+			'profile_id'          => 'text.free-gpt55',
+			'execution_pattern'   => 'inline',
+			'input'               => array(
+				'messages' => array(
+					array(
+						'role'    => 'system',
+						'content' => 'You are Magick AI Toolbox. Return concise, reviewable WordPress content-support suggestions. Do not claim to write, publish, approve, or bypass governance.',
+					),
+					array(
+						'role'    => 'user',
+						'content' => $prompt,
+					),
+				),
+				'params'   => array(
+					'temperature' => 0.2,
+					'max_tokens'  => 900,
+				),
+			),
+			'data_classification' => 'public_site_content',
+			'storage_mode'        => 'result_only',
+			'retention_ttl'       => 86400,
+			'timeout_seconds'     => 30,
+			'retry_max'           => 0,
+			'policy'              => array(
+				'allow_fallback' => false,
+			),
+		);
+
+		$runtime_payload = apply_filters( 'magick_ai_toolbox_free_gpt55_runtime_payload', $runtime_payload, $input );
+		if ( ! is_array( $runtime_payload ) ) {
+			return new WP_Error(
+				'magick_ai_toolbox_invalid_free_gpt55_runtime_payload',
+				__( 'The free GPT-5.5 runtime payload was not valid.', 'magick-ai-toolbox' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		$handled = apply_filters( 'magick_ai_toolbox_free_gpt55_cloud_request', null, $runtime_payload, $input );
+		if ( is_wp_error( $handled ) ) {
+			return $handled;
+		}
+		if ( is_array( $handled ) ) {
+			return $this->normalize_free_gpt55_content_support_response( $handled, $runtime_payload, $intent );
+		}
+
+		$client = function_exists( 'magick_ai_cloud_addon_runtime_client' ) ? magick_ai_cloud_addon_runtime_client() : null;
+		if ( ! is_object( $client ) || ! method_exists( $client, 'execute_runtime' ) ) {
+			return new WP_Error(
+				'magick_ai_toolbox_free_gpt55_cloud_unavailable',
+				__( 'Connect Magick AI Cloud before using free GPT-5.5 tools.', 'magick-ai-toolbox' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		$trace_id        = $this->trace_id( 'free_gpt55' );
+		$idempotency_key = $this->trace_id( 'free_gpt55_content_support' );
+		$response        = $client->execute_runtime( $runtime_payload, $trace_id, $idempotency_key );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		return $this->normalize_free_gpt55_content_support_response( is_array( $response ) ? $response : array(), $runtime_payload, $intent );
+	}
+
 	public function build_ai_article_writing_pack( array $input ) {
 		$brief = $this->build_content_discoverability_brief( $input );
 		if ( is_wp_error( $brief ) ) {
@@ -2227,6 +2328,76 @@ final class Provider_Client {
 		return $this->with_optional_raw( $payload, is_array( $response['raw'] ?? null ) ? $response['raw'] : $response );
 	}
 
+	private function normalize_free_gpt55_content_support_response( array $response, array $runtime_payload, string $intent ): array {
+		$result      = $this->extract_cloud_runtime_result( $response );
+		$output_text = sanitize_textarea_field(
+			(string) (
+				$result['output_text']
+				?? $result['text']
+				?? $result['content']
+				?? ( $result['message']['content'] ?? '' )
+			)
+		);
+
+		return $this->with_output_contract(
+			array(
+				'provider'                   => 'magick_ai_cloud',
+				'cloud_runtime'              => 'magick_ai_cloud_addon',
+				'cloud_ability'              => sanitize_text_field( (string) ( $runtime_payload['ability_name'] ?? 'magick-ai-toolbox/free-gpt55-content-support' ) ),
+				'contract_version'           => sanitize_text_field( (string) ( $runtime_payload['contract_version'] ?? 'free_gpt55_content_support.v1' ) ),
+				'hosted_profile'             => sanitize_text_field( (string) ( $runtime_payload['profile_id'] ?? 'text.free-gpt55' ) ),
+				'model_id'                   => sanitize_text_field( (string) ( $result['model_id'] ?? 'gpt-5.5' ) ),
+				'intent'                     => sanitize_key( $intent ),
+				'status'                     => sanitize_key( (string) ( $result['status'] ?? ( $response['status'] ?? 'ready' ) ) ),
+				'run_id'                     => sanitize_text_field( (string) ( $response['run_id'] ?? ( $result['run_id'] ?? '' ) ) ),
+				'output_text'                => $output_text,
+				'result'                     => $this->sanitize_payload( $result ),
+				'write_posture'              => 'suggestion_only',
+				'final_write_path'           => 'core_proposal_required',
+				'direct_wordpress_write'     => false,
+				'handoff'                    => array(
+					'final_writes'           => 'core_proposal_required',
+					'direct_wordpress_write' => false,
+				),
+			),
+			'free_gpt55_content_support',
+			'free_gpt55_content_support'
+		);
+	}
+
+	private function free_gpt55_content_support_prompt( string $intent, array $source, array $context ): string {
+		$task = array(
+			'discoverability'   => 'Generate SEO title, meta description, excerpt, FAQ, AEO summary, GEO summary, taxonomy, and internal-link suggestions.',
+			'publish_preflight' => 'Check publish readiness, missing metadata, source coverage, duplicate-risk signals, media readiness, and review blockers.',
+			'image_candidates'  => 'Suggest image search queries, ALT text options, caption ideas, and media review notes.',
+		)[ $intent ] ?? 'Generate WordPress content-support suggestions.';
+
+		$payload = array(
+			'task'                  => $task,
+			'intent'                => $intent,
+			'source'                => $source,
+			'content_context'       => $this->sanitize_payload( $context ),
+			'output_requirements'   => array(
+				'Use concise headings.',
+				'Return reviewable suggestions only.',
+				'Do not write or publish WordPress content.',
+				'Flag assumptions and claims that require operator confirmation.',
+				'Prefer bullets that can be copied into Core proposal review.',
+			),
+			'forbidden_actions'     => array(
+				'No direct WordPress writes.',
+				'No publishing.',
+				'No SEO ranking guarantees.',
+				'No fake reviews, fake comments, or unsupported claims.',
+			),
+			'final_write_path'      => 'core_proposal_required',
+			'direct_wordpress_write' => false,
+		);
+
+		$encoded = wp_json_encode( $payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+		return is_string( $encoded ) ? $encoded : '';
+	}
+
 	private function normalize_site_knowledge_cloud_response( array $response, string $artifact_type, string $composition_role, array $runtime_payload ): array {
 		$result = $this->extract_cloud_runtime_result( $response );
 
@@ -2295,7 +2466,7 @@ final class Provider_Client {
 					}
 
 					return 'publish' === get_post_status( $post_id )
-						&& in_array( get_post_type( $post_id ), array( 'post', 'page' ), true );
+						&& in_array( get_post_type( $post_id ), $this->site_knowledge_post_types(), true );
 				}
 			)
 		);
@@ -2387,7 +2558,7 @@ final class Provider_Client {
 		}
 
 		$args = array(
-			'post_type'      => array( 'post', 'page' ),
+			'post_type'      => $this->site_knowledge_post_types(),
 			'post_status'    => 'publish',
 			'posts_per_page' => max( 1, min( 50, $max_posts ) ),
 			'orderby'        => 'modified',
@@ -2443,6 +2614,24 @@ final class Provider_Client {
 		}
 
 		return $documents;
+	}
+
+	private function site_knowledge_post_types(): array {
+		$post_types = apply_filters( 'magick_ai_toolbox_site_knowledge_post_types', array( 'post', 'page' ) );
+		if ( ! is_array( $post_types ) ) {
+			$post_types = array( 'post', 'page' );
+		}
+
+		$post_types = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'sanitize_key', $post_types ),
+					static fn( string $post_type ): bool => '' !== $post_type && 'attachment' !== $post_type
+				)
+			)
+		);
+
+		return array() === $post_types ? array( 'post', 'page' ) : $post_types;
 	}
 
 	private function trim_site_knowledge_content( string $content ): string {

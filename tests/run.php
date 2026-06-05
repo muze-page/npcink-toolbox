@@ -19,6 +19,8 @@ function toolbox_assert( bool $condition, string $message ): void {
 $main = file_get_contents( $root . '/magick-ai-toolbox.php' );
 toolbox_assert( false !== $main && str_contains( $main, 'Plugin Name: Magick AI Toolbox' ), 'Plugin header is present.' );
 toolbox_assert( false !== strpos( $main, 'includes/Editor_Content_Support.php' ), 'Plugin bootstrap loads the post editor content support entrypoint.' );
+toolbox_assert( false !== strpos( $main, 'includes/Site_Knowledge_Auto_Sync.php' ), 'Plugin bootstrap loads the Site Knowledge auto-sync bridge.' );
+toolbox_assert( false !== strpos( $main, 'register_deactivation_hook' ) && false !== strpos( $main, 'Site_Knowledge_Auto_Sync::class' ), 'Plugin deactivation clears Site Knowledge auto-sync cron hooks.' );
 
 $article_assistant_doc = file_get_contents( $root . '/docs/article-assistant-workbench.md' );
 foreach ( array( 'Surface Budget', 'Article Assistant Workbench', 'one article per run', 'Do not present it as an', 'article generator, autonomous writer', 'no Cloud article generation', 'not the default Toolbox product surface', 'no default button that promises to write the article body' ) as $required_article_assistant_doc ) {
@@ -74,6 +76,9 @@ toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-context-sections' )
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-context-target="brief" aria-selected="true"' ) && false !== strpos( $admin_page, 'data-toolbox-context-target="boundaries"' ), 'Content context defaults to Brief and keeps Boundaries as a focused section.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-context-groups' ) && false !== strpos( $admin_page, 'data-toolbox-context-group-target="brief-profile"' ) && false !== strpos( $admin_page, 'data-toolbox-context-group-target="boundaries-preview"' ), 'Content context sections use a left field list and right detail panel.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-tab-target="tools" aria-selected="false"' ) && false !== strpos( $admin_page, 'Content Support' ), 'Tool execution is a secondary Content Support tab.' );
+toolbox_assert( false !== strpos( $admin_page, 'Free GPT-5.5' ) && false !== strpos( $admin_page, 'free-gpt55-article-optimization' ) && false !== strpos( $admin_page, 'free-gpt55-site-checkup' ) && false !== strpos( $admin_page, 'free-gpt55-image-alt' ), 'Tool actions expose the free GPT-5.5 entry group.' );
+toolbox_assert( false !== strpos( $admin_page, 'Free GPT-5.5 hosted route' ) && false !== strpos( $admin_page, 'Core approval' ) && false !== strpos( $admin_page, "'powered_by'  => 'free_gpt55'" ), 'Free GPT-5.5 tools remain suggestion-only hosted-runtime entries.' );
+toolbox_assert( false !== strpos( $admin_page, "'endpoint'    => 'free-gpt55/content-support'" ), 'Free GPT-5.5 tools call the dedicated hosted runtime route.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-tab-target="cloud-checks" aria-selected="false"' ) && false !== strpos( $admin_page, 'Cloud Checks' ), 'Cloud checks use their own top-level tab id and label.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-tab-panel="cloud-checks"' ), 'Cloud checks are moved out of the default tools view.' );
 toolbox_assert( false !== strpos( $admin_page, 'data-toolbox-cloud-checks' ) && false !== strpos( $admin_page, 'data-toolbox-cloud-check-panel' ), 'Cloud checks use a single active verification workspace.' );
@@ -162,6 +167,7 @@ toolbox_assert( false !== strpos( $admin_js, "appendMeta(meta, 'Provider calls',
 toolbox_assert( false !== strpos( $admin_js, 'renderWebSearchDiagnostics' ) && false !== strpos( $admin_js, "payload.artifact_type === 'web_search_diagnostics'" ), 'Admin JavaScript renders Cloud web search workflow diagnostics through a dedicated view.' );
 toolbox_assert( false !== strpos( $admin_js, "appendMeta(meta, 'Error code', payload.error_code" ) && false !== strpos( $admin_js, 'payload.usage_summary.evidence_status' ), 'Admin JavaScript surfaces workflow search diagnostic errors and evidence status.' );
 toolbox_assert( false !== strpos( $admin_js, 'renderEditorContentSupport' ) && false !== strpos( $admin_js, "payload.artifact_type === 'editor_content_support_flow'" ), 'Admin JavaScript renders fixed Content Support flow artifacts as structured suggestions.' );
+toolbox_assert( false !== strpos( $admin_js, 'renderFreeGpt55ContentSupport' ) && false !== strpos( $admin_js, "payload.artifact_type === 'free_gpt55_content_support'" ) && false !== strpos( $admin_js, 'text.free-gpt55' ), 'Admin JavaScript renders free GPT-5.5 hosted runtime suggestions.' );
 toolbox_assert( false !== strpos( $admin_js, 'toolboxAdminUrl' ) && false !== strpos( $admin_js, 'Open Cloud Search test' ) && false !== strpos( $admin_js, 'Live Cloud web search verification belongs in Cloud Checks' ), 'Article planning bundle points live Cloud search verification to Cloud Checks instead of rendering it as bundle content.' );
 toolbox_assert( false !== strpos( $admin_js, 'createRawDetails' ) && false !== strpos( $admin_js, 'Complete payload' ), 'Complete payload output is moved behind a result disclosure.' );
 toolbox_assert( false !== strpos( $admin_js, 'Provider raw response' ), 'Provider raw responses are rendered only as disclosure details.' );
@@ -210,6 +216,7 @@ toolbox_assert( false !== strpos( $admin_js, 'updateSiteKnowledgeActionState' ) 
 toolbox_assert( false !== strpos( $admin_js, "modeInput.value = hasIndex ? 'rebuild' : 'refresh'" ), 'Admin JavaScript maps the simple Refresh index action to a Cloud rebuild when an index already exists.' );
 toolbox_assert( false !== strpos( $admin_js, 'progress.message' ) && false !== strpos( $admin_js, 'Active run' ) && false !== strpos( $admin_js, 'Indexing...' ), 'Admin JavaScript renders Site Knowledge progress and disables indexing while Cloud is active.' );
 toolbox_assert( false !== strpos( $admin_js, 'payload.evidence_gate' ) && false !== strpos( $admin_js, 'payload.message' ), 'Admin JavaScript renders Site Knowledge evidence state and active-run guidance.' );
+toolbox_assert( false !== strpos( $admin_js, 'renderSiteKnowledgeAutoSync' ) && false !== strpos( $admin_js, 'Server cron suggestion' ) && false !== strpos( $admin_js, 'WP-Cron disabled' ), 'Admin JavaScript renders Site Knowledge auto-sync queue health and cron guidance.' );
 
 $development_workflow = file_get_contents( $root . '/docs/development-workflow.md' );
 toolbox_assert( false !== strpos( $development_workflow, 'WordPress site timezone' ) && false !== strpos( $development_workflow, 'Y-m-d H:i:s' ) && false !== strpos( $development_workflow, 'Keep machine timestamps unchanged' ), 'Development workflow documents the wp-admin time display standard.' );
@@ -217,6 +224,18 @@ toolbox_assert( false !== strpos( $development_workflow, 'WordPress site timezon
 $editor_support = file_get_contents( $root . '/includes/Editor_Content_Support.php' );
 toolbox_assert( false !== strpos( $editor_support, 'assets/editor-content-support.js' ) && false !== strpos( $editor_support, 'assets/editor-content-support.css' ), 'Post editor content support enqueues its editor assets.' );
 toolbox_assert( false !== strpos( $editor_support, 'MagickAIToolboxEditorSupport' ) && false !== strpos( $editor_support, "wp_create_nonce( 'wp_rest' )" ), 'Post editor content support localizes REST configuration and nonce.' );
+
+$auto_sync = file_get_contents( $root . '/includes/Site_Knowledge_Auto_Sync.php' );
+toolbox_assert( false !== strpos( $auto_sync, 'transition_post_status' ) && false !== strpos( $auto_sync, "add_action( 'save_post'" ), 'Site Knowledge auto-sync watches allow-listed public content publish and update events.' );
+toolbox_assert( false !== strpos( $auto_sync, 'trashed_post' ) && false !== strpos( $auto_sync, 'before_delete_post' ), 'Site Knowledge auto-sync watches public post/page removal events.' );
+toolbox_assert( false !== strpos( $auto_sync, 'transition_comment_status' ) && false !== strpos( $auto_sync, 'comment_post' ) && false !== strpos( $auto_sync, 'edit_comment' ), 'Site Knowledge auto-sync watches approved comment publish and edit events.' );
+toolbox_assert( false !== strpos( $auto_sync, 'trashed_comment' ) && false !== strpos( $auto_sync, 'deleted_comment' ), 'Site Knowledge auto-sync watches approved comment removal events.' );
+toolbox_assert( false !== strpos( $auto_sync, 'request_site_knowledge_sync' ) && false !== strpos( $auto_sync, "'sync_mode' => 'refresh'" ) && false !== strpos( $auto_sync, "'post_ids'  =>" ) && false !== strpos( $auto_sync, 'array_slice( $post_ids' ), 'Site Knowledge auto-sync uses Cloud refresh for affected post IDs.' );
+toolbox_assert( false !== strpos( $auto_sync, 'wp_schedule_single_event' ) && false !== strpos( $auto_sync, 'magick_ai_toolbox_site_knowledge_auto_sync_queue' ), 'Site Knowledge auto-sync queues debounced background work instead of blocking content actions.' );
+toolbox_assert( false !== strpos( $auto_sync, 'wp_schedule_event' ) && false !== strpos( $auto_sync, "'daily'" ) && false !== strpos( $auto_sync, 'queue_recent_public_content' ), 'Site Knowledge auto-sync runs a low-frequency reconciliation safety net.' );
+toolbox_assert( false !== strpos( $auto_sync, 'MAX_RETRY_ATTEMPTS' ) && false !== strpos( $auto_sync, 'retry_or_drop_queue' ), 'Site Knowledge auto-sync limits background retries when Cloud is unavailable.' );
+toolbox_assert( false !== strpos( $auto_sync, 'DEFAULT_POST_TYPES' ) && false !== strpos( $auto_sync, 'magick_ai_toolbox_site_knowledge_post_types' ) && false !== strpos( $auto_sync, "'attachment' !== \$post_type" ), 'Site Knowledge auto-sync uses an explicit allow-list and excludes attachments by default.' );
+toolbox_assert( false !== strpos( $auto_sync, 'health_snapshot' ) && false !== strpos( $auto_sync, 'DISABLE_WP_CRON' ) && false !== strpos( $auto_sync, 'cron_command' ), 'Site Knowledge auto-sync exposes local queue health and server cron guidance.' );
 
 $editor_js = file_get_contents( $root . '/assets/editor-content-support.js' );
 toolbox_assert( false !== strpos( $editor_js, 'PluginDocumentSettingPanel' ) && false !== strpos( $editor_js, 'Magick AI Content Support' ), 'Editor JavaScript registers a Magick AI Content Support document panel.' );
@@ -261,6 +280,7 @@ $allowed_rest_routes = array(
 	'/site-knowledge/search',
 	'/site-knowledge/sync',
 	'/site-knowledge/status',
+	'/free-gpt55/content-support',
 	'/flows/article-brief',
 	'/flows/article-assistant',
 	'/flows/article-plan',
@@ -344,7 +364,8 @@ toolbox_assert( false !== strpos( $client, 'get_site_knowledge_status' ) && fals
 toolbox_assert( false !== strpos( $client, 'request_site_knowledge_sync' ) && false !== strpos( $client, "'site_knowledge_sync.v1'" ), 'Provider client exposes Cloud-managed site knowledge sync requests.' );
 toolbox_assert( false !== strpos( $client, 'magick_ai_toolbox_site_knowledge_cloud_request' ) && false !== strpos( $client, 'magick_ai_cloud_addon_runtime_client' ), 'Site knowledge execution uses a host filter or Cloud Addon runtime seam.' );
 toolbox_assert( false !== strpos( $client, "'ability_name'        => \$ability_name" ) && false !== strpos( $client, "'execution_pattern'   => \$execution_pattern" ), 'Site knowledge runtime payload preserves ability name and execution pattern.' );
-toolbox_assert( false !== strpos( $client, 'collect_site_knowledge_documents' ) && false !== strpos( $client, "'post_status'    => 'publish'" ) && false !== strpos( $client, "'post_type'      => array( 'post', 'page' )" ), 'Site knowledge sync uses bounded public WordPress post and page manifests.' );
+toolbox_assert( false !== strpos( $client, 'collect_site_knowledge_documents' ) && false !== strpos( $client, "'post_status'    => 'publish'" ) && false !== strpos( $client, "'post_type'      => \$this->site_knowledge_post_types()" ), 'Site knowledge sync uses bounded public allow-listed WordPress content manifests.' );
+toolbox_assert( false !== strpos( $client, 'magick_ai_toolbox_site_knowledge_post_types' ) && false !== strpos( $client, "'attachment' !== \$post_type" ), 'Provider client shares the explicit Site Knowledge content-type allow-list.' );
 toolbox_assert( false !== strpos( $client, 'SITE_KNOWLEDGE_CONTENT_CHARS = 30000' ) && false !== strpos( $client, 'trim_site_knowledge_content' ) && false === strpos( $client, 'wp_trim_words( $content, 600' ), 'Site knowledge sync sends bounded public content to Cloud instead of a short word excerpt.' );
 toolbox_assert( false !== strpos( $client, 'collect_site_knowledge_comments' ) && false !== strpos( $client, "'status'   => 'approve'" ) && false !== strpos( $client, "'type'     => 'comment'" ) && false !== strpos( $client, "'comment_status'  => 'approve'" ), 'Site knowledge sync includes bounded approved comment manifests.' );
 toolbox_assert( false !== strpos( $client, 'extract_cloud_runtime_result' ) && false !== strpos( $client, "'result_json'" ), 'Provider client unwraps nested Cloud runtime result payloads.' );
@@ -392,6 +413,8 @@ toolbox_assert( false !== strpos( $client, 'fallback_media_derivative_policy' ),
 toolbox_assert( false !== strpos( $client, 'media_derivative_watermark_overrides' ) && false !== strpos( $client, "'watermark_enabled' => false" ) && false !== strpos( $client, "'scale_percent' =>" ), 'Media derivative handoff supports explicit one-run watermark overrides while leaving Core as policy owner.' );
 toolbox_assert( false !== strpos( $client, "'type'       => 'text'" ) && false !== strpos( $client, "'font_size'  =>" ) && false !== strpos( $client, 'sanitize_media_derivative_watermark_color' ), 'Media derivative handoff sanitizes text watermark overrides without requiring a logo artifact.' );
 toolbox_assert( false !== strpos( $client, 'build_content_discoverability_brief' ), 'Provider client can build content discoverability briefs.' );
+toolbox_assert( false !== strpos( $client, 'run_free_gpt55_content_support' ) && false !== strpos( $client, "'profile_id'          => 'text.free-gpt55'" ) && false !== strpos( $client, "'ability_name'        => 'magick-ai-toolbox/free-gpt55-content-support'" ), 'Provider client runs free GPT-5.5 content support through the dedicated hosted profile.' );
+toolbox_assert( false !== strpos( $client, 'free_gpt55_content_support_prompt' ) && false !== strpos( $client, 'direct_wordpress_write' ) && false !== strpos( $client, 'core_proposal_required' ), 'Free GPT-5.5 prompt preserves suggestion-only Core approval boundaries.' );
 toolbox_assert( false !== strpos( $client, "'artifact_type'          => 'content_discoverability_brief'" ), 'Content discoverability brief declares its artifact type.' );
 toolbox_assert( false !== strpos( $client, "'composition_role'       => 'seo_aeo_geo_brief'" ), 'Content discoverability brief declares its composition role.' );
 toolbox_assert( false !== strpos( $client, "'primary_contract'       => true" ), 'Content discoverability brief is the primary SEO/AEO/GEO contract.' );
@@ -436,8 +459,11 @@ toolbox_assert( false !== strpos( $rest, 'image_source_providers' ) && false !==
 toolbox_assert( false !== strpos( $rest, 'include_ai_generated' ) && false !== strpos( $rest, 'generated_image_url' ), 'Image candidate REST route accepts explicit AI-generated candidate inputs.' );
 toolbox_assert( false === strpos( $rest, 'embedding_dimensions' ), 'Status no longer reports embedding dimensions.' );
 toolbox_assert( false !== strpos( $rest, "'vector_provider'          => 'cloud_site_knowledge'" ) && false !== strpos( $rest, "'vector_owner'             => 'cloud_runtime'" ), 'Status reports Cloud ownership for vector infrastructure.' );
+toolbox_assert( false !== strpos( $rest, "'free_gpt55'" ) && false !== strpos( $rest, "'hosted_profile' => 'text.free-gpt55'" ) && false !== strpos( $rest, "'posture'        => 'suggestion_only_core_approval_required'" ), 'Status exposes the free GPT-5.5 Toolbox entry metadata without adding write authority.' );
+toolbox_assert( false !== strpos( $rest, "\$this->post( '/free-gpt55/content-support', 'free_gpt55_content_support' )" ) && false !== strpos( $rest, 'run_free_gpt55_content_support' ), 'REST exposes the free GPT-5.5 content-support runtime route.' );
 toolbox_assert( false !== strpos( $rest, 'query or vector field' ), 'Vector REST route accepts query or vector input.' );
 toolbox_assert( false !== strpos( $rest, 'site_knowledge_sync' ) && false !== strpos( $rest, 'site_knowledge_status' ) && false !== strpos( $rest, 'site_knowledge_search' ), 'REST routes expose Cloud-managed site knowledge operations.' );
+toolbox_assert( false !== strpos( $rest, "Site_Knowledge_Auto_Sync::health_snapshot()" ) && false !== strpos( $rest, "\$status['auto_sync']" ), 'Site Knowledge status REST response includes local auto-sync health.' );
 toolbox_assert( false === strpos( $rest, 'enhance_with_reader' ) && false === strpos( $rest, 'web_research' ) && false === strpos( $rest, 'jina_reader' ), 'REST exposes Cloud web search testing without local web research or reader enhancement inputs.' );
 toolbox_assert( false !== strpos( $rest, "'provider'    => sanitize_key" ), 'Image candidate REST route accepts provider selection.' );
 toolbox_assert( false !== strpos( $rest, 'magick_ai_toolbox_rest_permission' ), 'REST permission can be mediated by a host scope filter.' );

@@ -104,6 +104,7 @@ planning flows:
 - `/image-candidates`
 - `/vector-search`
 - `/knowledge-search`
+- `/free-gpt55/content-support`
 - `/flows/article-brief`
 - `/flows/article-plan`
 - `/flows/image-candidate-adoption-plan`
@@ -119,6 +120,11 @@ proposal handoffs, not executed by Toolbox.
 `/flows/article-plan` prepares a Core-ready `article_write_plan` for
 `magick-ai-toolbox/build-article-write-plan`. It is a planning artifact route,
 not a WordPress write route and not a Core proposal execution route.
+
+`/free-gpt55/content-support` sends one bounded suggestion request to Cloud
+Hosted Runtime with `profile_id=text.free-gpt55`. It returns review-only
+content-support suggestions and must not create proposals, approve proposals,
+publish content, or write WordPress data.
 
 `/flows/image-candidate-adoption-plan` prepares a Core-ready
 `image_candidate_adoption_plan` from one reviewed `image_candidate.v1`. It may

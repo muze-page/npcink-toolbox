@@ -20,11 +20,14 @@ define( 'MAGICK_AI_TOOLBOX_URL', plugin_dir_url( __FILE__ ) );
 
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Settings.php';
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Provider_Client.php';
+require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Site_Knowledge_Auto_Sync.php';
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Rest_Controller.php';
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Admin_Page.php';
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Editor_Content_Support.php';
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Abilities.php';
 require_once MAGICK_AI_TOOLBOX_DIR . 'includes/Plugin.php';
+
+register_deactivation_hook( MAGICK_AI_TOOLBOX_FILE, array( \Magick_AI_Toolbox\Site_Knowledge_Auto_Sync::class, 'deactivate' ) );
 
 add_action(
 	'plugins_loaded',

@@ -30,6 +30,7 @@ final class Rest_Controller {
 		$this->post( '/web-search/diagnostics', 'web_search_diagnostics' );
 		$this->post( '/site-knowledge/search', 'site_knowledge_search' );
 		$this->post( '/site-knowledge/sync', 'site_knowledge_sync' );
+		$this->post( '/free-gpt55/content-support', 'free_gpt55_content_support' );
 		$this->post( '/flows/article-brief', 'article_brief' );
 		$this->post( '/flows/article-assistant', 'article_assistant' );
 		$this->post( '/flows/article-plan', 'article_plan' );
@@ -77,6 +78,12 @@ final class Rest_Controller {
 				'web_search_enabled'       => true,
 				'image_source_owner'       => 'cloud_runtime',
 				'vector_owner'             => 'cloud_runtime',
+				'free_gpt55'               => array(
+					'entry_surface'  => 'toolbox_content_support',
+					'hosted_profile' => 'text.free-gpt55',
+					'model_id'       => 'gpt-5.5',
+					'posture'        => 'suggestion_only_core_approval_required',
+				),
 				'boundary'                 => 'Toolbox returns Cloud-managed image-source and Cloud-managed site-knowledge suggestions only. Cloud owns web search execution and provider configuration. WordPress writes should be handed to Abilities/Core governance.',
 			)
 		);
@@ -127,13 +134,17 @@ final class Rest_Controller {
 	}
 
 	public function site_knowledge_status( WP_REST_Request $request ) {
-		return rest_ensure_response(
-			$this->client->get_site_knowledge_status(
-				array(
-					'include_coverage' => true,
-				)
+		$status = $this->client->get_site_knowledge_status(
+			array(
+				'include_coverage' => true,
 			)
 		);
+
+		if ( is_array( $status ) ) {
+			$status['auto_sync'] = Site_Knowledge_Auto_Sync::health_snapshot();
+		}
+
+		return rest_ensure_response( $status );
 	}
 
 	public function web_search_test( WP_REST_Request $request ) {
@@ -216,6 +227,11 @@ final class Rest_Controller {
 		}
 
 		return rest_ensure_response( $this->client->build_article_brief( $topic, ! empty( $request->get_param( 'include_knowledge' ) ) ) );
+	}
+
+	public function free_gpt55_content_support( WP_REST_Request $request ) {
+		$params = method_exists( $request, 'get_params' ) ? $request->get_params() : array();
+		return rest_ensure_response( $this->client->run_free_gpt55_content_support( is_array( $params ) ? $params : array() ) );
 	}
 
 	public function article_assistant( WP_REST_Request $request ) {

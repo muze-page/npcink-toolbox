@@ -17,6 +17,8 @@ The first version provides:
 
 - a Magick AI admin page at **Magick AI -> Toolbox** when a Magick AI host menu
   exists, with a **Tools -> Magick AI Toolbox** fallback for standalone installs;
+- a **Free GPT-5.5** entry group in Content Support for one-click hosted article
+  optimization, AI checkup, and image/ALT ideation flows;
 - Cloud-managed web search status, plus read-only Cloud-managed image-source
   and vector availability;
 - an operator-filled content discoverability context for SEO, AEO, and GEO
@@ -174,11 +176,13 @@ it does not insert links, assign terms, import media, publish content, or write
 SEO fields.
 
 The admin **Content Support** tab mirrors that fixed-flow posture. Its default
-Everyday Support group runs one bounded job at a time: discoverability brief,
-publish preflight, taxonomy/tag candidates, internal-link candidates, or image
-candidates. Media work, governed handoffs, and the combined Article Planning
-Bundle are visually separate groups; the bundle is a fallback package, not the
-primary support workflow.
+Free GPT-5.5 group runs the same governed content-support endpoints through the
+Cloud hosted runtime profile `text.free-gpt55` when that route is available.
+Everyday Support remains available for the same bounded jobs:
+discoverability brief, publish preflight, taxonomy/tag candidates,
+internal-link candidates, or image candidates. Media work, governed handoffs,
+and the combined Article Planning Bundle are visually separate groups; the
+bundle is a fallback package, not the primary support workflow.
 
 The media derivative preview flow reads Core media optimization defaults when
 available, accepts one-run operator overrides, and lets an operator select one
@@ -273,7 +277,23 @@ Comment payloads include only public comment text and source IDs needed for
 Cloud indexing; moderation, edits, deletion, and final writes remain local
 WordPress responsibilities.
 
-The admin **Site Knowledge** tab lets operators refresh, rebuild, or delete the
+When an allow-listed public post type is published, updated while published,
+leaves public status, is trashed, or is permanently deleted, Toolbox queues a
+bounded Cloud Site Knowledge refresh for that object. The default allow-list is
+`post` and `page`; hosts may extend it with
+`magick_ai_toolbox_site_knowledge_post_types` for public content types such as
+docs, products, or FAQs. Attachments are excluded from this text indexing path
+by default. When a comment is approved, edited while approved, trashed, deleted,
+or moved out of approved status, Toolbox queues a refresh for the parent
+allow-listed post/page so Cloud can add or drop comment chunks. A low-frequency
+daily reconciliation queues the latest public allow-listed entries as a
+missed-event safety net. These jobs only call the existing Cloud sync contract;
+they do not store provider credentials, run embeddings locally, or write
+WordPress content. The Site Knowledge status panel also shows the local
+auto-sync queue, next WP-Cron runs, and a server cron command suggestion for
+low-traffic production sites.
+
+The admin **Site Knowledge** tab lets operators start or refresh the
 Cloud-managed index and inspect coverage without configuring vector provider
 keys in Toolbox. Cloud owns embedding, vector storage, and detailed run health;
 Toolbox only starts sync from local public content and displays returned status.

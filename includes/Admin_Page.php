@@ -304,7 +304,7 @@ final class Admin_Page {
 		?>
 		<div class="wrap magick-ai-toolbox">
 			<h1><?php esc_html_e( 'Magick AI Toolbox', 'magick-ai-toolbox' ); ?></h1>
-			<p class="magick-ai-toolbox__scope"><?php esc_html_e( 'Review content context, site knowledge, image candidates, and governed handoffs. Human editors own article text; final WordPress writes still require Core proposal approval.', 'magick-ai-toolbox' ); ?></p>
+			<p class="magick-ai-toolbox__scope"><?php esc_html_e( 'Use free hosted GPT-5.5 for reviewable content-support suggestions, then hand final WordPress writes to Core proposal approval.', 'magick-ai-toolbox' ); ?></p>
 
 			<nav class="magick-ai-toolbox__tabs" data-toolbox-tabs aria-label="<?php esc_attr_e( 'Toolbox sections', 'magick-ai-toolbox' ); ?>">
 				<button type="button" class="magick-ai-toolbox__tab is-active" data-toolbox-tab-target="context" aria-selected="true"><?php esc_html_e( 'Content Context', 'magick-ai-toolbox' ); ?></button>
@@ -930,6 +930,39 @@ final class Admin_Page {
 	private function render_tool_cards(): void {
 		$tools = array(
 			array(
+				'group'       => __( 'Free GPT-5.5', 'magick-ai-toolbox' ),
+				'id'          => 'free-gpt55-article-optimization',
+				'endpoint'    => 'free-gpt55/content-support',
+				'title'       => __( 'Optimize Current Article', 'magick-ai-toolbox' ),
+				'description' => __( 'Use the free hosted GPT-5.5 route to generate SEO, AEO, GEO, taxonomy, and excerpt suggestions from the supplied draft context.', 'magick-ai-toolbox' ),
+				'intent'      => 'discoverability',
+				'button'      => __( 'Optimize with GPT-5.5', 'magick-ai-toolbox' ),
+				'custom'      => 'content_support_flow',
+				'powered_by'  => 'free_gpt55',
+			),
+			array(
+				'group'       => __( 'Free GPT-5.5', 'magick-ai-toolbox' ),
+				'id'          => 'free-gpt55-site-checkup',
+				'endpoint'    => 'free-gpt55/content-support',
+				'title'       => __( 'Run AI Checkup', 'magick-ai-toolbox' ),
+				'description' => __( 'Check publish readiness, missing metadata, duplicate risk, source coverage, and media readiness without writing WordPress content.', 'magick-ai-toolbox' ),
+				'intent'      => 'publish_preflight',
+				'button'      => __( 'Run free checkup', 'magick-ai-toolbox' ),
+				'custom'      => 'content_support_flow',
+				'powered_by'  => 'free_gpt55',
+			),
+			array(
+				'group'       => __( 'Free GPT-5.5', 'magick-ai-toolbox' ),
+				'id'          => 'free-gpt55-image-alt',
+				'endpoint'    => 'free-gpt55/content-support',
+				'title'       => __( 'Find Image And Alt Ideas', 'magick-ai-toolbox' ),
+				'description' => __( 'Generate image-source candidates and reviewable media-context ideas for featured or inline images.', 'magick-ai-toolbox' ),
+				'intent'      => 'image_candidates',
+				'button'      => __( 'Find image ideas', 'magick-ai-toolbox' ),
+				'custom'      => 'content_support_flow',
+				'powered_by'  => 'free_gpt55',
+			),
+			array(
 				'group'       => __( 'Everyday Support', 'magick-ai-toolbox' ),
 				'id'          => 'discoverability-brief',
 				'endpoint'    => 'editor/content-support',
@@ -1062,6 +1095,7 @@ final class Admin_Page {
 							(string) $tool['id'],
 							(string) $tool['intent'],
 							(string) $tool['button'],
+							'free_gpt55' === (string) ( $tool['powered_by'] ?? '' ),
 							0 === $index
 						);
 						continue;
@@ -1124,11 +1158,17 @@ final class Admin_Page {
 		<?php
 	}
 
-	private function render_content_support_flow_tool( string $endpoint, string $title, string $description, string $tool_id, string $intent, string $button, bool $active = false ): void {
+	private function render_content_support_flow_tool( string $endpoint, string $title, string $description, string $tool_id, string $intent, string $button, bool $free_gpt55 = false, bool $active = false ): void {
 		?>
 		<form class="magick-ai-toolbox__card" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" <?php echo $active ? '' : 'hidden'; ?>>
 			<h2><?php echo esc_html( $title ); ?></h2>
 			<p><?php echo esc_html( $description ); ?></p>
+			<?php if ( $free_gpt55 ) : ?>
+				<div class="magick-ai-toolbox__example is-free-gpt55">
+					<strong><?php esc_html_e( 'Free GPT-5.5 hosted route', 'magick-ai-toolbox' ); ?></strong>
+					<span><?php esc_html_e( 'Toolbox sends one suggestion request through the Cloud hosted runtime when the site is connected. The result stays review-only until Core approval.', 'magick-ai-toolbox' ); ?></span>
+				</div>
+			<?php endif; ?>
 			<input type="hidden" name="intent" value="<?php echo esc_attr( $intent ); ?>" />
 			<input type="hidden" name="post_type" value="post" />
 			<input type="hidden" name="post_status" value="draft" />

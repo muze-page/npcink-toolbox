@@ -118,6 +118,14 @@
 	line-height: 1.4;
 }
 
+.magick-ai-toolbox__example.is-free-gpt55 {
+	border-left-color: #008a20;
+}
+
+.magick-ai-toolbox__example.is-free-gpt55 strong {
+	color: #008a20;
+}
+
 .magick-ai-toolbox__tool-workspace {
 	display: grid;
 	grid-template-columns: 300px minmax(0, 1fr);
