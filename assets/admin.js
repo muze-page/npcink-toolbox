@@ -1067,11 +1067,27 @@
 	}
 
 	function renderFreeGpt55ContentSupport(form, payload) {
+		const intent = String(payload.intent || '');
+		const titleByIntent = {
+			article_optimization: 'Article optimization suggestions',
+			discoverability: 'Discoverability suggestions',
+			site_checkup: 'Site checkup suggestions',
+			publish_preflight: 'Publish preflight suggestions',
+			media_alt: 'Media alt suggestions',
+			image_candidates: 'Image and media suggestions',
+			smart_recommendations: 'Next action recommendation'
+		};
+		const summaryByIntent = {
+			article_optimization: 'Review article metadata, structure, FAQ, link, and CTA ideas before creating a Core proposal.',
+			site_checkup: 'Review the site-wide opportunities and choose the next local action. No WordPress content was changed.',
+			media_alt: 'Review accessibility-focused alt and caption ideas before applying anything to the media library.',
+			smart_recommendations: 'Use this as an operator queue suggestion, not an automatic workflow decision.'
+		};
 		const result = renderShell(
 			form,
 			payload,
-			'Free GPT-5.5 suggestions',
-			'Review the hosted suggestions before moving anything into a Core proposal.'
+			titleByIntent[intent] || 'Free GPT-5.5 suggestions',
+			summaryByIntent[intent] || 'Review the hosted suggestions before moving anything into a Core proposal.'
 		);
 		if (!result) {
 			return;

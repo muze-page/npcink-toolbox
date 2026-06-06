@@ -10,7 +10,7 @@ namespace Npcink_Toolbox;
 defined( 'ABSPATH' ) || exit;
 
 final class Admin_Page {
-	private const PARENT_MENU_SLUG = 'npcink';
+	private const PARENT_MENU_SLUG = 'npcink-ai';
 	private const MENU_SLUG        = 'npcink-toolbox';
 
 	private Settings $settings;
@@ -935,7 +935,7 @@ final class Admin_Page {
 				'endpoint'    => 'free-gpt55/content-support',
 				'title'       => __( 'Optimize Current Article', 'npcink-toolbox' ),
 				'description' => __( 'Use the free hosted GPT-5.5 route to generate SEO, AEO, GEO, taxonomy, and excerpt suggestions from the supplied draft context.', 'npcink-toolbox' ),
-				'intent'      => 'discoverability',
+				'intent'      => 'article_optimization',
 				'button'      => __( 'Optimize with GPT-5.5', 'npcink-toolbox' ),
 				'custom'      => 'content_support_flow',
 				'powered_by'  => 'free_gpt55',
@@ -945,8 +945,8 @@ final class Admin_Page {
 				'id'          => 'free-gpt55-site-checkup',
 				'endpoint'    => 'free-gpt55/content-support',
 				'title'       => __( 'Run AI Checkup', 'npcink-toolbox' ),
-				'description' => __( 'Check publish readiness, missing metadata, duplicate risk, source coverage, and media readiness without writing WordPress content.', 'npcink-toolbox' ),
-				'intent'      => 'publish_preflight',
+				'description' => __( 'Review a bounded public site snapshot for content, metadata, taxonomy, internal-link, and media-alt opportunities.', 'npcink-toolbox' ),
+				'intent'      => 'site_checkup',
 				'button'      => __( 'Run free checkup', 'npcink-toolbox' ),
 				'custom'      => 'content_support_flow',
 				'powered_by'  => 'free_gpt55',
@@ -955,10 +955,21 @@ final class Admin_Page {
 				'group'       => __( 'Free GPT-5.5', 'npcink-toolbox' ),
 				'id'          => 'free-gpt55-image-alt',
 				'endpoint'    => 'free-gpt55/content-support',
-				'title'       => __( 'Find Image And Alt Ideas', 'npcink-toolbox' ),
-				'description' => __( 'Generate image-source candidates and reviewable media-context ideas for featured or inline images.', 'npcink-toolbox' ),
-				'intent'      => 'image_candidates',
-				'button'      => __( 'Find image ideas', 'npcink-toolbox' ),
+				'title'       => __( 'Generate Media Alt Ideas', 'npcink-toolbox' ),
+				'description' => __( 'Sample recent image attachments and generate accessibility-focused alt text and caption suggestions.', 'npcink-toolbox' ),
+				'intent'      => 'media_alt',
+				'button'      => __( 'Generate alt ideas', 'npcink-toolbox' ),
+				'custom'      => 'content_support_flow',
+				'powered_by'  => 'free_gpt55',
+			),
+			array(
+				'group'       => __( 'Free GPT-5.5', 'npcink-toolbox' ),
+				'id'          => 'free-gpt55-smart-recommendations',
+				'endpoint'    => 'free-gpt55/content-support',
+				'title'       => __( 'Recommend Next Toolbox Action', 'npcink-toolbox' ),
+				'description' => __( 'Use the current site and media snapshot to choose the highest-impact next Toolbox action for the operator.', 'npcink-toolbox' ),
+				'intent'      => 'smart_recommendations',
+				'button'      => __( 'Recommend next action', 'npcink-toolbox' ),
 				'custom'      => 'content_support_flow',
 				'powered_by'  => 'free_gpt55',
 			),
@@ -1168,6 +1179,12 @@ final class Admin_Page {
 					<strong><?php esc_html_e( 'Free GPT-5.5 hosted route', 'npcink-toolbox' ); ?></strong>
 					<span><?php esc_html_e( 'Toolbox sends one suggestion request through the Cloud hosted runtime when the site is connected. The result stays review-only until Core approval.', 'npcink-toolbox' ); ?></span>
 				</div>
+				<?php if ( in_array( $intent, array( 'site_checkup', 'media_alt', 'smart_recommendations' ), true ) ) : ?>
+					<div class="npcink-toolbox__example">
+						<strong><?php esc_html_e( 'Automatic public snapshot', 'npcink-toolbox' ); ?></strong>
+						<span><?php esc_html_e( 'This tool can run without draft text. Toolbox sends a bounded sample of public site metadata or media-library metadata for reviewable suggestions only.', 'npcink-toolbox' ); ?></span>
+					</div>
+				<?php endif; ?>
 			<?php endif; ?>
 			<input type="hidden" name="intent" value="<?php echo esc_attr( $intent ); ?>" />
 			<input type="hidden" name="post_type" value="post" />

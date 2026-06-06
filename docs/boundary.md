@@ -125,6 +125,11 @@ not a WordPress write route and not a Core proposal execution route.
 Hosted Runtime with `profile_id=text.free-gpt55`. It returns review-only
 content-support suggestions and must not create proposals, approve proposals,
 publish content, or write WordPress data.
+Its allowed intents are article optimization, site checkup, media ALT
+suggestions, image/media ideation, publish preflight, discoverability, and
+next-action recommendations. Site-level intents may include bounded public site
+metadata or media-library metadata samples, but those samples are planning
+context only and do not authorize writes.
 
 `/flows/image-candidate-adoption-plan` prepares a Core-ready
 `image_candidate_adoption_plan` from one reviewed `image_candidate.v1`. It may

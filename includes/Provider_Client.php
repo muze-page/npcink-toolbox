@@ -1673,7 +1673,7 @@ final class Provider_Client {
 
 	public function run_free_gpt55_content_support( array $input ) {
 		$intent = sanitize_key( (string) ( $input['intent'] ?? 'discoverability' ) );
-		if ( ! in_array( $intent, array( 'discoverability', 'publish_preflight', 'image_candidates' ), true ) ) {
+		if ( ! in_array( $intent, array( 'article_optimization', 'discoverability', 'site_checkup', 'publish_preflight', 'media_alt', 'image_candidates', 'smart_recommendations' ), true ) ) {
 			return new WP_Error(
 				'npcink_toolbox_invalid_free_gpt55_intent',
 				__( 'A supported free GPT-5.5 content-support intent is required.', 'npcink-toolbox' ),
@@ -1685,7 +1685,8 @@ final class Provider_Client {
 		$excerpt = sanitize_textarea_field( (string) ( $input['excerpt'] ?? '' ) );
 		$content = wp_trim_words( wp_strip_all_tags( (string) ( $input['content'] ?? '' ) ), 420, '' );
 		$post_id = absint( $input['post_id'] ?? 0 );
-		if ( '' === trim( $title . $excerpt . $content ) && 0 === $post_id ) {
+		$site_level_intents = array( 'site_checkup', 'media_alt', 'smart_recommendations' );
+		if ( '' === trim( $title . $excerpt . $content ) && 0 === $post_id && ! in_array( $intent, $site_level_intents, true ) ) {
 			return new WP_Error(
 				'npcink_toolbox_missing_free_gpt55_context',
 				__( 'A title, brief, draft text, or post ID is required for free GPT-5.5 content support.', 'npcink-toolbox' ),
@@ -1694,14 +1695,22 @@ final class Provider_Client {
 		}
 
 		$context = $this->settings->get_content_context_for_ability();
+		$source  = array(
+			'post_id'        => $post_id,
+			'title'          => $title,
+			'excerpt'        => $excerpt,
+			'content'        => $content,
+			'post_context'   => $this->collect_free_gpt55_post_context( $post_id ),
+			'site_snapshot'  => in_array( $intent, array( 'site_checkup', 'smart_recommendations', 'article_optimization', 'discoverability', 'publish_preflight' ), true )
+				? $this->collect_free_gpt55_site_snapshot()
+				: array(),
+			'media_snapshot' => in_array( $intent, array( 'site_checkup', 'media_alt', 'smart_recommendations' ), true )
+				? $this->collect_free_gpt55_media_alt_snapshot( 12 )
+				: array(),
+		);
 		$prompt  = $this->free_gpt55_content_support_prompt(
 			$intent,
-			array(
-				'post_id' => $post_id,
-				'title'   => $title,
-				'excerpt' => $excerpt,
-				'content' => $content,
-			),
+			$source,
 			$context
 		);
 
@@ -1723,7 +1732,7 @@ final class Provider_Client {
 				),
 				'params'   => array(
 					'temperature' => 0.2,
-					'max_tokens'  => 900,
+					'max_tokens'  => in_array( $intent, array( 'site_checkup', 'media_alt', 'smart_recommendations' ), true ) ? 1200 : 900,
 				),
 			),
 			'data_classification' => 'public_site_content',
@@ -2365,11 +2374,186 @@ final class Provider_Client {
 		);
 	}
 
+	private function collect_free_gpt55_post_context( int $post_id ): array {
+		if ( 0 >= $post_id || ! function_exists( 'get_post' ) ) {
+			return array();
+		}
+
+		$post = get_post( $post_id );
+		if ( ! is_object( $post ) ) {
+			return array();
+		}
+
+		$content = wp_strip_all_tags( (string) ( $post->post_content ?? '' ) );
+		$terms   = array();
+		if ( function_exists( 'get_the_terms' ) ) {
+			foreach ( array( 'category', 'post_tag' ) as $taxonomy ) {
+				$items = get_the_terms( $post_id, $taxonomy );
+				if ( is_wp_error( $items ) || ! is_array( $items ) ) {
+					continue;
+				}
+				foreach ( $items as $term ) {
+					$terms[] = sanitize_text_field( (string) ( $term->name ?? '' ) );
+				}
+			}
+		}
+
+		$thumbnail_id = function_exists( 'get_post_thumbnail_id' ) ? absint( get_post_thumbnail_id( $post_id ) ) : 0;
+
+		return array(
+			'post_id'             => $post_id,
+			'post_type'           => function_exists( 'get_post_type' ) ? sanitize_key( (string) get_post_type( $post_id ) ) : sanitize_key( (string) ( $post->post_type ?? '' ) ),
+			'post_status'         => function_exists( 'get_post_status' ) ? sanitize_key( (string) get_post_status( $post_id ) ) : sanitize_key( (string) ( $post->post_status ?? '' ) ),
+			'title'               => function_exists( 'get_the_title' ) ? sanitize_text_field( (string) get_the_title( $post_id ) ) : sanitize_text_field( (string) ( $post->post_title ?? '' ) ),
+			'url'                 => function_exists( 'get_permalink' ) ? esc_url_raw( (string) get_permalink( $post_id ) ) : '',
+			'excerpt'             => function_exists( 'get_the_excerpt' ) ? sanitize_textarea_field( (string) wp_strip_all_tags( get_the_excerpt( $post ) ) ) : '',
+			'content_excerpt'     => sanitize_textarea_field( wp_trim_words( $content, 180, '' ) ),
+			'terms'               => array_values( array_filter( array_unique( $terms ) ) ),
+			'featured_image_id'   => $thumbnail_id,
+			'featured_image_alt'  => $thumbnail_id && function_exists( 'get_post_meta' ) ? sanitize_text_field( (string) get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) ) : '',
+			'modified_gmt'        => sanitize_text_field( (string) ( $post->post_modified_gmt ?? '' ) ),
+			'operator_reviewable' => true,
+		);
+	}
+
+	private function collect_free_gpt55_site_snapshot(): array {
+		$recent_posts = function_exists( 'get_posts' ) ? get_posts(
+			array(
+				'post_type'      => array( 'post', 'page' ),
+				'post_status'    => 'publish',
+				'posts_per_page' => 10,
+				'orderby'        => 'modified',
+				'order'          => 'DESC',
+			)
+		) : array();
+
+		$items = array();
+		foreach ( is_array( $recent_posts ) ? $recent_posts : array() as $post ) {
+			if ( ! is_object( $post ) ) {
+				continue;
+			}
+			$post_id   = absint( $post->ID ?? 0 );
+			$content   = wp_strip_all_tags( (string) ( $post->post_content ?? '' ) );
+			$excerpt   = function_exists( 'get_the_excerpt' ) ? wp_strip_all_tags( (string) get_the_excerpt( $post ) ) : '';
+			$items[] = array(
+				'post_id'         => $post_id,
+				'post_type'       => function_exists( 'get_post_type' ) ? sanitize_key( (string) get_post_type( $post_id ) ) : sanitize_key( (string) ( $post->post_type ?? '' ) ),
+				'title'           => function_exists( 'get_the_title' ) ? sanitize_text_field( (string) get_the_title( $post_id ) ) : sanitize_text_field( (string) ( $post->post_title ?? '' ) ),
+				'url'             => function_exists( 'get_permalink' ) ? esc_url_raw( (string) get_permalink( $post_id ) ) : '',
+				'excerpt'         => sanitize_textarea_field( (string) $excerpt ),
+				'content_excerpt' => sanitize_textarea_field( wp_trim_words( $content, 90, '' ) ),
+				'modified_gmt'    => sanitize_text_field( (string) ( $post->post_modified_gmt ?? '' ) ),
+				'has_featured_image' => function_exists( 'has_post_thumbnail' ) ? (bool) has_post_thumbnail( $post_id ) : false,
+			);
+		}
+
+		$counts = array();
+		if ( function_exists( 'wp_count_posts' ) ) {
+			foreach ( array( 'post', 'page' ) as $post_type ) {
+				$count = wp_count_posts( $post_type );
+				$counts[ $post_type ] = array(
+					'publish' => absint( $count->publish ?? 0 ),
+					'draft'   => absint( $count->draft ?? 0 ),
+					'future'  => absint( $count->future ?? 0 ),
+				);
+			}
+		}
+
+		$terms = array();
+		if ( function_exists( 'get_terms' ) ) {
+			$term_items = get_terms(
+				array(
+					'taxonomy'   => array( 'category', 'post_tag' ),
+					'hide_empty' => true,
+					'number'     => 12,
+					'orderby'    => 'count',
+					'order'      => 'DESC',
+				)
+			);
+			if ( ! is_wp_error( $term_items ) && is_array( $term_items ) ) {
+				foreach ( $term_items as $term ) {
+					$terms[] = array(
+						'name'     => sanitize_text_field( (string) ( $term->name ?? '' ) ),
+						'taxonomy' => sanitize_key( (string) ( $term->taxonomy ?? '' ) ),
+						'count'    => absint( $term->count ?? 0 ),
+					);
+				}
+			}
+		}
+
+		return array(
+			'site_name'       => function_exists( 'get_bloginfo' ) ? sanitize_text_field( (string) get_bloginfo( 'name' ) ) : '',
+			'tagline'         => function_exists( 'get_bloginfo' ) ? sanitize_text_field( (string) get_bloginfo( 'description' ) ) : '',
+			'home_url'        => function_exists( 'home_url' ) ? esc_url_raw( (string) home_url( '/' ) ) : '',
+			'post_counts'     => $counts,
+			'top_terms'       => $terms,
+			'recent_content'  => $items,
+			'snapshot_policy' => 'public_site_content_sample_only',
+		);
+	}
+
+	private function collect_free_gpt55_media_alt_snapshot( int $limit ): array {
+		$attachments = function_exists( 'get_posts' ) ? get_posts(
+			array(
+				'post_type'      => 'attachment',
+				'post_status'    => 'inherit',
+				'post_mime_type' => 'image',
+				'posts_per_page' => max( 1, min( 30, $limit * 3 ) ),
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+			)
+		) : array();
+
+		$items       = array();
+		$missing_alt = 0;
+		foreach ( is_array( $attachments ) ? $attachments : array() as $attachment ) {
+			if ( ! is_object( $attachment ) ) {
+				continue;
+			}
+			$attachment_id = absint( $attachment->ID ?? 0 );
+			if ( 0 >= $attachment_id ) {
+				continue;
+			}
+			$alt = function_exists( 'get_post_meta' ) ? sanitize_text_field( (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) ) : '';
+			if ( '' === $alt ) {
+				++$missing_alt;
+			}
+			if ( count( $items ) >= $limit && '' !== $alt ) {
+				continue;
+			}
+			$image_src = function_exists( 'wp_get_attachment_image_src' ) ? wp_get_attachment_image_src( $attachment_id, 'thumbnail' ) : false;
+			$items[] = array(
+				'attachment_id' => $attachment_id,
+				'title'         => sanitize_text_field( (string) ( $attachment->post_title ?? '' ) ),
+				'caption'       => sanitize_textarea_field( (string) ( $attachment->post_excerpt ?? '' ) ),
+				'description'   => sanitize_textarea_field( wp_trim_words( wp_strip_all_tags( (string) ( $attachment->post_content ?? '' ) ), 80, '' ) ),
+				'alt'           => $alt,
+				'missing_alt'   => '' === $alt,
+				'thumbnail_url' => is_array( $image_src ) ? esc_url_raw( (string) ( $image_src[0] ?? '' ) ) : '',
+				'url'           => function_exists( 'wp_get_attachment_url' ) ? esc_url_raw( (string) wp_get_attachment_url( $attachment_id ) ) : '',
+			);
+			if ( count( $items ) >= $limit && $missing_alt >= $limit ) {
+				break;
+			}
+		}
+
+		return array(
+			'sample_size'       => count( $items ),
+			'missing_alt_count' => $missing_alt,
+			'items'             => array_slice( $items, 0, $limit ),
+			'snapshot_policy'   => 'media_library_metadata_sample_only',
+		);
+	}
+
 	private function free_gpt55_content_support_prompt( string $intent, array $source, array $context ): string {
 		$task = array(
+			'article_optimization' => 'Generate article enhancement suggestions: SEO title, meta description, excerpt, FAQ, AEO summary, GEO summary, taxonomy, internal-link ideas, and CTA notes.',
 			'discoverability'   => 'Generate SEO title, meta description, excerpt, FAQ, AEO summary, GEO summary, taxonomy, and internal-link suggestions.',
+			'site_checkup'      => 'Review the bounded public site snapshot and identify content, metadata, taxonomy, internal-link, and media-alt improvement opportunities.',
 			'publish_preflight' => 'Check publish readiness, missing metadata, source coverage, duplicate-risk signals, media readiness, and review blockers.',
+			'media_alt'         => 'Generate accessibility-focused ALT text suggestions, caption ideas, and review notes for sampled image attachments with missing or weak ALT text.',
 			'image_candidates'  => 'Suggest image search queries, ALT text options, caption ideas, and media review notes.',
+			'smart_recommendations' => 'Recommend the next best Toolbox actions based on the public site snapshot, media ALT sample, and available GPT-5.5 content-support tools.',
 		)[ $intent ] ?? 'Generate WordPress content-support suggestions.';
 
 		$payload = array(
@@ -2383,6 +2567,7 @@ final class Provider_Client {
 				'Do not write or publish WordPress content.',
 				'Flag assumptions and claims that require operator confirmation.',
 				'Prefer bullets that can be copied into Core proposal review.',
+				'For site-wide and media outputs, prioritize the highest-impact next actions first.',
 			),
 			'forbidden_actions'     => array(
 				'No direct WordPress writes.',

@@ -18,7 +18,8 @@ The first version provides:
 - a Npcink admin page at **Npcink -> Toolbox** when a Npcink host menu
   exists, with a **Tools -> Npcink Toolbox** fallback for standalone installs;
 - a **Free GPT-5.5** entry group in Content Support for one-click hosted article
-  optimization, AI checkup, and image/ALT ideation flows;
+  optimization, site checkup, media ALT suggestions, and next-action
+  recommendations;
 - Cloud-managed web search status, plus read-only Cloud-managed image-source
   and vector availability;
 - an operator-filled content discoverability context for SEO, AEO, and GEO
