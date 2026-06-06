@@ -929,8 +929,998 @@ msgstr "可选的已审阅附件描述"
 msgid "Apply watermark"
 msgstr "应用水印"
 
+msgid "text \"%1$s\", %2$s, %3$d%% opacity, %4$dpx font, %5$dpx margin"
+msgstr "文本“%1$s”，%2$s，%3$d%% 不透明度，%4$dpx 字号，%5$dpx 边距"
+
+msgid "%1$s, %2$d%% opacity, %3$d%% scale, %4$dpx margin"
+msgstr "%1$s，%2$d%% 不透明度，%3$d%% 缩放，%4$dpx 边距"
+
+msgid "Button flow"
+msgstr "按钮流程"
+
+msgid "Pick or paste one reviewed image, add basic media details, then submit the returned plan to Core for approval. Toolbox does not import media directly."
+msgstr "选择或粘贴一张已审阅图片，添加基础媒体详情，然后把返回的计划提交给 Core 审批。Toolbox 不直接导入媒体。"
+
+msgid "https://example.com/image.jpg"
+msgstr "https://example.com/image.jpg"
+
+msgid "Source type"
+msgstr "来源类型"
+
+msgid "Stock image"
+msgstr "图库图片"
+
+msgid "AI generated"
+msgstr "AI 生成"
+
+msgid "Owned image"
+msgstr "自有图片"
+
+msgid "External image"
+msgstr "外部图片"
+
+msgid "Source page"
+msgstr "来源页面"
+
+msgid "License or source page URL"
+msgstr "许可证或来源页面 URL"
+
+msgid "unsplash, pixabay, openai, manual"
+msgstr "unsplash、pixabay、openai、manual"
+
+msgid "Media title"
+msgstr "媒体标题"
+
+msgid "Optional media title"
+msgstr "可选媒体标题"
+
+msgid "Alt text"
+msgstr "Alt 文本"
+
+msgid "Describe the image for accessibility"
+msgstr "为无障碍访问描述图片"
+
+msgid "Attach to post ID"
+msgstr "附加到文章 ID"
+
+msgid "Optional post ID"
+msgstr "可选文章 ID"
+
+msgid "Approved file name"
+msgstr "已批准文件名"
+
+msgid "Optional approved filename"
+msgstr "可选已批准文件名"
+
+msgid "Set as featured image after approval"
+msgstr "审批后设为特色图"
+
+msgid "Attribution"
+msgstr "署名"
+
+msgid "Photographer, license, prompt disclosure, or required credit."
+msgstr "摄影师、许可证、提示词披露或必需署名。"
+
+msgid "Advanced candidate details"
+msgstr "高级候选详情"
+
+msgid "Thumbnail URL"
+msgstr "缩略图 URL"
+
+msgid "Optional preview URL"
+msgstr "可选预览 URL"
+
+msgid "License review"
+msgstr "许可证审阅"
+
+msgid "Review required"
+msgstr "需要审阅"
+
+msgid "Reviewed"
+msgstr "已审阅"
+
+msgid "Not required"
+msgstr "不需要"
+
+msgid "Prompt"
+msgstr "提示词"
+
+msgid "Optional generation prompt"
+msgstr "可选生成提示词"
+
+msgid "Model"
+msgstr "模型"
+
+msgid "Optional generation model"
+msgstr "可选生成模型"
+
+msgid "Candidate JSON"
+msgstr "候选 JSON"
+
+msgid "Optional. Paste one image_candidate.v1 object to override the fields above."
+msgstr "可选。粘贴一个 image_candidate.v1 对象以覆盖上方字段。"
+
+msgid "Build import proposal plan"
+msgstr "生成导入提案计划"
+
+msgid "Local workbench"
+msgstr "本地工作台"
+
+msgid "This composes a planning artifact only. It does not run a cloud writer, submit a proposal, approve a proposal, or write WordPress content."
+msgstr "这里只组合规划制品。它不会运行云端写手、提交提案、审批提案或写入 WordPress 内容。"
+
+msgid "Target reader"
+msgstr "目标读者"
+
+msgid "Angle"
+msgstr "角度"
+
+msgid "Point of view or structure"
+msgstr "视角或结构"
+
+msgid "Language"
+msgstr "语言"
+
+msgid "Target words"
+msgstr "目标字数"
+
+msgid "Article goal"
+msgstr "文章目标"
+
+msgid "What should the article help the reader do?"
+msgstr "这篇文章应帮助读者完成什么？"
+
+msgid "Must include"
+msgstr "必须包含"
+
+msgid "One required point per line"
+msgstr "每行一个必需点"
+
+msgid "Must avoid"
+msgstr "必须避免"
+
+msgid "One forbidden or sensitive point per line"
+msgstr "每行一个禁止或敏感点"
+
+msgid "Reference URLs"
+msgstr "参考 URL"
+
+msgid "One source URL per line"
+msgstr "每行一个来源 URL"
+
+msgid "Draft notes"
+msgstr "草稿笔记"
+
+msgid "Operator notes, facts, outline fragments, or constraints."
+msgstr "运营者笔记、事实、大纲片段或约束。"
+
+msgid "Reviewed draft body"
+msgstr "已审阅草稿正文"
+
+msgid "Optional. When present and risk checks pass, Toolbox also returns an article_write_plan for Core intake."
+msgstr "可选。填写后且风险检查通过时，Toolbox 还会返回用于 Core 接收的 article_write_plan。"
+
+msgid "Source policy"
+msgstr "来源策略"
+
+msgid "Strict sources"
+msgstr "严格来源"
+
+msgid "Operator notes only"
+msgstr "仅运营者笔记"
+
+msgid "Optional tone hint"
+msgstr "可选语气提示"
+
+msgid "Build assistant artifact"
+msgstr "生成助手制品"
+
+msgid "Reviewed media details"
+msgstr "已审阅媒体详情"
+
+msgid "These fields are submitted with the derivative artifact as one Core media optimization proposal."
+msgstr "这些字段会和衍生制品一起作为一个 Core 媒体优化提案提交。"
+
+msgid "Reviewed media title"
+msgstr "已审阅媒体标题"
+
+msgid "Caption"
+msgstr "说明文字"
+
+msgid "Optional reviewed caption"
+msgstr "可选已审阅说明文字"
+
+msgid "Description"
+msgstr "描述"
+
+msgid "Test media"
+msgstr "测试媒体"
+
+msgid "Exclude formats from setting repair"
+msgstr "从设置修复中排除格式"
+
+msgid "Minimum setting image size"
+msgstr "设置图片最小尺寸"
+
+msgid "Batch conversion plan"
+msgstr "批量转换计划"
+
+msgid "Fixed batch flow: choose a scope and goal, build a bounded plan, generate selected previews, then submit only reviewed Core proposals."
+msgstr "固定批量流程：选择范围和目标，生成有边界的计划，生成所选预览，然后只提交已审阅的 Core 提案。"
+
+msgid "Batch optimization steps"
+msgstr "批量优化步骤"
+
+msgid "Scope"
+msgstr "范围"
+
+msgid "Plan"
+msgstr "计划"
+
+msgid "Preview"
+msgstr "预览"
+
+msgid "Media range"
+msgstr "媒体范围"
+
+msgid "This month"
+msgstr "本月"
+
+msgid "Previous month"
+msgstr "上月"
+
+msgid "Custom range"
+msgstr "自定义范围"
+
+msgid "All eligible media"
+msgstr "所有符合条件的媒体"
+
+msgid "Processing goal"
+msgstr "处理目标"
+
+msgid "Smart optimize"
+msgstr "智能优化"
+
+msgid "Convert format"
+msgstr "转换格式"
+
+msgid "Resize only"
+msgstr "仅调整尺寸"
+
+msgid "Output format"
+msgstr "输出格式"
+
+msgid "Max candidates"
+msgstr "最大候选数"
+
+msgid "Advanced filters"
+msgstr "高级筛选"
+
+msgid "Use these only when the fixed scope needs a tighter date, format, or dimension filter."
+msgstr "仅当固定范围需要更严格的日期、格式或尺寸筛选时使用这些选项。"
+
+msgid "Date from"
+msgstr "开始日期"
+
+msgid "Date to"
+msgstr "结束日期"
+
+msgid "Exclude formats"
+msgstr "排除格式"
+
+msgid "Min dimensions"
+msgstr "最小尺寸"
+
+msgid "Build batch plan"
+msgstr "生成批量计划"
+
+msgid "Generate selected previews"
+msgstr "生成所选预览"
+
+msgid "Submit selected proposals"
+msgstr "提交所选提案"
+
+msgid "Cloud returns a short-lived derivative artifact. Core remains the policy owner and final WordPress write owner, and creates one proposal for the metadata update and derivative adoption together."
+msgstr "Cloud 会返回一个短期衍生制品。Core 仍是策略所有者和最终 WordPress 写入所有者，并为元数据更新和衍生采用一起创建一个提案。"
+
+msgid "Submit optimization review"
+msgstr "提交优化审阅"
+
+msgid "Repair and handoff actions"
+msgstr "修复与交接操作"
+
+msgid "Use these after preview when old URLs appear in post content, settings, themes, or when another client needs the raw handoff."
+msgstr "当旧 URL 出现在文章内容、设置、主题中，或其他客户端需要原始交接时，请在预览后使用这些操作。"
+
+msgid "Submit content URL repair"
+msgstr "提交内容 URL 修复"
+
+msgid "Submit settings URL repair"
+msgstr "提交设置 URL 修复"
+
+msgid "Build handoff only"
+msgstr "仅生成交接"
+
+msgid "Review the returned artifact, then send it to Core through Adapter or Core from-plan intake. Final execution remains npcink-abilities-toolkit/create-draft after Core approval."
+msgstr "审阅返回的制品，然后通过 Adapter 或 Core from-plan 入口发送给 Core。Core 审批后的最终执行仍是 npcink-abilities-toolkit/create-draft。"
+
+msgid "Reviewed draft title"
+msgstr "已审阅草稿标题"
+
+msgid "Working article title"
+msgstr "工作文章标题"
+
+msgid "Paste the reviewed draft body. This creates a plan only, not a post."
+msgstr "粘贴已审阅草稿正文。这只会创建计划，不会创建文章。"
+
+msgid "Optional topic label"
+msgstr "可选主题标签"
+
+msgid "Risk level"
+msgstr "风险级别"
+
+msgid "Low"
+msgstr "低"
+
+msgid "Medium"
+msgstr "中"
+
+msgid "High"
+msgstr "高"
+
+msgid "Optional proposal SEO title"
+msgstr "可选提案 SEO 标题"
+
+msgid "Optional proposal SEO description"
+msgstr "可选提案 SEO 描述"
+
+msgid "Build plan"
+msgstr "生成计划"
+
+msgid "Topic"
+msgstr "主题"
+
+msgid "A practical AI technology blog for developers, product teams, and AI tool builders. It focuses on large language model applications, agent workflows, WordPress AI integration, vector search, content automation, and AI product engineering."
+msgstr "一个面向开发者、产品团队和 AI 工具构建者的实用 AI 技术博客。重点关注大语言模型应用、智能体工作流、WordPress AI 集成、向量搜索、内容自动化和 AI 产品工程。"
+
+msgid "AI application developers"
+msgstr "AI 应用开发者"
+
+msgid "WordPress plugin developers"
+msgstr "WordPress 插件开发者"
+
+msgid "Technical content operators"
+msgstr "技术内容运营者"
+
+msgid "AI product managers"
+msgstr "AI 产品经理"
+
+msgid "Independent developers"
+msgstr "独立开发者"
+
+msgid "Internal tools teams"
+msgstr "内部工具团队"
+
+msgid "Professional, pragmatic, clear, and restrained. Explain real use cases, engineering tradeoffs, and boundary risks. Avoid inflated marketing claims. Give direct recommendations with conditions and limits."
+msgstr "专业、务实、清晰、克制。解释真实用例、工程取舍和边界风险。避免夸大的营销声明。给出带有条件和限制的直接建议。"
+
+msgid "AI technology blog"
+msgstr "AI 技术博客"
+
+msgid "large language model applications"
+msgstr "大语言模型应用"
+
+msgid "AI Agent"
+msgstr "AI Agent"
+
+msgid "WordPress AI"
+msgstr "WordPress AI"
+
+msgid "vector search"
+msgstr "向量搜索"
+
+msgid "RAG"
+msgstr "RAG"
+
+msgid "AI workflow"
+msgstr "AI 工作流"
+
+msgid "content automation"
+msgstr "内容自动化"
+
+msgid "how to integrate AI capabilities into WordPress"
+msgstr "如何把 AI 能力集成到 WordPress"
+
+msgid "AI Agent workflow design"
+msgstr "AI Agent 工作流设计"
+
+msgid "WordPress plugin development with AI tools"
+msgstr "使用 AI 工具进行 WordPress 插件开发"
+
+msgid "vector search for content websites"
+msgstr "内容网站的向量搜索"
+
+msgid "RAG and content retrieval practice"
+msgstr "RAG 与内容检索实践"
+
+msgid "AI content suggestion workflow"
+msgstr "AI 内容建议工作流"
+
+msgid "large language model application engineering"
+msgstr "大语言模型应用工程"
+
+msgid "AI tools can assist research, generate suggestions, plan content, and improve editorial efficiency."
+msgstr "AI 工具可以辅助研究、生成建议、规划内容并提升编辑效率。"
+
+msgid "Vector search, external search, and content context can improve retrieval and suggestion quality."
+msgstr "向量搜索、外部搜索和内容上下文可以提升检索和建议质量。"
+
+msgid "Architecture advice and implementation ideas are suitable for development and testing contexts."
+msgstr "架构建议和实现思路适用于开发和测试场景。"
+
+msgid "Final publishing, SEO writes, and media changes should go through human review or governance."
+msgstr "最终发布、SEO 写入和媒体变更应经过人工审阅或治理。"
+
+msgid "Do not claim AI output is always correct."
+msgstr "不要声称 AI 输出总是正确。"
+
+msgid "Do not claim automatic SEO ranking improvements."
+msgstr "不要声称会自动提升 SEO 排名。"
+
+msgid "Do not claim AI replaces human review, legal review, or expert judgment."
+msgstr "不要声称 AI 可以取代人工审阅、法律审查或专家判断。"
+
+msgid "Do not imply WordPress permissions, approval, or governance can be bypassed."
+msgstr "不要暗示可以绕过 WordPress 权限、审批或治理。"
+
+msgid "Do not describe image-source search as AI image generation."
+msgstr "不要把图片来源搜索描述为 AI 图片生成。"
+
+msgid "Do not describe vector search as a complete knowledge base or automatic indexing system."
+msgstr "不要把向量搜索描述为完整知识库或自动索引系统。"
+
+msgid "Unsupported customer stories, rankings, benchmark results, or legal/medical/financial advice."
+msgstr "缺乏支持的客户案例、排名、基准测试结果，或法律/医疗/金融建议。"
+
+msgid "Model comparisons, provider pricing, product roadmap, security posture, and production-readiness claims require current verification."
+msgstr "模型比较、提供方价格、产品路线图、安全姿态和生产就绪声明都需要当前验证。"
+
+msgid "Do not generate FAQ, HowTo, or schema suggestions when the source does not clearly support every answer or step."
+msgstr "当来源没有清楚支持每个回答或步骤时，不要生成 FAQ、HowTo 或 schema 建议。"
+
+msgid "Claims about implemented features, integrations, customer usage, benchmark quality, ranking impact, or availability must be confirmed by the operator."
+msgstr "关于已实现功能、集成、客户使用、基准质量、排名影响或可用性的声明必须由运营者确认。"
+
+msgid "Titles should include the main topic keyword and avoid clickbait."
+msgstr "标题应包含主要主题关键词，并避免标题党。"
+
+msgid "Descriptions should state the problem, audience, and core conclusion."
+msgstr "描述应说明问题、受众和核心结论。"
+
+msgid "Use clear headings, steps, caveats, and engineering boundary notes."
+msgstr "使用清晰标题、步骤、注意事项和工程边界说明。"
+
+msgid "Prefer internal links to related tutorials, architecture notes, and tool reviews."
+msgstr "优先链接到相关教程、架构笔记和工具评测。"
+
+msgid "Start with a direct answer, then add conditions, steps, and limits."
+msgstr "先给出直接回答，再补充条件、步骤和限制。"
+
+msgid "Prefer FAQ, short definitions, comparison tables, and actionable checklists."
+msgstr "优先使用 FAQ、简短定义、对比表和可执行清单。"
+
+msgid "Avoid abstract-only answers; include practical guidance."
+msgstr "避免只有抽象回答；应包含实践指引。"
+
+msgid "Make key conclusions clear, standalone, and easy for AI systems to summarize."
+msgstr "让关键结论清晰、独立，并便于 AI 系统总结。"
+
+msgid "Define important terms when they first appear."
+msgstr "重要术语首次出现时进行定义。"
+
+msgid "Distinguish implemented features, development-stage behavior, and future plans."
+msgstr "区分已实现功能、开发阶段行为和未来计划。"
+
+msgid "Avoid inflated claims; state boundaries, inputs, outputs, and limits."
+msgstr "避免夸大声明；说明边界、输入、输出和限制。"
+
+msgid "Practical guide: %s"
+msgstr "实践指南：%s"
+
+msgid "%s. Use recent public posts, categories, and tags as non-secret guidance for content suggestions. Keep the site brief editable and verify recommendations before saving."
+msgstr "%s。使用近期公开文章、分类和标签作为内容建议的非机密指引。保持站点简报可编辑，并在保存前验证建议。"
+
+msgid "A WordPress site with public content available for operator-reviewed AI content suggestions. Keep recommendations editable and verify them before saving."
+msgstr "一个拥有公开内容的 WordPress 站点，可用于生成运营者审阅的 AI 内容建议。保持建议可编辑，并在保存前验证。"
+
+msgid "Current site readers"
+msgstr "当前站点读者"
+
+msgid "Editors"
+msgstr "编辑"
+
+msgid "Site operators"
+msgstr "站点运营者"
+
+msgid "Use the tone implied by existing public posts. Prefer clear, accurate, and reviewable suggestions over promotional claims."
+msgstr "使用现有公开文章暗示的语气。优先生成清晰、准确、可审阅的建议，而不是宣传性声明。"
+
+msgid "Suggestions may use public post titles, public categories, and public tags as context."
+msgstr "建议可以使用公开文章标题、公开分类和公开标签作为上下文。"
+
+msgid "Suggestions should be treated as drafts for operator review."
+msgstr "建议应作为供运营者审阅的草稿处理。"
+
+msgid "Do not infer private business facts from public content."
+msgstr "不要从公开内容推断私有业务事实。"
+
+msgid "Do not claim the generated suggestions have been verified unless an operator verifies them."
+msgstr "除非运营者已验证，否则不要声称生成的建议已被验证。"
+
+msgid "Do not bypass WordPress permissions, approval, or governance."
+msgstr "不要绕过 WordPress 权限、审批或治理。"
+
+msgid "Unsupported private facts, unverified business claims, and claims outside current public site content."
+msgstr "缺乏支持的私有事实、未验证业务声明，以及超出当前公开站点内容的声明。"
+
+msgid "Product status, pricing, customer examples, legal/medical/financial claims, and time-sensitive facts require operator confirmation."
+msgstr "产品状态、价格、客户示例、法律/医疗/金融声明和时效性事实都需要运营者确认。"
+
+msgid "Do not generate FAQ, HowTo, or schema suggestions unless the sampled source clearly supports them."
+msgstr "除非采样来源明确支持，否则不要生成 FAQ、HowTo 或 schema 建议。"
+
+msgid "Any claim not visible in public post titles, categories, tags, or supplied source content must be confirmed by the operator."
+msgstr "任何没有出现在公开文章标题、分类、标签或提供来源内容中的声明，都必须由运营者确认。"
+
+msgid "Use public categories, tags, and recent article themes as keyword candidates.\nTitles should stay specific to the article topic and avoid clickbait.\nDescriptions should summarize the reader problem and expected value.\nSuggest internal links only when the target content is clearly related."
+msgstr "使用公开分类、标签和近期文章主题作为关键词候选。\n标题应紧扣文章主题并避免标题党。\n描述应总结读者问题和预期价值。\n仅在目标内容明确相关时建议内链。"
+
+msgid "Titles should include the main topic keyword and avoid clickbait.\nDescriptions should state the problem, audience, and core conclusion.\nUse clear headings, steps, caveats, and engineering boundary notes.\nPrefer internal links to related tutorials, architecture notes, and tool reviews."
+msgstr "标题应包含主要主题关键词，并避免标题党。\n描述应说明问题、受众和核心结论。\n使用清晰标题、步骤、注意事项和工程边界说明。\n优先链接到相关教程、架构笔记和工具评测。"
+
+msgid "Answer likely reader questions directly before giving details.\nPrefer concise definitions, steps, checklists, and FAQ suggestions.\nMark assumptions clearly when the site content does not provide enough evidence."
+msgstr "先直接回答读者可能提出的问题，再给出细节。\n优先使用简洁定义、步骤、清单和 FAQ 建议。\n当站点内容证据不足时，清楚标记假设。"
+
+msgid "Start with a direct answer, then add conditions, steps, and limits.\nPrefer FAQ, short definitions, comparison tables, and actionable checklists.\nAvoid abstract-only answers; include practical guidance."
+msgstr "先给出直接回答，再补充条件、步骤和限制。\n优先使用 FAQ、简短定义、对比表和可执行清单。\n避免只有抽象回答；应包含实践指引。"
+
+msgid "Use public entity names from categories, tags, and recent titles as entity hints.\nKeep conclusions standalone and easy to quote.\nDistinguish observed site content from generated recommendations."
+msgstr "使用分类、标签和近期标题中的公开实体名称作为实体提示。\n让结论独立且易于引用。\n区分观察到的站点内容和生成的建议。"
+
+msgid "Make key conclusions clear, standalone, and easy for AI systems to summarize.\nDefine important terms when they first appear.\nDistinguish implemented features, development-stage behavior, and future plans.\nAvoid inflated claims; state boundaries, inputs, outputs, and limits."
+msgstr "让关键结论清晰、独立，并便于 AI 系统总结。\n重要术语首次出现时进行定义。\n区分已实现功能、开发阶段行为和未来计划。\n避免夸大声明；说明边界、输入、输出和限制。"
+
 msgid "Content context"
 msgstr "内容上下文"
+
+msgid "External research, image, knowledge, and fixed-flow tools."
+msgstr "外部研究、图片、知识和固定流程工具。"
+
+msgid "Search Image Source"
+msgstr "搜索图片来源"
+
+msgid "Search configured image source candidates without importing media."
+msgstr "搜索已配置的图片来源候选，不导入媒体。"
+
+msgid "Vector Search"
+msgstr "向量搜索"
+
+msgid "Compatibility pointer for Cloud-managed site knowledge. Vector provider configuration is managed in Npcink Cloud."
+msgstr "Cloud 托管站点知识的兼容指针。向量提供方配置由 Npcink Cloud 管理。"
+
+msgid "Search Site Knowledge"
+msgstr "搜索站点知识"
+
+msgid "Search Cloud-managed site knowledge for semantic search, related content, writing context, internal links, or refresh suggestions without writing WordPress content."
+msgstr "搜索 Cloud 托管站点知识，用于语义搜索、相关内容、写作上下文、内链或刷新建议，不写入 WordPress 内容。"
+
+msgid "Get Site Knowledge Status"
+msgstr "获取站点知识状态"
+
+msgid "Read Cloud-managed site knowledge coverage and sync status without writing WordPress content."
+msgstr "读取 Cloud 托管站点知识覆盖和同步状态，不写入 WordPress 内容。"
+
+msgid "Request Site Knowledge Sync"
+msgstr "请求站点知识同步"
+
+msgid "Request a Cloud-managed site knowledge sync or rebuild from bounded public WordPress content without writing WordPress content."
+msgstr "基于有边界的公开 WordPress 内容请求 Cloud 托管站点知识同步或重建，不写入 WordPress 内容。"
+
+msgid "Build Article Brief"
+msgstr "生成文章简报"
+
+msgid "Build a research-backed article planning brief without writing WordPress content."
+msgstr "生成带研究支撑的文章规划简报，不写入 WordPress 内容。"
+
+msgid "Build Article Assistant Workbench"
+msgstr "生成文章助手工作台"
+
+msgid "Build one local article_draft_v1 workbench artifact from topic, evidence, site context, draft notes, and reviewed draft input without writing WordPress content."
+msgstr "根据主题、证据、站点上下文、草稿笔记和已审阅草稿输入，生成一个本地 article_draft_v1 工作台制品，不写入 WordPress 内容。"
+
+msgid "Build Article Write Plan"
+msgstr "生成文章写入计划"
+
+msgid "Build a Core-ready article_write_plan for a reviewed draft without writing WordPress content."
+msgstr "为已审阅草稿生成 Core 就绪的 article_write_plan，不写入 WordPress 内容。"
+
+msgid "Build Article Batch Write Plan"
+msgstr "生成文章批量写入计划"
+
+msgid "Build a Core-ready article_batch_write_plan for 2 to 5 reviewed drafts without writing WordPress content."
+msgstr "为 2 到 5 篇已审阅草稿生成 Core 就绪的 article_batch_write_plan，不写入 WordPress 内容。"
+
+msgid "Build Article Media Batch Write Plan"
+msgstr "生成文章媒体批量写入计划"
+
+msgid "Build a Core-ready article_media_batch_write_plan for reviewed drafts plus selected image-source candidates without writing WordPress content."
+msgstr "为已审阅草稿和所选图片来源候选生成 Core 就绪的 article_media_batch_write_plan，不写入 WordPress 内容。"
+
+msgid "Build Image Candidate Adoption Plan"
+msgstr "生成图片候选采用计划"
+
+msgid "Build a Core-ready image_candidate_adoption_plan for one reviewed image candidate without importing media or writing WordPress content."
+msgstr "为一个已审阅图片候选生成 Core 就绪的 image_candidate_adoption_plan，不导入媒体或写入 WordPress 内容。"
+
+msgid "Build Media Brief"
+msgstr "生成媒体简报"
+
+msgid "Build image prompt and media SEO suggestions from supplied post context."
+msgstr "根据提供的文章上下文生成图片提示词和媒体 SEO 建议。"
+
+msgid "Build Media Derivative Handoff"
+msgstr "生成媒体衍生交接"
+
+msgid "Build a one-run Core/Abilities media derivative handoff from Core defaults without writing WordPress media."
+msgstr "基于 Core 默认值生成一次性 Core/Abilities 媒体衍生交接，不写入 WordPress 媒体。"
+
+msgid "Get Content Discoverability Context"
+msgstr "获取内容可发现性上下文"
+
+msgid "Return the operator-maintained SEO, AEO, and GEO context for third-party AI callers without exposing provider secrets or writing WordPress content."
+msgstr "返回运营者维护的 SEO、AEO 和 GEO 上下文供第三方 AI 调用，不暴露提供方密钥或写入 WordPress 内容。"
+
+msgid "Validate Content Discoverability Context"
+msgstr "验证内容可发现性上下文"
+
+msgid "Check whether the operator-maintained SEO, AEO, and GEO context has enough fields for third-party AI suggestion workflows."
+msgstr "检查运营者维护的 SEO、AEO 和 GEO 上下文是否具备第三方 AI 建议工作流所需字段。"
+
+msgid "Build Content Discoverability Brief"
+msgstr "生成内容可发现性简报"
+
+msgid "Build a suggestion-only SEO, AEO, and GEO brief from operator context and supplied post or topic input without writing WordPress content."
+msgstr "根据运营者上下文和提供的文章或主题输入，生成仅建议型 SEO、AEO 和 GEO 简报，不写入 WordPress 内容。"
+
+msgid "Build AI Article Writing Pack"
+msgstr "生成 AI 文章写作包"
+
+msgid "Build one suggestion-only article writing context pack from operator SEO, AEO, and GEO context without writing WordPress content."
+msgstr "根据运营者 SEO、AEO 和 GEO 上下文生成一个仅建议型文章写作上下文包，不写入 WordPress 内容。"
+
+msgid "No AI image generation runtime handled this image candidate request. Provide a generated_image_url or register the npcink_toolbox_ai_image_generation_request filter."
+msgstr "没有 AI 图片生成运行时处理此图片候选请求。请提供 generated_image_url，或注册 npcink_toolbox_ai_image_generation_request 过滤器。"
+
+msgid "The AI image generation runtime did not return an image URL candidate."
+msgstr "AI 图片生成运行时没有返回图片 URL 候选。"
+
+msgid "AI-generated image candidate."
+msgstr "AI 生成图片候选。"
+
+msgid "A query or vector field is required for vector search."
+msgstr "向量搜索需要 query 或 vector 字段。"
+
+msgid "Low-level vector provider configuration has moved to Npcink Cloud. Use search-site-knowledge for Cloud-managed semantic site context."
+msgstr "底层向量提供方配置已迁移到 Npcink Cloud。请使用 search-site-knowledge 获取 Cloud 托管语义站点上下文。"
+
+msgid "A query is required for site knowledge search."
+msgstr "站点知识搜索需要查询。"
+
+msgid "External web search is provided by Npcink Cloud. Toolbox no longer stores local web search provider configuration."
+msgstr "外部网页搜索由 Npcink Cloud 提供。Toolbox 不再存储本地网页搜索提供方配置。"
+
+msgid "A query is required for Cloud web search testing."
+msgstr "Cloud 网页搜索测试需要查询。"
+
+msgid "The web search runtime payload was not valid."
+msgstr "网页搜索运行时载荷无效。"
+
+msgid "Connect Npcink Cloud before testing managed web search."
+msgstr "测试托管网页搜索前请先连接 Npcink Cloud。"
+
+msgid "A topic is required for the Cloud web search workflow diagnostic."
+msgstr "Cloud 网页搜索工作流诊断需要主题。"
+
+msgid "A topic is required to build an article assistant workbench."
+msgstr "生成文章助手工作台需要主题。"
+
+msgid "A title and content_markdown are required to build an article write plan."
+msgstr "生成文章写入计划需要 title 和 content_markdown。"
+
+msgid "Create a reviewed AI-assisted article draft through Core governance."
+msgstr "通过 Core 治理创建已审阅的 AI 辅助文章草稿。"
+
+msgid "Article batch write plans require 2 to 5 reviewed draft articles."
+msgstr "文章批量写入计划需要 2 到 5 篇已审阅草稿文章。"
+
+msgid "Every article batch item requires title and content_markdown."
+msgstr "每个文章批量项目都需要 title 和 content_markdown。"
+
+msgid "Create one reviewed AI-assisted article draft through Core governance."
+msgstr "通过 Core 治理创建一篇已审阅的 AI 辅助文章草稿。"
+
+msgid "Article media batch write plans require 1 to 5 reviewed draft articles."
+msgstr "文章媒体批量写入计划需要 1 到 5 篇已审阅草稿文章。"
+
+msgid "Every article media batch item requires title and content_markdown."
+msgstr "每个文章媒体批量项目都需要 title 和 content_markdown。"
+
+msgid "Every article media batch item requires a selected image URL."
+msgstr "每个文章媒体批量项目都需要一个已选图片 URL。"
+
+msgid "Upload the reviewed image-source candidate into the media library after Core approval."
+msgstr "Core 审批后，将已审阅图片来源候选上传到媒体库。"
+
+msgid "Apply reviewed image attribution and accessibility metadata after upload."
+msgstr "上传后应用已审阅图片署名和无障碍元数据。"
+
+msgid "Set the uploaded, reviewed media item as the draft featured image after Core approval."
+msgstr "Core 审批后，将上传并审阅过的媒体项设为草稿特色图。"
+
+msgid "A selected image URL or image_candidate object is required before building an adoption plan."
+msgstr "生成采用计划前需要已选图片 URL 或 image_candidate 对象。"
+
+msgid "The selected image candidate must include a download_url, regular_url, small_url, or url."
+msgstr "所选图片候选必须包含 download_url、regular_url、small_url 或 url。"
+
+msgid "Selected image candidate"
+msgstr "已选图片候选"
+
+msgid "Import the reviewed image candidate into the media library after Core approval."
+msgstr "Core 审批后，将已审阅图片候选导入媒体库。"
+
+msgid "Apply reviewed image candidate metadata after media import."
+msgstr "媒体导入后应用已审阅图片候选元数据。"
+
+msgid "Set the imported image candidate as the post featured image after Core approval."
+msgstr "Core 审批后，将导入的图片候选设为文章特色图。"
+
+msgid "A supported hosted AI content-support intent is required."
+msgstr "需要受支持的托管 AI 内容支持意图。"
+
+msgid "A title, brief, draft text, or post ID is required for hosted AI content support."
+msgstr "托管 AI 内容支持需要标题、简报、草稿文本或文章 ID。"
+
+msgid "The hosted AI runtime payload was not valid."
+msgstr "托管 AI 运行时载荷无效。"
+
+msgid "Connect Npcink Cloud before using hosted AI tools."
+msgstr "使用托管 AI 工具前请先连接 Npcink Cloud。"
+
+msgid "A supported AI site-helper intent is required."
+msgstr "需要受支持的 AI 站点助手意图。"
+
+msgid "The AI site-helper runtime payload was not valid."
+msgstr "AI 站点助手运行时载荷无效。"
+
+msgid "Connect Npcink Cloud before using AI site helpers."
+msgstr "使用 AI 站点助手前请先连接 Npcink Cloud。"
+
+msgid "An attachment_id is required to build a media derivative handoff."
+msgstr "生成媒体衍生交接需要 attachment_id。"
+
+msgid "Npcink Governance Core media policy helper is unavailable; fallback defaults were used for this one-run handoff."
+msgstr "Npcink Governance Core 媒体策略助手不可用；此次一次性交接已使用降级默认值。"
+
+msgid "Watermark is enabled in policy but no logo attachment is configured."
+msgstr "策略中已启用水印，但未配置 logo 附件。"
+
+msgid "The site knowledge runtime payload was not valid."
+msgstr "站点知识运行时载荷无效。"
+
+msgid "Connect Npcink Cloud before using site knowledge abilities."
+msgstr "使用站点知识能力前请先连接 Npcink Cloud。"
+
+msgid "The image-source runtime payload was not valid."
+msgstr "图片来源运行时载荷无效。"
+
+msgid "Connect Npcink Cloud before searching managed image-source candidates. You can still use Adopt New Image with a reviewed image URL."
+msgstr "搜索托管图片来源候选前请先连接 Npcink Cloud。你仍可使用已审阅图片 URL 执行“采用新图片”。"
+
+msgid "Cloud indexing is already running for this site."
+msgstr "此站点的 Cloud 索引已在运行。"
+
+msgid "A Cloud run is already active for this site. Refresh status before starting another sync."
+msgstr "此站点已有活跃 Cloud 运行。开始另一次同步前请刷新状态。"
+
+msgid "The provider returned an invalid JSON response."
+msgstr "提供方返回了无效 JSON 响应。"
+
+msgid "The provider request failed."
+msgstr "提供方请求失败。"
+
+msgid "The provider text request failed."
+msgstr "提供方文本请求失败。"
+
+msgid "Direct answer"
+msgstr "直接回答"
+
+msgid "State the useful answer or thesis with only supported facts."
+msgstr "只用有支持的事实陈述有用回答或论点。"
+
+msgid "Context"
+msgstr "上下文"
+
+msgid "Explain why the topic matters to the target reader."
+msgstr "解释该主题为什么对目标读者重要。"
+
+msgid "Practical breakdown"
+msgstr "实践拆解"
+
+msgid "Organize steps, examples, comparisons, or tradeoffs that the evidence supports."
+msgstr "组织证据支持的步骤、示例、对比或取舍。"
+
+msgid "AI-readable summary"
+msgstr "AI 可读摘要"
+
+msgid "Summarize the grounded conclusion without ranking or outcome guarantees."
+msgstr "总结有依据的结论，不承诺排名或结果。"
+
+msgid "Next step"
+msgstr "下一步"
+
+msgid "Close with a practical next step for the reader."
+msgstr "用面向读者的实践下一步收尾。"
+
+msgid "Image-source search did not return a usable candidate for an article media batch item."
+msgstr "图片来源搜索没有为文章媒体批量项目返回可用候选。"
+
+msgid "Every article media batch item requires image_candidate, featured_image, image_url, or search_images=true."
+msgstr "每个文章媒体批量项目都需要 image_candidate、featured_image、image_url，或 search_images=true。"
+
+msgid "The requested post was not found."
+msgstr "未找到请求的文章。"
+
+msgid "A post_id, topic, or title is required to build a content discoverability brief."
+msgstr "生成内容可发现性简报需要 post_id、topic 或 title。"
+
+msgid "Suggest a concise search title based on the source topic and primary keywords. Avoid clickbait and unsupported claims."
+msgstr "根据来源主题和主要关键词建议简洁搜索标题。避免标题党和无支持声明。"
+
+msgid "Suggest a meta description that summarizes the reader problem, topic, and value using verified source facts only."
+msgstr "只使用已验证来源事实，建议总结读者问题、主题和价值的 meta 描述。"
+
+msgid "Suggest a short, readable URL slug from the title or topic."
+msgstr "根据标题或主题建议简短、可读的 URL slug。"
+
+msgid "Suggest an editorial excerpt grounded in the supplied content."
+msgstr "建议基于所提供内容的编辑摘要。"
+
+msgid "Suggest FAQ question and answer pairs only when the context allows FAQ generation and the source supports the answers."
+msgstr "仅在上下文允许 FAQ 生成且来源支持答案时，建议 FAQ 问答对。"
+
+msgid "Suggest a direct one-sentence AEO answer summary grounded in the supplied source."
+msgstr "建议基于所提供来源的一句式直接 AEO 回答摘要。"
+
+msgid "Suggest a standalone GEO summary that is easy for AI systems to quote without adding unsupported facts."
+msgstr "建议便于 AI 系统引用的独立 GEO 摘要，不添加无支持事实。"
+
+msgid "Suggest schema hints only when the source supports them; do not claim schema has been applied."
+msgstr "仅在来源支持时建议 schema 提示；不要声称 schema 已应用。"
+
+msgid "Suggest a reviewable content improvement grounded in the supplied source."
+msgstr "建议基于所提供来源、可审阅的内容改进。"
+
+msgid "What should readers know about %s?"
+msgstr "读者应该了解 %s 的哪些内容？"
+
+msgid "Answer only with facts supported by the supplied source and site context."
+msgstr "只使用所提供来源和站点上下文支持的事实回答。"
+
+msgid "How does %s affect the target audience?"
+msgstr "%s 如何影响目标受众？"
+
+msgid "Connect the answer to target audience needs without inventing outcomes or guarantees."
+msgstr "将回答连接到目标受众需求，不编造结果或保证。"
+
+msgid "A post_id is required for the media brief flow."
+msgstr "媒体简报流程需要 post_id。"
+
+msgid "A supported editor content-support intent is required."
+msgstr "需要受支持的编辑器内容支持意图。"
+
+msgid "A title, excerpt, or post content is required for editor content support."
+msgstr "编辑器内容支持需要标题、摘要或文章内容。"
+
+msgid "%s is required."
+msgstr "%s 为必填项。"
+
+msgid "Matched against the current title, excerpt, or draft body."
+msgstr "已与当前标题、摘要或草稿正文匹配。"
+
+msgid "Title"
+msgstr "标题"
+
+msgid "Title is present."
+msgstr "标题已填写。"
+
+msgid "Add a specific title before publishing."
+msgstr "发布前请添加具体标题。"
+
+msgid "Excerpt is present."
+msgstr "摘要已填写。"
+
+msgid "Add an excerpt or meta description candidate."
+msgstr "请添加摘要或 meta 描述候选。"
+
+msgid "Terms"
+msgstr "分类标签"
+
+msgid "At least one category or tag is selected."
+msgstr "已选择至少一个分类或标签。"
+
+msgid "Review category and tag candidates before publishing."
+msgstr "发布前请审阅分类和标签候选。"
+
+msgid "Featured image"
+msgstr "特色图"
+
+msgid "Featured image is selected."
+msgstr "已选择特色图。"
+
+msgid "Review image candidates or select a featured image."
+msgstr "请审阅图片候选或选择特色图。"
+
+msgid "Enable %s in Npcink Toolbox settings before running this tool."
+msgstr "运行此工具前，请先在 Npcink Toolbox 设置中启用 %s。"
+
+msgid "Site positioning is filled."
+msgstr "站点定位已填写。"
+
+msgid "Target audience is filled."
+msgstr "目标受众已填写。"
+
+msgid "Brand voice is filled."
+msgstr "品牌语气已填写。"
+
+msgid "Primary keywords are filled."
+msgstr "主要关键词已填写。"
+
+msgid "SEO rules are filled."
+msgstr "SEO 规则已填写。"
+
+msgid "AEO rules are filled."
+msgstr "AEO 规则已填写。"
+
+msgid "GEO rules are filled."
+msgstr "GEO 规则已填写。"
+
+msgid "Proposal suggestion fields are selected."
+msgstr "已选择提案建议字段。"
+
+msgid "Long-tail keywords are filled."
+msgstr "长尾关键词已填写。"
+
+msgid "Entity keywords are filled."
+msgstr "实体关键词已填写。"
+
+msgid "Allowed claims are filled."
+msgstr "允许声明已填写。"
+
+msgid "Forbidden claims are filled."
+msgstr "禁止声明已填写。"
+
+msgid "Exception and special-case rules are filled when needed."
+msgstr "需要时已填写例外和特殊情况规则。"
+
+msgid "Site Knowledge auto-sync is disabled until Cloud Addon transport is available."
+msgstr "Cloud Addon 传输可用前，站点知识自动同步处于禁用状态。"
+
+msgid "Site Knowledge auto-sync is queued but WP-Cron appears delayed. Configure a server cron for low-traffic sites."
+msgstr "站点知识自动同步已入队，但 WP-Cron 似乎延迟。低流量站点请配置服务器 cron。"
+
+msgid "Site Knowledge auto-sync is debounced and processed by WP-Cron. Use a server cron in production for low-traffic sites."
+msgstr "站点知识自动同步已防抖，并由 WP-Cron 处理。低流量生产站点请使用服务器 cron。"
 
 msgid "Site knowledge"
 msgstr "站点知识"

@@ -13,6 +13,8 @@
       "Request failed.": ["请求失败。"],
       "Code: ": ["代码："],
       "Cloud runtime profile expects text input but received an empty value. Check the Cloud route/profile input mapping.": ["Cloud 运行时配置需要文本输入，但收到了空值。请检查 Cloud 路由或 profile 的输入映射。"],
+      "Image/logo watermarks need a configured Core logo source. Switch this run to Text watermark, or configure the Core media watermark logo before retrying.": ["图片/logo 水印需要已配置的 Core logo 来源。请将本次运行切换为文本水印，或先配置 Core 媒体水印 logo 后再重试。"],
+      "Text watermarks should not include a logo artifact or upload. Retry with Text watermark fields only.": ["文本水印不应包含 logo 制品或上传内容。请只使用文本水印字段重试。"],
       "Status: ": ["状态："],
       "Complete payload": ["完整载荷"],
       "Error payload": ["错误载荷"],
