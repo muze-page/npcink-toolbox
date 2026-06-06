@@ -228,7 +228,7 @@ final class Provider_Client {
 		$match_reason = sanitize_textarea_field( (string) ( $candidate['match_reason'] ?? $candidate['reason'] ?? $candidate['recommendation_reason'] ?? '' ) );
 		$match_score = is_numeric( $candidate['match_score'] ?? null ) ? (float) $candidate['match_score'] : null;
 		$recommended_use = sanitize_key( (string) ( $candidate['recommended_use'] ?? $candidate['image_use'] ?? $candidate['best_use'] ?? '' ) );
-		if ( ! in_array( $recommended_use, array( 'featured_image', 'paragraph_image', 'inline_image', 'not_recommended' ), true ) ) {
+		if ( ! in_array( $recommended_use, array( 'featured_image', 'paragraph_image', 'inline_image', 'setting_image', 'not_recommended' ), true ) ) {
 			$recommended_use = '';
 		}
 		$visual_keywords = $this->sanitize_string_list( $candidate['visual_keywords'] ?? $candidate['keywords'] ?? array() );
@@ -2328,7 +2328,7 @@ final class Provider_Client {
 		$excerpt   = trim( sanitize_textarea_field( (string) ( $context['excerpt'] ?? '' ) ) );
 		$content   = trim( sanitize_textarea_field( (string) ( $context['content_summary'] ?? $context['content_text'] ?? $context['content'] ?? '' ) ) );
 		$mode      = sanitize_key( (string) ( $context['image_mode'] ?? $context['image_use'] ?? $options['image_mode'] ?? 'featured_image' ) );
-		if ( ! in_array( $mode, array( 'featured_image', 'paragraph_image', 'inline_image' ), true ) ) {
+		if ( ! in_array( $mode, array( 'featured_image', 'paragraph_image', 'inline_image', 'setting_image' ), true ) ) {
 			$mode = 'featured_image';
 		}
 

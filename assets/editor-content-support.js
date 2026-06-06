@@ -20,6 +20,8 @@
 	const SIDEBAR_NAME = 'npcink-content-support-sidebar';
 	const PLUGIN_NAME = 'npcink-toolbox-editor-content-support';
 	const PARAGRAPH_IMAGE_EVENT = 'npcink-toolbox:paragraph-image-suggestions';
+	const IMAGE_SOURCE_PICKER_EVENT = 'npcink-toolbox:image-source-picker';
+	const IMAGE_SOURCE_PICKER_SELECTED_EVENT = 'npcink-toolbox:image-source-selected';
 	const PluginSidebarComponent = editor.PluginSidebar || editPost.PluginSidebar;
 	const BlockControlsComponent = blockEditor.BlockControls || editor.BlockControls || null;
 
@@ -82,6 +84,45 @@
 	};
 	const sidebarIcon = createElement('span', { className: 'npcink-toolbox-editor-support__toolbar-icon', 'aria-hidden': 'true' }, 'AI');
 	const paragraphImageIcon = createElement('span', { className: 'dashicons dashicons-format-image npcink-toolbox-editor-support__block-toolbar-icon', 'aria-hidden': 'true' });
+
+	const imagePickerPresets = {
+		featured: {
+			mode: 'featured',
+			imageUse: 'featured_image',
+			adoptionMode: 'featured_image',
+			autoSearch: true,
+			title: __('Image source suggestions', 'npcink-toolbox'),
+			intro: __('Search uses the selected paragraph when available, plus article context, or a short visual query. Select one image to import it with media details and set it as the featured image through Adapter/Core.', 'npcink-toolbox'),
+			emptyTitle: __('Select an image to adopt', 'npcink-toolbox'),
+		},
+		paragraph: {
+			mode: 'paragraph',
+			imageUse: 'paragraph_image',
+			adoptionMode: 'media_import',
+			autoSearch: true,
+			title: __('Paragraph image suggestions', 'npcink-toolbox'),
+			intro: __('Search uses the selected paragraph plus article context. Select one image to import it with media details through Adapter/Core.', 'npcink-toolbox'),
+			emptyTitle: __('Select an image for this paragraph', 'npcink-toolbox'),
+		},
+		inline: {
+			mode: 'inline',
+			imageUse: 'inline_image',
+			adoptionMode: 'media_import',
+			autoSearch: true,
+			title: __('Inline image suggestions', 'npcink-toolbox'),
+			intro: __('Search uses the selected text plus article context. Select one image to import it with media details through Adapter/Core.', 'npcink-toolbox'),
+			emptyTitle: __('Select an image source', 'npcink-toolbox'),
+		},
+		setting: {
+			mode: 'setting',
+			imageUse: 'setting_image',
+			adoptionMode: 'select_only',
+			autoSearch: false,
+			title: __('Setting image suggestions', 'npcink-toolbox'),
+			intro: __('Search uses a short visual query or supplied setting context. Select one image source to return it to the calling field; Toolbox does not write settings directly.', 'npcink-toolbox'),
+			emptyTitle: __('Select an image source', 'npcink-toolbox'),
+		},
+	};
 
 	const flows = [
 		{
@@ -379,6 +420,28 @@
 		return Boolean(String(postContext.selected_text || postContext.selected_block_text || postContext.title || postContext.excerpt || postContext.content || '').trim());
 	}
 
+	function normalizeImagePickerOptions(options) {
+		const source = options && typeof options === 'object' ? options : {};
+		const requestedMode = String(source.mode || source.image_mode || '').replace(/_image$/, '') || 'featured';
+		const preset = imagePickerPresets[requestedMode] || imagePickerPresets.featured;
+		const context = source.context && typeof source.context === 'object' ? source.context : {};
+		const imageUse = source.image_use || source.imageUse || preset.imageUse;
+		const adoptionMode = source.adoption_mode || source.adoptionMode || preset.adoptionMode;
+		return Object.assign({}, preset, {
+			mode: preset.mode,
+			imageUse,
+			adoptionMode,
+			title: source.title || preset.title,
+			intro: source.intro || preset.intro,
+			emptyTitle: source.empty_title || source.emptyTitle || preset.emptyTitle,
+			context,
+			initialQuery: source.query || source.manual_query || source.initialQuery || '',
+			autoSearch: source.auto_search !== undefined ? Boolean(source.auto_search) : Boolean(preset.autoSearch),
+			selectionEvent: source.selection_event || source.selectionEvent || IMAGE_SOURCE_PICKER_SELECTED_EVENT,
+			closeOnSelect: source.close_on_select !== undefined ? Boolean(source.close_on_select) : false,
+		});
+	}
+
 	function imageRequestContext(postContext, contextOverride) {
 		const override = contextOverride && typeof contextOverride === 'object' ? contextOverride : {};
 		return Object.assign({}, postContext, override, {
@@ -388,10 +451,10 @@
 		});
 	}
 
-	function buildImageVisualContext(postContext, imageMode, manualQuery, contextOverride) {
+	function buildImageVisualContext(postContext, imageMode, manualQuery, contextOverride, imageUse) {
 		const context = imageRequestContext(postContext, contextOverride);
 		return {
-			image_mode: imageMode === 'paragraph' ? 'paragraph_image' : 'featured_image',
+			image_mode: imageUse || (imageMode === 'paragraph' ? 'paragraph_image' : 'featured_image'),
 			manual_query: String(manualQuery || '').trim(),
 			title: truncateText(context.title, 160),
 			excerpt: truncateText(context.excerpt, 260),
@@ -651,13 +714,15 @@
 		);
 	}
 
-	function renderSelectedImagePanel(selectedImage, seoFields, adoptionRunning, adoptionResult, adoptionError, imageMode, onSeoFieldChange, onAdoptFeatured, onImportOnly) {
-		const paragraphMode = imageMode === 'paragraph';
+	function renderSelectedImagePanel(selectedImage, seoFields, adoptionRunning, adoptionResult, adoptionError, picker, onSeoFieldChange, onAdoptFeatured, onImportOnly, onSelectOnly) {
+		const activePicker = normalizeImagePickerOptions(picker || {});
+		const paragraphMode = activePicker.mode === 'paragraph';
+		const selectOnlyMode = activePicker.adoptionMode === 'select_only';
 		if (!selectedImage) {
 			return createElement(
 				'div',
 				{ className: 'npcink-toolbox-editor-support__selected-image is-empty' },
-				createElement('strong', null, paragraphMode ? __('Select an image for this paragraph', 'npcink-toolbox') : __('Select an image to adopt', 'npcink-toolbox')),
+				createElement('strong', null, activePicker.emptyTitle),
 				createElement('span', null, __('Choose a source image on the left to review media details and SEO fields here.', 'npcink-toolbox'))
 			);
 		}
@@ -728,7 +793,16 @@
 			createElement(
 				'div',
 				{ className: 'npcink-toolbox-editor-support__selected-actions' },
-				paragraphMode ? createElement(
+				selectOnlyMode ? createElement(
+					Button,
+					{
+						type: 'button',
+						variant: 'primary',
+						disabled: adoptionRunning,
+						onClick: onSelectOnly,
+					},
+					__('Use selected image', 'npcink-toolbox')
+				) : paragraphMode ? createElement(
 					Button,
 					{
 						type: 'button',
@@ -760,7 +834,7 @@
 					__('Import media only', 'npcink-toolbox')
 				)
 			),
-			createElement('span', { className: 'npcink-toolbox-editor-support__selected-note' }, paragraphMode ? __('Uses Adapter/Core for media import and media SEO fields. Toolbox does not insert images into the paragraph directly.', 'npcink-toolbox') : __('Uses Adapter/Core for import, media SEO fields, and featured image changes. Toolbox does not write media directly.', 'npcink-toolbox')),
+			createElement('span', { className: 'npcink-toolbox-editor-support__selected-note' }, selectOnlyMode ? __('Selection is returned to the calling field. Toolbox does not write settings directly.', 'npcink-toolbox') : paragraphMode ? __('Uses Adapter/Core for media import and media SEO fields. Toolbox does not insert images into the paragraph directly.', 'npcink-toolbox') : __('Uses Adapter/Core for import, media SEO fields, and featured image changes. Toolbox does not write media directly.', 'npcink-toolbox')),
 			adoptionError ? createElement(Notice, { status: 'error', isDismissible: false }, adoptionError) : null,
 			renderAdoptionResult(adoptionResult)
 		);
@@ -900,6 +974,7 @@
 		const [imageGuidance, setImageGuidance] = useState('');
 		const [imageQuery, setImageQuery] = useState('');
 		const [imageMode, setImageMode] = useState('featured');
+		const [imagePicker, setImagePicker] = useState(() => normalizeImagePickerOptions({ mode: 'featured' }));
 		const [selectedImage, setSelectedImage] = useState(null);
 		const [selectedImageSeo, setSelectedImageSeo] = useState(null);
 		const [imageAdoptionRunning, setImageAdoptionRunning] = useState(false);
@@ -909,7 +984,12 @@
 		useEffect(() => {
 			function handleParagraphImageRequest(event) {
 				const detail = event && event.detail && typeof event.detail === 'object' ? event.detail : {};
-				openImageRecommendations('paragraph', detail);
+				openImageSourcePicker({ mode: 'paragraph', context: detail });
+			}
+
+			function handleImageSourcePickerRequest(event) {
+				const detail = event && event.detail && typeof event.detail === 'object' ? event.detail : {};
+				openImageSourcePicker(detail);
 			}
 
 			if (typeof window === 'undefined' || !window.addEventListener) {
@@ -917,12 +997,16 @@
 			}
 
 			window.addEventListener(PARAGRAPH_IMAGE_EVENT, handleParagraphImageRequest);
-			return () => window.removeEventListener(PARAGRAPH_IMAGE_EVENT, handleParagraphImageRequest);
+			window.addEventListener(IMAGE_SOURCE_PICKER_EVENT, handleImageSourcePickerRequest);
+			return () => {
+				window.removeEventListener(PARAGRAPH_IMAGE_EVENT, handleParagraphImageRequest);
+				window.removeEventListener(IMAGE_SOURCE_PICKER_EVENT, handleImageSourcePickerRequest);
+			};
 		});
 
 		async function runFlow(intent) {
 			if (intent === 'image_candidates') {
-				openImageRecommendations();
+				openImageSourcePicker({ mode: 'featured' });
 				return;
 			}
 
@@ -943,9 +1027,10 @@
 			}
 		}
 
-		async function runAutoImageRecommendations(modeOverride, contextOverride) {
-			const activeImageMode = modeOverride === 'paragraph' ? 'paragraph' : imageMode;
-			const imageContext = imageRequestContext(postContext, contextOverride);
+		async function runAutoImageRecommendations(modeOverride, contextOverride, pickerOverride) {
+			const activePicker = normalizeImagePickerOptions(pickerOverride || imagePicker || { mode: imageMode });
+			const activeImageMode = modeOverride || activePicker.mode;
+			const imageContext = imageRequestContext(postContext, contextOverride || activePicker.context);
 			if (!hasDraftImageContext(imageContext)) {
 				setImageRunning('');
 				setImageResult(null);
@@ -962,13 +1047,13 @@
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 			try {
-						const payload = Object.assign({}, imageContext, {
-							intent: 'image_candidates',
-							image_mode: activeImageMode,
-							visual_context: buildImageVisualContext(postContext, activeImageMode, '', contextOverride),
-							category_ids: Array.isArray(imageContext.category_ids) ? imageContext.category_ids.join(',') : '',
-							tag_ids: Array.isArray(imageContext.tag_ids) ? imageContext.tag_ids.join(',') : '',
-						});
+				const payload = Object.assign({}, imageContext, {
+					intent: 'image_candidates',
+					image_mode: activePicker.imageUse,
+					visual_context: buildImageVisualContext(postContext, activeImageMode, '', activePicker.context, activePicker.imageUse),
+					category_ids: Array.isArray(imageContext.category_ids) ? imageContext.category_ids.join(',') : '',
+					tag_ids: Array.isArray(imageContext.tag_ids) ? imageContext.tag_ids.join(',') : '',
+				});
 				setImageResult(await postJson('editor/content-support', payload));
 			} catch (requestError) {
 				setImageError(formatImageErrorMessage(requestError, __('Cloud image recommendation failed.', 'npcink-toolbox')));
@@ -995,12 +1080,13 @@
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 			try {
+				const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
 				setImageResult(await postJson('image-candidates', {
 					query,
 					provider: 'auto',
 					per_page: 8,
-					image_mode: imageMode,
-					visual_context: buildImageVisualContext(postContext, imageMode, query),
+					image_mode: activePicker.imageUse,
+					visual_context: buildImageVisualContext(postContext, activePicker.mode, query, activePicker.context, activePicker.imageUse),
 				}));
 			} catch (requestError) {
 				setImageError(formatImageErrorMessage(requestError, __('Cloud image search failed.', 'npcink-toolbox')));
@@ -1009,22 +1095,35 @@
 			}
 		}
 
-		function openImageRecommendations(mode, contextOverride) {
-			const activeImageMode = mode === 'paragraph' ? 'paragraph' : 'featured';
-			setImageMode(activeImageMode);
+		function openImageSourcePicker(options) {
+			const activePicker = normalizeImagePickerOptions(options || { mode: 'featured' });
+			setImagePicker(activePicker);
+			setImageMode(activePicker.mode);
 			setImageModalOpen(true);
-			setImageQuery('');
+			setImageQuery(activePicker.initialQuery || '');
 			setImageGuidance('');
 			setSelectedImage(null);
 			setSelectedImageSeo(null);
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
-			runAutoImageRecommendations(activeImageMode, contextOverride);
+			if (activePicker.autoSearch) {
+				runAutoImageRecommendations(activePicker.mode, activePicker.context, activePicker);
+			} else {
+				setImageRunning('');
+				setImageResult(null);
+				setImageError('');
+			}
+		}
+
+		function openImageRecommendations(mode, contextOverride) {
+			openImageSourcePicker({ mode: mode === 'paragraph' ? 'paragraph' : 'featured', context: contextOverride || {} });
 		}
 
 		function selectImageCandidate(image) {
+			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
+			const seoContext = imageRequestContext(postContext, activePicker.context);
 			setSelectedImage(image);
-			setSelectedImageSeo(buildImageSeoFields(image, postContext));
+			setSelectedImageSeo(buildImageSeoFields(image, seoContext));
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 		}
@@ -1033,6 +1132,39 @@
 			setSelectedImageSeo((current) => Object.assign({}, current || {}, { [field]: value }));
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
+		}
+
+		function dispatchSelectedImageToCaller() {
+			if (!selectedImage) {
+				setImageAdoptionError(__('Select an image candidate first.', 'npcink-toolbox'));
+				return;
+			}
+
+			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
+			const seoContext = imageRequestContext(postContext, activePicker.context);
+			const seo = Object.assign({}, buildImageSeoFields(selectedImage, seoContext), selectedImageSeo || {});
+			const detail = {
+				image_candidate: selectedImage,
+				media_seo: seo,
+				image_mode: activePicker.imageUse,
+				picker_mode: activePicker.mode,
+				context: activePicker.context || {},
+			};
+			if (typeof window !== 'undefined' && window.dispatchEvent) {
+				const eventName = activePicker.selectionEvent || IMAGE_SOURCE_PICKER_SELECTED_EVENT;
+				if (typeof window.CustomEvent === 'function') {
+					window.dispatchEvent(new window.CustomEvent(eventName, { detail }));
+				} else if (window.document && window.document.createEvent) {
+					const event = window.document.createEvent('CustomEvent');
+					event.initCustomEvent(eventName, false, false, detail);
+					window.dispatchEvent(event);
+				}
+			}
+			setImageGuidance(__('Image source selected for the calling field.', 'npcink-toolbox'));
+			setImageAdoptionError('');
+			if (activePicker.closeOnSelect) {
+				setImageModalOpen(false);
+			}
 		}
 
 		function imageAdoptionPlanInput(seo, setFeaturedImage) {
@@ -1054,7 +1186,9 @@
 			setImageAdoptionError('');
 			setImageAdoptionResult(null);
 			try {
-				const seo = Object.assign({}, buildImageSeoFields(selectedImage, postContext), selectedImageSeo || {});
+				const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
+				const seoContext = imageRequestContext(postContext, activePicker.context);
+				const seo = Object.assign({}, buildImageSeoFields(selectedImage, seoContext), selectedImageSeo || {});
 				const planInput = imageAdoptionPlanInput(seo, setFeaturedImage);
 				const plan = await postJson('flows/image-candidate-adoption-plan', planInput);
 				try {
@@ -1079,19 +1213,20 @@
 			const images = extractImageCandidates(imageResult);
 			const queryLabel = imageResult && (imageResult.query || (imageResult.sections && imageResult.sections.image_candidates && imageResult.sections.image_candidates.query)) ? (imageResult.query || imageResult.sections.image_candidates.query) : '';
 			const selectedContext = imageResult && imageResult.post_context ? (imageResult.post_context.selected_text || imageResult.post_context.selected_block_text || '') : '';
-			const inspectorSeo = selectedImage ? Object.assign({}, buildImageSeoFields(selectedImage, postContext), selectedImageSeo || {}) : null;
-			const paragraphMode = imageMode === 'paragraph';
+			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
+			const inspectorSeoContext = imageRequestContext(postContext, activePicker.context);
+			const inspectorSeo = selectedImage ? Object.assign({}, buildImageSeoFields(selectedImage, inspectorSeoContext), selectedImageSeo || {}) : null;
 			return createElement(
 				Modal,
 				{
-					title: paragraphMode ? __('Paragraph image suggestions', 'npcink-toolbox') : __('Image source suggestions', 'npcink-toolbox'),
+					title: activePicker.title,
 					onRequestClose: () => setImageModalOpen(false),
 					className: 'npcink-toolbox-editor-support__image-modal',
 				},
 				createElement(
 					'div',
 					{ className: 'npcink-toolbox-editor-support__image-modal-body' },
-					createElement('p', { className: 'npcink-toolbox-editor-support__intro' }, paragraphMode ? __('Search uses the selected paragraph plus article context. Select one image to import it with media details through Adapter/Core.', 'npcink-toolbox') : __('Search uses the selected paragraph when available, plus article context, or a short visual query. Select one image to import it with media details and set it as the featured image through Adapter/Core.', 'npcink-toolbox')),
+					createElement('p', { className: 'npcink-toolbox-editor-support__intro' }, activePicker.intro),
 					createElement(
 						'form',
 						{ className: 'npcink-toolbox-editor-support__image-search', onSubmit: runImageSearch },
@@ -1152,10 +1287,11 @@
 								imageAdoptionRunning,
 								imageAdoptionResult,
 								imageAdoptionError,
-								imageMode,
+								activePicker,
 								updateSelectedImageSeo,
 								() => adoptSelectedImage(true),
-								() => adoptSelectedImage(false)
+								() => adoptSelectedImage(false),
+								dispatchSelectedImageToCaller
 							)
 						)
 					)
@@ -1206,19 +1342,23 @@
 	}
 
 	function dispatchParagraphImageRequest(detail) {
+		dispatchImageSourcePickerRequest(Object.assign({ mode: 'paragraph' }, detail && typeof detail === 'object' ? { context: detail } : {}));
+	}
+
+	function dispatchImageSourcePickerRequest(detail) {
 		if (typeof window === 'undefined' || !window.dispatchEvent) {
 			return;
 		}
 
 		const eventDetail = detail && typeof detail === 'object' ? detail : {};
 		if (typeof window.CustomEvent === 'function') {
-			window.dispatchEvent(new window.CustomEvent(PARAGRAPH_IMAGE_EVENT, { detail: eventDetail }));
+			window.dispatchEvent(new window.CustomEvent(IMAGE_SOURCE_PICKER_EVENT, { detail: eventDetail }));
 			return;
 		}
 
 		if (window.document && window.document.createEvent) {
 			const event = window.document.createEvent('CustomEvent');
-			event.initCustomEvent(PARAGRAPH_IMAGE_EVENT, false, false, eventDetail);
+			event.initCustomEvent(IMAGE_SOURCE_PICKER_EVENT, false, false, eventDetail);
 			window.dispatchEvent(event);
 		}
 	}
@@ -1267,6 +1407,14 @@
 	}
 
 	registerParagraphImageBlockToolbar();
+
+	if (typeof window !== 'undefined') {
+		window.NpcinkToolboxImageSourcePicker = Object.assign({}, window.NpcinkToolboxImageSourcePicker || {}, {
+			open: dispatchImageSourcePickerRequest,
+			eventName: IMAGE_SOURCE_PICKER_EVENT,
+			selectedEventName: IMAGE_SOURCE_PICKER_SELECTED_EVENT,
+		});
+	}
 
 	plugins.registerPlugin(PLUGIN_NAME, {
 		icon: sidebarIcon,

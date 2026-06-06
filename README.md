@@ -210,6 +210,11 @@ suggestion button. That entry uses the selected paragraph or block as the
 primary context and defaults to a media-import plan for later placement, while
 the sidebar image-source entry remains the article-level featured-image
 recommendation path.
+The same image-source picker contract can be reused by future image fields,
+including settings screens. Those callers may pass a manual query and optional
+context, receive the selected `image_candidate.v1` plus media SEO suggestions,
+and then hand off any setting or media write through the appropriate governed
+ability path. Toolbox does not write setting values directly.
 
 The admin **Content Support** tab mirrors that fixed-flow posture. Its default
 AI Draft Support group runs lightweight title/summary, outline, and
@@ -278,6 +283,9 @@ input: image use, title/excerpt snippets, selected paragraph text, manual query,
 and bounded candidate limits. Cloud may optimize the visual query and rerank
 candidates with site-context vectors, but Toolbox only consumes the normalized
 candidate list, match reasons, and optional media SEO suggestions.
+Supported image-use labels include featured, paragraph, inline, and setting
+image contexts. The label informs Cloud ranking and UI copy; it does not grant
+write authority.
 `ai_generated` remains explicit: callers may provide a reviewed generated image
 URL, or a host may handle `npcink_toolbox_ai_image_generation_request` and
 return generated-image candidates. Toolbox still does not own model routing,

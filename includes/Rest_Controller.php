@@ -499,7 +499,7 @@ final class Rest_Controller {
 
 	private function sanitize_image_visual_context( array $context ): array {
 		$mode = sanitize_key( (string) ( $context['image_mode'] ?? $context['image_use'] ?? '' ) );
-		if ( ! in_array( $mode, array( 'featured', 'featured_image', 'paragraph', 'paragraph_image', 'inline_image' ), true ) ) {
+		if ( ! in_array( $mode, array( 'featured', 'featured_image', 'paragraph', 'paragraph_image', 'inline', 'inline_image', 'setting', 'setting_image' ), true ) ) {
 			$mode = 'featured_image';
 		}
 		if ( 'featured' === $mode ) {
@@ -507,6 +507,12 @@ final class Rest_Controller {
 		}
 		if ( 'paragraph' === $mode ) {
 			$mode = 'paragraph_image';
+		}
+		if ( 'inline' === $mode ) {
+			$mode = 'inline_image';
+		}
+		if ( 'setting' === $mode ) {
+			$mode = 'setting_image';
 		}
 
 		return array(

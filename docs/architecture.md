@@ -316,6 +316,12 @@ The selected-block toolbar exposes the same modal as an image-icon paragraph
 image suggestion shortcut. In that mode the selected paragraph or block is the
 primary image context and the default reviewed action is media import only; the
 sidebar image-source entry stays the article-level featured-image path.
+The modal is implemented as a reusable image-source picker. Future settings or
+other image fields can open it with a manual query and optional context, then
+listen for the selected `image_candidate.v1` and media SEO payload. That
+selection-only mode returns data to the caller; any option, theme-mod, media, or
+featured-image write must still use the governed Ability/Core path for that
+surface.
 
 Cloud Checks use compact tabs for Cloud-managed search, image-source,
 preview-only media derivative, and Site Knowledge checks. Each panel opens
