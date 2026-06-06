@@ -225,6 +225,16 @@ final class Provider_Client {
 		$license_review_status = $this->normalize_license_review_status( (string) ( $candidate['license_review_status'] ?? '' ), $source_type );
 		$provider_origin = sanitize_key( (string) ( $candidate['provider_origin'] ?? 'toolbox' ) );
 		$warnings = $this->sanitize_string_list( $candidate['warnings'] ?? array() );
+		$match_reason = sanitize_textarea_field( (string) ( $candidate['match_reason'] ?? $candidate['reason'] ?? $candidate['recommendation_reason'] ?? '' ) );
+		$match_score = is_numeric( $candidate['match_score'] ?? null ) ? (float) $candidate['match_score'] : null;
+		$recommended_use = sanitize_key( (string) ( $candidate['recommended_use'] ?? $candidate['image_use'] ?? $candidate['best_use'] ?? '' ) );
+		if ( ! in_array( $recommended_use, array( 'featured_image', 'paragraph_image', 'inline_image', 'not_recommended' ), true ) ) {
+			$recommended_use = '';
+		}
+		$visual_keywords = $this->sanitize_string_list( $candidate['visual_keywords'] ?? $candidate['keywords'] ?? array() );
+		$seo_suggestions = is_array( $candidate['seo_suggestions'] ?? null )
+			? $this->sanitize_payload( $candidate['seo_suggestions'] )
+			: ( is_array( $candidate['media_seo'] ?? null ) ? $this->sanitize_payload( $candidate['media_seo'] ) : array() );
 		$file_name = sanitize_file_name( (string) ( $candidate['file_name'] ?? '' ) );
 		$suggested_filename = sanitize_file_name( (string) ( $candidate['suggested_filename'] ?? $file_name ) );
 		if ( '' === $file_name && '' !== $suggested_filename ) {
@@ -256,6 +266,11 @@ final class Provider_Client {
 		$candidate['license_review_status']         = $license_review_status;
 		$candidate['requires_human_license_review'] = 'not_required' !== $license_review_status;
 		$candidate['warnings']                      = $warnings;
+		$candidate['match_reason']                  = $match_reason;
+		$candidate['match_score']                   = $match_score;
+		$candidate['recommended_use']               = $recommended_use;
+		$candidate['visual_keywords']               = $visual_keywords;
+		$candidate['seo_suggestions']               = $seo_suggestions;
 		$candidate['file_name']                     = $file_name;
 		$candidate['suggested_filename']            = '' !== $suggested_filename ? $suggested_filename : $file_name;
 		$candidate['filename_basis']                = $filename_basis;
@@ -2245,8 +2260,12 @@ final class Provider_Client {
 			'purpose'            => sanitize_key( (string) ( $options['purpose'] ?? 'image_reference_candidate' ) ),
 			'candidate_contract' => 'image_candidate.v1',
 		);
+		$visual_context = $this->image_visual_context_input( $query, $options, $per_page );
+		if ( array() !== $visual_context ) {
+			$input['visual_context'] = $visual_context;
+		}
 		$runtime_payload = array(
-				'ability_name'        => 'magick-ai-toolbox/search-image-source',
+			'ability_name'        => 'magick-ai-toolbox/search-image-source',
 			'contract_version'    => 'image_source_cloud_request.v1',
 			'execution_pattern'   => 'inline',
 			'execution_kind'      => 'image_source',
@@ -2296,6 +2315,64 @@ final class Provider_Client {
 		}
 
 		return $this->normalize_image_source_candidates_response( is_array( $response ) ? $response : array(), $query, $provider, $runtime_payload );
+	}
+
+	private function image_visual_context_input( string $query, array $options, int $per_page ): array {
+		$context = is_array( $options['visual_context'] ?? null ) ? $options['visual_context'] : array();
+		if ( array() === $context && ! empty( $options['post_context'] ) && is_array( $options['post_context'] ) ) {
+			$context = $options['post_context'];
+		}
+
+		$selection = trim( sanitize_textarea_field( (string) ( $context['selected_text'] ?? $context['selected_block_text'] ?? '' ) ) );
+		$title     = trim( sanitize_text_field( (string) ( $context['title'] ?? '' ) ) );
+		$excerpt   = trim( sanitize_textarea_field( (string) ( $context['excerpt'] ?? '' ) ) );
+		$content   = trim( sanitize_textarea_field( (string) ( $context['content_summary'] ?? $context['content_text'] ?? $context['content'] ?? '' ) ) );
+		$mode      = sanitize_key( (string) ( $context['image_mode'] ?? $context['image_use'] ?? $options['image_mode'] ?? 'featured_image' ) );
+		if ( ! in_array( $mode, array( 'featured_image', 'paragraph_image', 'inline_image' ), true ) ) {
+			$mode = 'featured_image';
+		}
+
+		$visual_context = array(
+			'contract_version'       => 'image_visual_brief_request.v1',
+			'image_use'              => $mode,
+			'manual_query'           => sanitize_text_field( (string) ( $context['manual_query'] ?? $options['manual_query'] ?? '' ) ),
+			'fallback_query'         => sanitize_text_field( $query ),
+			'title'                  => wp_trim_words( $title, 18, '' ),
+			'excerpt'                => wp_trim_words( $excerpt, 36, '' ),
+			'selected_text'          => wp_trim_words( $selection, 80, '' ),
+			'content_summary'        => wp_trim_words( $content, 80, '' ),
+			'selected_block_name'    => sanitize_key( (string) ( $context['selected_block_name'] ?? '' ) ),
+			'constraints'            => array(
+				'avoid_brand_logos'     => ! empty( $context['avoid_brand_logos'] ),
+				'prefer_editorial_safe' => true,
+				'write_posture'         => 'suggestion_only',
+			),
+			'cloud_ai_steps'         => array(
+				'visual_brief',
+				'site_context_vectors',
+				'candidate_rerank',
+				'media_seo_suggestions',
+			),
+			'candidate_limits'       => array(
+				'returned_candidates'        => $per_page,
+				'max_source_candidates'      => max( $per_page, min( 30, max( 20, $per_page * 3 ) ) ),
+				'max_site_context_results'   => 4,
+			),
+			'fallback_policy'        => array(
+				'plain_image_search' => true,
+				'keep_candidate_order_when_rerank_unavailable' => true,
+			),
+			'data_minimization'      => array(
+				'full_post_content_sent' => false,
+				'content_truncated'      => true,
+			),
+		);
+
+		if ( '' === $visual_context['title'] && '' === $visual_context['excerpt'] && '' === $visual_context['selected_text'] && '' === $visual_context['content_summary'] && '' === $visual_context['manual_query'] ) {
+			return array();
+		}
+
+		return $this->sanitize_payload( $visual_context );
 	}
 
 	private function normalize_cloud_web_search_response( array $response, array $runtime_payload ): array {
@@ -2393,6 +2470,36 @@ final class Provider_Client {
 		);
 	}
 
+	private function normalize_image_visual_brief( array $result, array $runtime_payload ): array {
+		$input = is_array( $runtime_payload['input'] ?? null ) ? $runtime_payload['input'] : array();
+		$brief = array();
+		foreach ( array( 'visual_brief', 'search_brief', 'image_brief' ) as $key ) {
+			if ( is_array( $result[ $key ] ?? null ) ) {
+				$brief = $result[ $key ];
+				break;
+			}
+		}
+
+		$primary_query = sanitize_text_field( (string) ( $brief['primary_query'] ?? $result['primary_query'] ?? $result['optimized_query'] ?? $input['query'] ?? '' ) );
+		$visual_intent = sanitize_textarea_field( (string) ( $brief['visual_intent'] ?? $result['visual_intent'] ?? '' ) );
+		$style = sanitize_text_field( (string) ( $brief['style'] ?? $result['style'] ?? '' ) );
+		$orientation = sanitize_key( (string) ( $brief['preferred_orientation'] ?? $input['orientation'] ?? '' ) );
+
+		return array(
+			'status'                => sanitize_key( (string) ( $result['visual_brief_status'] ?? $result['brief_status'] ?? ( array() !== $brief ? 'ready' : 'fallback' ) ) ),
+			'primary_query'         => $primary_query,
+			'visual_intent'         => $visual_intent,
+			'alternate_queries'     => array_slice( $this->sanitize_string_list( $brief['alternate_queries'] ?? $result['alternate_queries'] ?? array() ), 0, 5 ),
+			'negative_terms'        => array_slice( $this->sanitize_string_list( $brief['negative_terms'] ?? $result['negative_terms'] ?? array() ), 0, 8 ),
+			'preferred_orientation' => $orientation,
+			'style'                 => $style,
+			'match_criteria'        => array_slice( $this->sanitize_string_list( $brief['match_criteria'] ?? $result['match_criteria'] ?? array() ), 0, 8 ),
+			'site_context_status'   => sanitize_key( (string) ( $result['site_context_status'] ?? $result['vector_context_status'] ?? '' ) ),
+			'rerank_status'         => sanitize_key( (string) ( $result['rerank_status'] ?? $result['candidate_rerank_status'] ?? '' ) ),
+			'cloud_ai_steps'        => $this->sanitize_string_list( $input['visual_context']['cloud_ai_steps'] ?? array() ),
+		);
+	}
+
 	private function normalize_image_source_candidates_response( array $response, string $query, string $provider_mode, array $runtime_payload = array() ): array {
 		$result = $this->extract_cloud_runtime_result( $response );
 
@@ -2417,6 +2524,7 @@ final class Provider_Client {
 		if ( '' === $resolved_provider && is_array( $active_sources[0] ?? null ) ) {
 			$resolved_provider = sanitize_key( (string) ( $active_sources[0]['provider'] ?? '' ) );
 		}
+		$visual_brief = $this->normalize_image_visual_brief( $result, $runtime_payload );
 
 		$payload = $this->with_output_contract(
 			array(
@@ -2435,6 +2543,11 @@ final class Provider_Client {
 				'active_sources'             => $active_sources,
 				'provider_errors'            => is_array( $result['provider_errors'] ?? null ) ? $this->sanitize_payload( $result['provider_errors'] ) : array(),
 				'query'                      => $query,
+				'visual_brief'               => $visual_brief,
+				'optimized_query'            => sanitize_text_field( (string) ( $result['optimized_query'] ?? $visual_brief['primary_query'] ?? $query ) ),
+				'alternate_queries'          => $visual_brief['alternate_queries'],
+				'rerank_status'              => $visual_brief['rerank_status'],
+				'site_context_status'        => $visual_brief['site_context_status'],
 				'images'                     => $contract_images,
 				'handoff'                    => array(
 					'candidate_contract'    => 'image_candidate.v1',

@@ -303,10 +303,15 @@ must still go through Core proposals and reusable WordPress abilities.
 The image-source entry opens a Cloud recommendation modal that auto-searches
 from the selected paragraph or selected block when available, combines that
 focus with the current draft title/excerpt/body context, and also accepts a
-manual image query. The modal renders image candidates with previews, source
-links, attribution, provider metadata, license-review state, and preserved
-Unsplash download tracking when present. It does not upload media, set featured
-images, or create a write proposal directly.
+manual image query. The request may include a bounded visual context contract so
+Cloud can build a visual brief, use Cloud-managed site context vectors, rerank
+candidate images, and return media SEO suggestions. Toolbox only receives the
+normalized candidate payload, match reasons, visual brief status, and optional
+SEO fields; it does not configure or own image providers, vector indexes, or
+rerank models. The modal renders image candidates with previews, source links,
+attribution, provider metadata, license-review state, and preserved Unsplash
+download tracking when present. It does not upload media, set featured images,
+or create a write proposal directly.
 
 Cloud Checks use compact tabs for Cloud-managed search, image-source,
 preview-only media derivative, and Site Knowledge checks. Each panel opens

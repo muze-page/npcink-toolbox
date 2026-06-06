@@ -121,6 +121,8 @@ final class Rest_Controller {
 					'generation_prompt'     => sanitize_textarea_field( (string) $request->get_param( 'generation_prompt' ) ),
 					'generated_image_url'   => esc_url_raw( (string) $request->get_param( 'generated_image_url' ) ),
 					'model'                 => sanitize_text_field( (string) $request->get_param( 'model' ) ),
+					'manual_query'          => $query,
+					'visual_context'        => $this->image_visual_context_from_request( $request, $query ),
 				)
 			)
 		);
@@ -360,8 +362,10 @@ final class Rest_Controller {
 				$this->client->image_candidates(
 					$query,
 					array(
-						'provider' => 'auto',
-						'per_page' => 6,
+						'provider'       => 'auto',
+						'per_page'       => 6,
+						'image_mode'     => 'paragraph' === sanitize_key( (string) ( $context['image_mode'] ?? '' ) ) ? 'paragraph_image' : 'featured_image',
+						'visual_context' => $this->editor_image_visual_context( $context, $query ),
 					)
 				)
 			);
@@ -448,9 +452,74 @@ final class Rest_Controller {
 			'selected_text'       => wp_trim_words( sanitize_textarea_field( $selected_text ), 110, '' ),
 			'selected_block_text' => wp_trim_words( sanitize_textarea_field( $selected_block_text ), 110, '' ),
 			'selected_block_name' => sanitize_text_field( (string) $request->get_param( 'selected_block_name' ) ),
+			'image_mode'          => sanitize_key( (string) $request->get_param( 'image_mode' ) ),
 			'category_ids'        => $this->csv_absint_list( (string) $request->get_param( 'category_ids' ) ),
 			'tag_ids'             => $this->csv_absint_list( (string) $request->get_param( 'tag_ids' ) ),
 			'featured_media'      => absint( $request->get_param( 'featured_media' ) ),
+		);
+	}
+
+	private function image_visual_context_from_request( WP_REST_Request $request, string $query ): array {
+		$context = $request->get_param( 'visual_context' );
+		if ( is_array( $context ) ) {
+			$context['manual_query'] = $context['manual_query'] ?? $query;
+			return $this->sanitize_image_visual_context( $context );
+		}
+
+		$content = trim( wp_strip_all_tags( (string) $request->get_param( 'content' ) ) );
+		return $this->sanitize_image_visual_context(
+			array(
+				'manual_query'        => $query,
+				'title'               => (string) $request->get_param( 'title' ),
+				'excerpt'             => (string) $request->get_param( 'excerpt' ),
+				'content_summary'     => wp_trim_words( $content, 80, '' ),
+				'selected_text'       => (string) $request->get_param( 'selected_text' ),
+				'selected_block_text' => (string) $request->get_param( 'selected_block_text' ),
+				'selected_block_name' => (string) $request->get_param( 'selected_block_name' ),
+				'image_mode'          => (string) $request->get_param( 'image_mode' ),
+			)
+		);
+	}
+
+	private function editor_image_visual_context( array $context, string $query ): array {
+		return $this->sanitize_image_visual_context(
+			array(
+				'manual_query'        => '',
+				'fallback_query'      => $query,
+				'title'               => (string) ( $context['title'] ?? '' ),
+				'excerpt'             => (string) ( $context['excerpt'] ?? '' ),
+				'content_summary'     => (string) ( $context['content_text'] ?? '' ),
+				'selected_text'       => (string) ( $context['selected_text'] ?? '' ),
+				'selected_block_text' => (string) ( $context['selected_block_text'] ?? '' ),
+				'selected_block_name' => (string) ( $context['selected_block_name'] ?? '' ),
+				'image_mode'          => (string) ( $context['image_mode'] ?? '' ),
+			)
+		);
+	}
+
+	private function sanitize_image_visual_context( array $context ): array {
+		$mode = sanitize_key( (string) ( $context['image_mode'] ?? $context['image_use'] ?? '' ) );
+		if ( ! in_array( $mode, array( 'featured', 'featured_image', 'paragraph', 'paragraph_image', 'inline_image' ), true ) ) {
+			$mode = 'featured_image';
+		}
+		if ( 'featured' === $mode ) {
+			$mode = 'featured_image';
+		}
+		if ( 'paragraph' === $mode ) {
+			$mode = 'paragraph_image';
+		}
+
+		return array(
+			'image_mode'          => $mode,
+			'manual_query'        => sanitize_text_field( (string) ( $context['manual_query'] ?? '' ) ),
+			'fallback_query'      => sanitize_text_field( (string) ( $context['fallback_query'] ?? '' ) ),
+			'title'               => wp_trim_words( sanitize_text_field( (string) ( $context['title'] ?? '' ) ), 18, '' ),
+			'excerpt'             => wp_trim_words( sanitize_textarea_field( (string) ( $context['excerpt'] ?? '' ) ), 36, '' ),
+			'content_summary'     => wp_trim_words( sanitize_textarea_field( (string) ( $context['content_summary'] ?? $context['content_text'] ?? $context['content'] ?? '' ) ), 80, '' ),
+			'selected_text'       => wp_trim_words( sanitize_textarea_field( (string) ( $context['selected_text'] ?? '' ) ), 80, '' ),
+			'selected_block_text' => wp_trim_words( sanitize_textarea_field( (string) ( $context['selected_block_text'] ?? '' ) ), 80, '' ),
+			'selected_block_name' => sanitize_key( (string) ( $context['selected_block_name'] ?? '' ) ),
+			'avoid_brand_logos'   => ! empty( $context['avoid_brand_logos'] ),
 		);
 	}
 

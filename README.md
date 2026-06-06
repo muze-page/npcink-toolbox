@@ -189,12 +189,15 @@ SEO fields.
 The image-source button opens a Cloud image recommendation modal: it
 automatically searches from the selected paragraph or selected block when
 available, combines that with the current draft context, and also lets the
-editor enter a manual query. Returned images remain `image_candidate.v1`
-suggestions with provider, attribution, source, license-review, and Unsplash
-download tracking metadata preserved; media import and featured-image changes
-still flow through a governed adoption plan. The editor modal lets the
-operator select one candidate and adopt it as the featured image in one visible
-action.
+editor enter a manual query. Toolbox sends a bounded visual context request so
+Cloud may build a visual brief, use Cloud-managed site context vectors, rerank
+source candidates, and return media SEO suggestions; these are runtime details,
+not local vector/index or provider ownership. Returned images remain
+`image_candidate.v1` suggestions with provider, attribution, source,
+license-review, and Unsplash download tracking metadata preserved; media import
+and featured-image changes still flow through a governed adoption plan. The
+editor modal lets the operator select one candidate and adopt it as the
+featured image in one visible action.
 Toolbox builds the adoption plan with proposed media title, alt text,
 description, attribution, filename, and featured-image step, submits it through
 Adapter's plan-to-proposal bridge, then calls Adapter's unified
@@ -265,6 +268,11 @@ selection live in Cloud. Toolbox sends one Cloud runtime request and returns a
 normalized `image_source_candidates` payload for any AI caller that needs
 images, whether the use case is article drafting, media planning, layout
 suggestions, reference selection, or another image-dependent workflow.
+When editor context is available, Toolbox includes only a truncated visual brief
+input: image use, title/excerpt snippets, selected paragraph text, manual query,
+and bounded candidate limits. Cloud may optimize the visual query and rerank
+candidates with site-context vectors, but Toolbox only consumes the normalized
+candidate list, match reasons, and optional media SEO suggestions.
 `ai_generated` remains explicit: callers may provide a reviewed generated image
 URL, or a host may handle `npcink_toolbox_ai_image_generation_request` and
 return generated-image candidates. Toolbox still does not own model routing,
