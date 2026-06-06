@@ -2,6 +2,12 @@
 	'use strict';
 
 	const config = window.NpcinkToolbox || {};
+	const i18n = window.wp && window.wp.i18n ? window.wp.i18n : {};
+	const __ = typeof i18n.__ === 'function' ? i18n.__ : (text) => text;
+
+	function t(text) {
+		return __(String(text), 'npcink-toolbox');
+	}
 
 	function serialize(form) {
 		const data = {};
@@ -23,7 +29,7 @@
 			node.className = className;
 		}
 		if (text !== undefined && text !== null && text !== '') {
-			node.textContent = String(text);
+			node.textContent = t(text);
 		}
 		return node;
 	}
@@ -172,10 +178,10 @@
 			collectErrorText(value[key], messages, seen);
 		});
 		if (value.code && typeof value.code !== 'object') {
-			messages.push('Code: ' + String(value.code));
+			messages.push(t('Code: ') + String(value.code));
 		}
 		if (value.status && typeof value.status !== 'object') {
-			messages.push('Status: ' + String(value.status));
+			messages.push(t('Status: ') + String(value.status));
 		}
 		collectErrorText(value.errors, messages, seen);
 		if (value.data && typeof value.data === 'object') {
@@ -198,7 +204,7 @@
 		}
 
 		const text = stringifyDisplayValue(error).trim();
-		return text && text !== 'Array' ? text : (fallback || 'Request failed.');
+		return text && text !== 'Array' ? text : t(fallback || 'Request failed.');
 	}
 
 	function errorContainsCode(value, code, seen) {
@@ -217,10 +223,10 @@
 
 	function watermarkErrorAdvice(error) {
 		if (errorContainsCode(error, 'cloud_media_derivative_watermark_source_missing', new WeakSet())) {
-			return 'Image/logo watermarks need a configured Core logo source. Switch this run to Text watermark, or configure the Core media watermark logo before retrying.';
+			return t('Image/logo watermarks need a configured Core logo source. Switch this run to Text watermark, or configure the Core media watermark logo before retrying.');
 		}
 		if (errorContainsCode(error, 'cloud_media_derivative_text_watermark_source_unexpected', new WeakSet())) {
-			return 'Text watermarks should not include a logo artifact or upload. Retry with Text watermark fields only.';
+			return t('Text watermarks should not include a logo artifact or upload. Retry with Text watermark fields only.');
 		}
 		return '';
 	}
@@ -445,7 +451,7 @@
 		}
 
 		if (Array.isArray(feedback.revision_fields) && feedback.revision_fields.length) {
-			result.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'Revise fields: ' + feedback.revision_fields.join(', ')));
+			result.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', t('Revise fields: ') + feedback.revision_fields.join(', ')));
 		}
 
 		if (Array.isArray(feedback.next_steps) && feedback.next_steps.length) {
@@ -515,7 +521,7 @@
 			}
 			const links = el('div', 'npcink-toolbox__result-actions');
 			if (image.html_url) {
-				links.appendChild(createLink(image.html_url, 'Open on ' + formatLabel(image.provider || 'source')));
+				links.appendChild(createLink(image.html_url, t('Open on ') + formatLabel(image.provider || 'source')));
 			}
 			if (image.photographer_url) {
 				links.appendChild(createLink(image.photographer_url, 'Photographer'));
@@ -635,7 +641,7 @@
 			payload,
 			title || 'Image-source candidates',
 			count
-				? count + ' candidates returned from Cloud-managed image-source runtime. Review license evidence before adoption.'
+				? String(count) + t(' candidates returned from Cloud-managed image-source runtime. Review license evidence before adoption.')
 				: 'No image-source candidates were returned.'
 		);
 		if (!result) {
@@ -704,7 +710,7 @@
 
 		const status = String(payload && payload.status ? payload.status : 'unknown');
 		const noticeKind = status === 'ready' ? 'ok' : (status === 'failed' ? 'error' : 'pending');
-		container.appendChild(el('div', 'npcink-toolbox__result-notice is-' + noticeKind, 'Status: ' + formatLabel(status)));
+		container.appendChild(el('div', 'npcink-toolbox__result-notice is-' + noticeKind, t('Status: ') + formatLabel(status)));
 		if (progress.message) {
 			container.appendChild(el('div', 'npcink-toolbox__result-notice is-' + noticeKind, progress.message));
 		}
@@ -868,7 +874,7 @@
 			result.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Cloud rerank failed; vector order was used as the fallback.'));
 		}
 		if (hiddenSemanticCount > 0) {
-			result.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', hiddenSemanticCount + ' semantic-only result' + (hiddenSemanticCount === 1 ? '' : 's') + ' hidden because exact query matches were found. Expand Search payload to inspect them.'));
+			result.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', String(hiddenSemanticCount) + (hiddenSemanticCount === 1 ? t(' semantic-only result hidden because exact query matches were found. Expand Search payload to inspect them.') : t(' semantic-only results hidden because exact query matches were found. Expand Search payload to inspect them.'))));
 		}
 
 		if (visibleResults.length) {
@@ -1278,7 +1284,7 @@
 		result.appendChild(meta);
 
 		if (Array.isArray(risk.needs_review) && risk.needs_review.length) {
-			result.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'Review required: ' + risk.needs_review.join(', ')));
+			result.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', t('Review required: ') + risk.needs_review.join(', ')));
 		}
 		if (Array.isArray(risk.blocked_claims) && risk.blocked_claims.length) {
 			result.appendChild(el('div', 'npcink-toolbox__result-notice is-error', 'Blocked claims must be removed before Core handoff.'));
@@ -1375,7 +1381,7 @@
 		}
 
 		if (candidate.attribution || preview.attribution) {
-			result.appendChild(el('div', 'npcink-toolbox__result-notice is-ok', 'Attribution: ' + (candidate.attribution || preview.attribution)));
+			result.appendChild(el('div', 'npcink-toolbox__result-notice is-ok', t('Attribution: ') + (candidate.attribution || preview.attribution)));
 		}
 		if (candidate.requires_human_license_review) {
 			result.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'License or source review is required before approval.'));
@@ -2280,7 +2286,7 @@
 		const resolution = planDataFromEnvelope(resolutionEnvelope) || {};
 		renderMediaUrlResolution(form, resolutionEnvelope, resolution);
 		if (resolution.attachment_id) {
-			renderTextResult(form, 'Media URL resolved to attachment #' + String(resolution.attachment_id) + '. Generate a preview to continue.', 'ok');
+			renderTextResult(form, t('Media URL resolved to attachment #') + String(resolution.attachment_id) + t('. Generate a preview to continue.'), 'ok');
 			return;
 		}
 		renderTextResult(form, 'Media URL resolution returned candidates. Choose one attachment before generating a preview.', 'warning');
@@ -2354,7 +2360,7 @@
 		const proposals = [];
 		for (let index = 0; index < states.length; index += 1) {
 			const state = states[index];
-			renderTextResult(form, 'Submitting Core proposal ' + String(index + 1) + ' of ' + String(states.length) + '...', 'pending');
+			renderTextResult(form, t('Submitting Core proposal ') + String(index + 1) + t(' of ') + String(states.length) + '...', 'pending');
 			proposals.push(await postJson(config.adapterRestUrl, 'proposals', {
 				ability_id: 'npcink-abilities-toolkit/adopt-cloud-media-derivative',
 				title: 'Replace media file with Cloud derivative',

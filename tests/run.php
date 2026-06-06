@@ -156,6 +156,8 @@ toolbox_assert( false !== strpos( $admin_page, "'dateTime'      => \$this->datet
 toolbox_assert( false !== strpos( $admin_page, 'datetime_display_config' ) && false !== strpos( $admin_page, "'format'        => 'Y-m-d H:i:s'" ) && false !== strpos( $admin_page, 'wp_timezone_string' ), 'Admin page exposes the WordPress site timezone and standard display format.' );
 
 $admin_js = file_get_contents( $root . '/assets/admin.js' );
+toolbox_assert( false !== strpos( $admin_js, 'const __ = typeof i18n.__' ) && false !== strpos( $admin_js, "return __(String(text), 'npcink-toolbox')" ), 'Admin JavaScript routes runtime UI copy through the Toolbox script text domain.' );
+toolbox_assert( false !== strpos( $admin_js, 'node.textContent = t(text)' ) && false !== strpos( $admin_js, 't(\'Revise fields: \')' ), 'Admin JavaScript translates result renderer text and concatenated operator feedback prefixes.' );
 toolbox_assert( false !== strpos( $admin_js, 'initTopTabs' ) && false !== strpos( $admin_js, 'initToolSwitcher' ), 'Admin JavaScript initializes section tabs and tool switching.' );
 toolbox_assert( false !== strpos( $admin_js, 'function formatDateTime' ) && false !== strpos( $admin_js, 'window.NpcinkToolbox.dateTime' ) && false !== strpos( $admin_js, "return parts.year + '-' + parts.month + '-' + parts.day + ' ' + hour" ), 'Admin JavaScript formats visible timestamps through the localized WordPress timezone.' );
 toolbox_assert( false !== strpos( $admin_js, "appendMeta(meta, 'Last sync', formatDateTime(coverage.last_sync_at))" ), 'Site Knowledge last sync display uses WordPress datetime formatting.' );
@@ -239,6 +241,9 @@ toolbox_assert( false !== $zh_cn_po && false !== strpos( $zh_cn_po, 'Language: z
 toolbox_assert( file_exists( $root . '/languages/npcink-toolbox-zh_CN.mo' ), 'Bundled zh_CN machine object file is present.' );
 $editor_support_json = file_get_contents( $root . '/languages/npcink-toolbox-zh_CN-npcink-toolbox-editor-content-support.json' );
 toolbox_assert( false !== $editor_support_json && null !== json_decode( $editor_support_json, true ) && false !== strpos( $editor_support_json, '"Publish preflight": ["发布预检"]' ), 'Bundled zh_CN editor script translation JSON is valid and covers fixed-flow labels.' );
+$admin_json = file_get_contents( $root . '/languages/npcink-toolbox-zh_CN-npcink-toolbox-admin.json' );
+toolbox_assert( false !== $admin_json && null !== json_decode( $admin_json, true ) && false !== strpos( $admin_json, '"Revise fields: ": ["需修订字段："]' ), 'Bundled zh_CN admin script translation JSON is valid and covers operator feedback copy.' );
+toolbox_assert( false !== strpos( $admin_json, '"Cloud returned image candidates only. Media import still requires an Adopt New Image plan and Core approval."' ) && false !== strpos( $admin_json, '"Submitting Core proposal "' ), 'Bundled zh_CN admin script translation JSON covers runtime result and Core handoff progress copy.' );
 
 $auto_sync = file_get_contents( $root . '/includes/Site_Knowledge_Auto_Sync.php' );
 toolbox_assert( false !== strpos( $auto_sync, 'transition_post_status' ) && false !== strpos( $auto_sync, "add_action( 'save_post'" ), 'Site Knowledge auto-sync watches allow-listed public content publish and update events.' );
