@@ -259,6 +259,11 @@ directly. Toolbox must not own embedding provider configuration, vector
 database settings, content indexing, re-indexing, stale-index detection,
 collection lifecycle, or full RAG behavior.
 
+If Cloud returns `agent_handoff` for Site Knowledge, Toolbox may surface it as
+a governed local handoff candidate. `handoff_type=proposal_input` means "review
+this evidence before creating a Core proposal"; it is not automatic Core
+submission, approval, preflight, or WordPress writing.
+
 ## Handoff Rule
 
 The final AI output should be one of:

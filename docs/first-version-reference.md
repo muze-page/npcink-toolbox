@@ -87,9 +87,10 @@ not belong in Toolbox.
 The admin Content Support tab should default to fixed, single-job support
 buttons before fallback bundles. Everyday buttons use the existing
 `/editor/content-support` intents for discoverability, publish preflight,
-taxonomy/tag candidates, internal links, and image candidates. Media tools,
-governed handoffs, and the combined Article Planning Bundle are visually
-separate groups so the bundle does not look like the primary workflow.
+writing preparation, taxonomy/tag candidates, internal links, and image
+candidates. Media tools, governed handoffs, and the combined Article Planning Bundle
+are visually separate groups so the bundle does not look like the primary
+workflow.
 
 ## Content Discoverability Context
 
@@ -154,7 +155,9 @@ General-purpose provider abilities:
   media upload, metadata, and optional featured-image proposal intake.
 - `npcink-toolbox/search-site-knowledge` is the Cloud-managed site knowledge
   ability for semantic site search, related content, writing context, internal
-  links, refresh suggestions, or image context.
+  links, refresh suggestions, or image context. When Cloud returns
+  `agent_handoff`, Toolbox displays it as a local Core proposal candidate only;
+  it does not submit, approve, preflight, or execute the proposal.
 - `npcink-toolbox/vector-search` is a Cloud-managed site knowledge
   compatibility pointer for older clients.
 
@@ -170,8 +173,9 @@ Post editor content support:
 
 - `POST /wp-json/npcink-toolbox/v1/editor/content-support` runs one bounded
   fixed flow from the current draft context.
-- Supported intents are `publish_preflight`, `taxonomy_tags`, `internal_links`,
-  `image_candidates`, and `discoverability`.
+- Supported intents are `writing_support`, `publish_preflight`,
+  `taxonomy_tags`, `internal_links`, `image_candidates`, and
+  `discoverability`.
 - Returned artifacts are `editor_content_support_flow` suggestions. They do not
   assign terms, insert links, import media, publish content, or write SEO fields.
 

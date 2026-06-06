@@ -481,7 +481,7 @@ final class Provider_Client {
 		);
 
 		return $this->execute_site_knowledge_cloud_request(
-			'npcink-cloud/site-knowledge-search',
+			'magick-ai-cloud/site-knowledge-search',
 			'site_knowledge_search.v1',
 			'inline',
 			$payload,
@@ -498,7 +498,7 @@ final class Provider_Client {
 		);
 
 		return $this->execute_site_knowledge_cloud_request(
-			'npcink-cloud/site-knowledge-status',
+			'magick-ai-cloud/site-knowledge-status',
 			'site_knowledge_status.v1',
 			'inline',
 			$payload,
@@ -527,7 +527,7 @@ final class Provider_Client {
 		}
 
 		return $this->execute_site_knowledge_cloud_request(
-			'npcink-cloud/site-knowledge-sync',
+			'magick-ai-cloud/site-knowledge-sync',
 			'site_knowledge_sync.v1',
 			'whole_run_offload',
 			$payload,

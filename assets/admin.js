@@ -607,6 +607,12 @@
 		const meta = el('div', 'npcink-toolbox__result-meta');
 		appendMeta(meta, 'Write posture', handoff.write_posture || 'suggestion_only');
 		appendMeta(meta, 'Final write path', handoff.final_write_path || 'Core proposal required');
+		appendMeta(meta, 'Handoff type', handoff.handoff_type ? formatLabel(handoff.handoff_type) : '');
+		appendMeta(meta, 'Agent', handoff.agent_id ? formatLabel(handoff.agent_id) : '');
+		appendMeta(meta, 'Workflow', handoff.workflow ? formatLabel(handoff.workflow) : '');
+		appendMeta(meta, 'Cloud output', handoff.cloud_output ? formatLabel(handoff.cloud_output) : '');
+		appendMeta(meta, 'Evidence', handoff.evidence_count);
+		appendMeta(meta, 'Approval', handoff.requires_local_approval === true ? 'Local Core required' : '');
 		section.appendChild(meta);
 
 		if (Array.isArray(handoff.next_steps) && handoff.next_steps.length) {
@@ -615,6 +621,35 @@
 				list.appendChild(el('li', '', step));
 			});
 			section.appendChild(list);
+		}
+		if (handoff.local_next_action) {
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Next local action: ' + formatLabel(handoff.local_next_action)));
+		}
+		if (handoff.handoff_type === 'proposal_input') {
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Proposal candidate only. Review evidence, then use Core governance for approval, preflight, audit, and final WordPress writes.'));
+		}
+		if (handoff.proposal_input && typeof handoff.proposal_input === 'object' && Object.keys(handoff.proposal_input).length) {
+			const proposalInput = handoff.proposal_input;
+			const evidenceRefs = Array.isArray(proposalInput.evidence_refs) ? proposalInput.evidence_refs : [];
+			if (evidenceRefs.length) {
+				const refs = el('div', 'npcink-toolbox__result-list');
+				evidenceRefs.slice(0, 5).forEach((ref, index) => {
+					const row = el('article', 'npcink-toolbox__result-item');
+					row.appendChild(el('h4', '', ref.title || 'Evidence ' + (index + 1)));
+					if (ref.url) {
+						row.appendChild(createLink(ref.url, ref.url));
+					}
+					const refMeta = el('div', 'npcink-toolbox__result-meta');
+					appendMeta(refMeta, 'Source', ref.source_type ? formatLabel(ref.source_type) : '');
+					appendMeta(refMeta, 'Post', ref.post_id);
+					appendMeta(refMeta, 'Score', ref.score);
+					appendMeta(refMeta, 'Use', ref.suggested_use ? formatLabel(ref.suggested_use) : '');
+					row.appendChild(refMeta);
+					refs.appendChild(row);
+				});
+				section.appendChild(refs);
+			}
+			section.appendChild(createRawDetails(proposalInput, 'Agent proposal input'));
 		}
 		container.appendChild(section);
 	}
@@ -885,6 +920,7 @@
 		if (hiddenSemanticCount > 0) {
 			result.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', String(hiddenSemanticCount) + (hiddenSemanticCount === 1 ? t(' semantic-only result hidden because exact query matches were found. Expand Search payload to inspect them.') : t(' semantic-only results hidden because exact query matches were found. Expand Search payload to inspect them.'))));
 		}
+		renderHandoff(result, payload.handoff || payload.agent_handoff);
 
 		if (visibleResults.length) {
 			const section = createSection('Results');
