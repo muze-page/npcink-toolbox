@@ -27,13 +27,22 @@ function npcink_toolbox_sk_review_smoke_assert( bool $condition, string $message
 }
 
 $admin_js = file_get_contents( $root . '/assets/admin.js' );
+$admin_page = file_get_contents( $root . '/includes/Admin_Page.php' );
 $client   = file_get_contents( $root . '/includes/Provider_Client.php' );
 $rest     = file_get_contents( $root . '/includes/Rest_Controller.php' );
 $abilities = file_get_contents( $root . '/includes/Abilities.php' );
 
 npcink_toolbox_sk_review_smoke_assert(
-	false !== $admin_js && false !== $client && false !== $rest && false !== $abilities,
+	false !== $admin_js && false !== $admin_page && false !== $client && false !== $rest && false !== $abilities,
 	'Site Knowledge review smoke can read the required source files.'
+);
+
+npcink_toolbox_sk_review_smoke_assert(
+	false !== strpos( $admin_page, 'Agent next step' )
+	&& false !== strpos( $admin_page, 'Evidence first' )
+	&& false !== strpos( $admin_page, 'Core review only' )
+	&& false !== strpos( $admin_page, 'No direct write' ),
+	'Site Knowledge page explains the narrow evidence-backed Agent handoff before operator submission.'
 );
 
 npcink_toolbox_sk_review_smoke_assert(

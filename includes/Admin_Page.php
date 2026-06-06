@@ -414,8 +414,27 @@ final class Admin_Page {
 							<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Indexing is disabled until Cloud Addon transport is available.', 'npcink-toolbox' ); ?></div>
 						<?php endif; ?>
 						<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-					</form>
-				</section>
+				</form>
+			</section>
+
+			<section class="npcink-toolbox__card">
+				<h3><?php esc_html_e( 'Agent next step', 'npcink-toolbox' ); ?></h3>
+				<p><?php esc_html_e( 'When Cloud returns an evidence-backed handoff, Toolbox can turn it into one blocked Core review proposal.', 'npcink-toolbox' ); ?></p>
+				<ul class="npcink-toolbox__usage-list">
+					<li>
+						<strong><?php esc_html_e( 'Evidence first', 'npcink-toolbox' ); ?></strong>
+						<span><?php esc_html_e( 'The handoff appears only after Site Knowledge returns proposal input with evidence references.', 'npcink-toolbox' ); ?></span>
+					</li>
+					<li>
+						<strong><?php esc_html_e( 'Core review only', 'npcink-toolbox' ); ?></strong>
+						<span><?php esc_html_e( 'Submit Core review proposal creates a blocked proposal that still needs a human title and content.', 'npcink-toolbox' ); ?></span>
+					</li>
+					<li>
+						<strong><?php esc_html_e( 'No direct write', 'npcink-toolbox' ); ?></strong>
+						<span><?php esc_html_e( 'Approval, preflight, audit, and final WordPress writes stay in local Core governance.', 'npcink-toolbox' ); ?></span>
+					</li>
+				</ul>
+			</section>
 
 			<section class="npcink-toolbox__card">
 				<div class="npcink-toolbox__section-heading">
