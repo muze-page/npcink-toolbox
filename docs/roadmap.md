@@ -38,9 +38,12 @@ Target features:
   candidates, and internal-link context.
 - Media brief button.
 - Content Context form for SEO, AEO, and GEO guidance.
-- Post editor Content Support panel for publish preflight, taxonomy/tag,
-  internal-link, and image-candidate fixed flows.
+- Post editor Content Support panel for writing preparation, publish
+  preflight, taxonomy/tag, internal-link, and image-candidate fixed flows.
 - Clear empty/error/loading states.
+- Reusable image-source picker with short-lived local result caching,
+  empty-state query rewrites, concise candidate cards, and selected-image
+  detail review for editor and settings surfaces.
 - Local WordPress activation smoke.
 
 Non-goals:
@@ -117,6 +120,9 @@ Candidate buttons:
 - generate article outline with references only as an Article Assistant
   fallback after the operator chooses a writing-support route.
 - rerank source, image, and vector candidates with Jina Reranker.
+- improve Cloud image-source ranking with abstract-query rewriting,
+  site-context vector rerank, candidate dedupe, quality/watermark filters,
+  license evidence, risk tags, and media SEO suggestions.
 
 Rule:
 

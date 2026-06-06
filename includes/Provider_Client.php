@@ -232,6 +232,8 @@ final class Provider_Client {
 			$recommended_use = '';
 		}
 		$visual_keywords = $this->sanitize_string_list( $candidate['visual_keywords'] ?? $candidate['keywords'] ?? array() );
+		$quality_tags    = $this->sanitize_string_list( $candidate['quality_tags'] ?? $candidate['match_tags'] ?? array() );
+		$risk_flags      = $this->sanitize_string_list( $candidate['risk_flags'] ?? $candidate['review_flags'] ?? array() );
 		$seo_suggestions = is_array( $candidate['seo_suggestions'] ?? null )
 			? $this->sanitize_payload( $candidate['seo_suggestions'] )
 			: ( is_array( $candidate['media_seo'] ?? null ) ? $this->sanitize_payload( $candidate['media_seo'] ) : array() );
@@ -270,6 +272,8 @@ final class Provider_Client {
 		$candidate['match_score']                   = $match_score;
 		$candidate['recommended_use']               = $recommended_use;
 		$candidate['visual_keywords']               = $visual_keywords;
+		$candidate['quality_tags']                  = array_slice( $quality_tags, 0, 6 );
+		$candidate['risk_flags']                    = array_slice( $risk_flags, 0, 6 );
 		$candidate['seo_suggestions']               = $seo_suggestions;
 		$candidate['file_name']                     = $file_name;
 		$candidate['suggested_filename']            = '' !== $suggested_filename ? $suggested_filename : $file_name;
@@ -457,6 +461,7 @@ final class Provider_Client {
 					'faq_candidates',
 					'content_gap_analysis',
 					'duplicate_check',
+					'writing_support_plan',
 				),
 				true
 			)
@@ -2342,6 +2347,11 @@ final class Provider_Client {
 			'selected_text'          => wp_trim_words( $selection, 80, '' ),
 			'content_summary'        => wp_trim_words( $content, 80, '' ),
 			'selected_block_name'    => sanitize_key( (string) ( $context['selected_block_name'] ?? '' ) ),
+			'query_intent'           => array(
+				'rewrite_abstract_terms'       => ! empty( $context['query_intent']['rewrite_abstract_terms'] ),
+				'prefer_concrete_visual_scene' => ! empty( $context['query_intent']['prefer_concrete_visual_scene'] ),
+				'return_alternate_queries'     => ! empty( $context['query_intent']['return_alternate_queries'] ),
+			),
 			'constraints'            => array(
 				'avoid_brand_logos'     => ! empty( $context['avoid_brand_logos'] ),
 				'prefer_editorial_safe' => true,
@@ -2353,10 +2363,30 @@ final class Provider_Client {
 				'candidate_rerank',
 				'media_seo_suggestions',
 			),
+			'quality_filters'        => array(
+				'dedupe_similar_images'       => true,
+				'avoid_visible_watermarks'     => true,
+				'avoid_brand_logos'            => ! empty( $context['avoid_brand_logos'] ),
+				'minimum_width'                => 1200,
+				'minimum_height'               => 675,
+				'prefer_editorial_over_stock'  => true,
+			),
+			'rights_requirements'    => array(
+				'preserve_attribution'         => true,
+				'preserve_source_url'          => true,
+				'preserve_download_location'   => true,
+				'return_license_review_status' => true,
+			),
+			'ui_contract'            => array(
+				'return_match_reason'           => true,
+				'return_quality_tags'           => true,
+				'return_risk_flags'             => true,
+				'return_empty_query_suggestions' => true,
+			),
 			'candidate_limits'       => array(
-				'returned_candidates'        => $per_page,
-				'max_source_candidates'      => max( $per_page, min( 30, max( 20, $per_page * 3 ) ) ),
-				'max_site_context_results'   => 4,
+				'returned_candidates'      => $per_page,
+				'max_source_candidates'    => max( $per_page, min( 30, max( 20, $per_page * 3 ) ) ),
+				'max_site_context_results' => 4,
 			),
 			'fallback_policy'        => array(
 				'plain_image_search' => true,
@@ -2490,6 +2520,7 @@ final class Provider_Client {
 			'primary_query'         => $primary_query,
 			'visual_intent'         => $visual_intent,
 			'alternate_queries'     => array_slice( $this->sanitize_string_list( $brief['alternate_queries'] ?? $result['alternate_queries'] ?? array() ), 0, 5 ),
+			'query_suggestions'     => array_slice( $this->sanitize_string_list( $brief['query_suggestions'] ?? $result['query_suggestions'] ?? $result['empty_query_suggestions'] ?? array() ), 0, 5 ),
 			'negative_terms'        => array_slice( $this->sanitize_string_list( $brief['negative_terms'] ?? $result['negative_terms'] ?? array() ), 0, 8 ),
 			'preferred_orientation' => $orientation,
 			'style'                 => $style,
@@ -2541,13 +2572,14 @@ final class Provider_Client {
 				'candidate_source_count'     => count( $images ),
 				'result_count'               => count( $contract_images ),
 				'active_sources'             => $active_sources,
-				'provider_errors'            => is_array( $result['provider_errors'] ?? null ) ? $this->sanitize_payload( $result['provider_errors'] ) : array(),
-				'query'                      => $query,
-				'visual_brief'               => $visual_brief,
-				'optimized_query'            => sanitize_text_field( (string) ( $result['optimized_query'] ?? $visual_brief['primary_query'] ?? $query ) ),
-				'alternate_queries'          => $visual_brief['alternate_queries'],
-				'rerank_status'              => $visual_brief['rerank_status'],
-				'site_context_status'        => $visual_brief['site_context_status'],
+					'provider_errors'            => is_array( $result['provider_errors'] ?? null ) ? $this->sanitize_payload( $result['provider_errors'] ) : array(),
+					'query'                      => $query,
+					'visual_brief'               => $visual_brief,
+					'optimized_query'            => sanitize_text_field( (string) ( $result['optimized_query'] ?? $visual_brief['primary_query'] ?? $query ) ),
+					'alternate_queries'          => $visual_brief['alternate_queries'],
+					'query_suggestions'          => $visual_brief['query_suggestions'],
+					'rerank_status'              => $visual_brief['rerank_status'],
+					'site_context_status'        => $visual_brief['site_context_status'],
 				'images'                     => $contract_images,
 				'handoff'                    => array(
 					'candidate_contract'    => 'image_candidate.v1',
@@ -3071,6 +3103,7 @@ final class Provider_Client {
 
 		$results = is_array( $result['results'] ?? null ) ? $this->sanitize_payload( $result['results'] ) : array();
 		$results = $this->filter_current_public_site_knowledge_results( $results );
+		$agent_handoff = is_array( $result['agent_handoff'] ?? null ) ? $this->sanitize_payload( $result['agent_handoff'] ) : array();
 
 		$payload = $this->with_output_contract(
 			array(
@@ -3087,11 +3120,8 @@ final class Provider_Client {
 				'active_run'        => is_array( $result['active_run'] ?? null ) ? $this->sanitize_payload( $result['active_run'] ) : array(),
 				'intent'            => sanitize_key( (string) ( $result['intent'] ?? '' ) ),
 				'evidence_gate'     => is_array( $result['evidence_gate'] ?? null ) ? $this->sanitize_payload( $result['evidence_gate'] ) : array(),
-				'handoff'           => array(
-					'cloud_runtime'          => 'magick_ai_cloud_addon',
-					'final_writes'           => 'core_proposal_required',
-					'direct_wordpress_write' => false,
-				),
+				'agent_handoff'     => $agent_handoff,
+				'handoff'           => $this->site_knowledge_handoff_for_display( $agent_handoff ),
 			),
 			$artifact_type,
 			$composition_role
@@ -3102,6 +3132,49 @@ final class Provider_Client {
 		}
 
 		return $payload;
+	}
+
+	private function site_knowledge_handoff_for_display( array $agent_handoff = array() ): array {
+		$handoff = array(
+			'cloud_runtime'          => 'magick_ai_cloud_addon',
+			'final_writes'           => 'core_proposal_required',
+			'direct_wordpress_write' => false,
+			'write_posture'          => 'suggestion_only',
+		);
+
+		if ( array() === $agent_handoff ) {
+			return $handoff;
+		}
+
+		$proposal_input = is_array( $agent_handoff['proposal_input'] ?? null ) ? $this->sanitize_payload( $agent_handoff['proposal_input'] ) : array();
+		$handoff_type   = sanitize_key( (string) ( $agent_handoff['handoff_type'] ?? 'suggestion_only' ) );
+		$next_action    = is_array( $proposal_input ) ? sanitize_key( (string) ( $proposal_input['local_next_action'] ?? '' ) ) : '';
+		$next_steps     = array(
+			__( 'Review returned site knowledge evidence before creating any local proposal.', 'npcink-toolbox' ),
+		);
+
+		if ( 'proposal_input' === $handoff_type ) {
+			$next_steps[] = __( 'Use this as a Core proposal candidate only after operator review.', 'npcink-toolbox' );
+			$next_steps[] = __( 'Keep final approval, preflight, audit, and WordPress writes in Core.', 'npcink-toolbox' );
+		}
+
+		return array_merge(
+			$handoff,
+			array(
+				'agent_id'                => sanitize_key( (string) ( $agent_handoff['agent_id'] ?? '' ) ),
+				'agent_version'           => sanitize_text_field( (string) ( $agent_handoff['agent_version'] ?? '' ) ),
+				'handoff_type'            => $handoff_type,
+				'handoff_owner'           => sanitize_key( (string) ( $agent_handoff['handoff_owner'] ?? 'wordpress_local' ) ),
+				'requires_local_approval' => ! empty( $agent_handoff['requires_local_approval'] ),
+				'workflow'                => sanitize_key( (string) ( $agent_handoff['workflow'] ?? '' ) ),
+				'cloud_output'            => sanitize_key( (string) ( $agent_handoff['cloud_output'] ?? '' ) ),
+				'evidence_gate_status'    => sanitize_key( (string) ( $agent_handoff['evidence_gate_status'] ?? '' ) ),
+				'evidence_count'          => absint( $agent_handoff['evidence_count'] ?? 0 ),
+				'local_next_action'       => $next_action,
+				'proposal_input'          => $proposal_input,
+				'next_steps'              => $next_steps,
+			)
+		);
 	}
 
 	private function filter_current_public_site_knowledge_results( array $results ): array {

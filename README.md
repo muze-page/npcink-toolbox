@@ -39,10 +39,11 @@ posts, upload media, publish content, or bypass governance. WordPress writes
 should continue through WordPress abilities and Core proposal approval.
 
 The default product posture is content support outside the article body:
-taxonomy/tag candidates, internal-link candidates, image candidates,
-SEO/AEO/GEO suggestions, media metadata plans, and publish-readiness checks.
-Human editors own the article text. Article Assistant exists only as a fallback
-workbench for reviewed local draft artifacts.
+writing-preparation evidence, taxonomy/tag candidates, internal-link
+candidates, image candidates, SEO/AEO/GEO suggestions, media metadata plans,
+and publish-readiness checks. Human editors own the article text. Article
+Assistant exists only as a fallback workbench for reviewed local draft
+artifacts.
 
 Project goals, ownership, and future-session instructions are documented in:
 
@@ -215,6 +216,17 @@ including settings screens. Those callers may pass a manual query and optional
 context, receive the selected `image_candidate.v1` plus media SEO suggestions,
 and then hand off any setting or media write through the appropriate governed
 ability path. Toolbox does not write setting values directly.
+Image-source picker optimization stays lightweight in Toolbox and heavier in
+Cloud. The reusable picker should provide one search box, concise candidate
+cards, a selected-image inspector, media SEO fields, and selection/adoption
+buttons that change by usage context. Cloud should optimize abstract article
+topics into concrete visual queries, use site-context vectors for reranking,
+dedupe near-identical candidates, filter low-quality or watermarked images,
+return license/source/attribution evidence, and provide short query rewrites
+when no images are found. Toolbox may cache recent modal results for a few
+minutes and show those Cloud signals, but it must not own provider routing,
+image indexing, media-library writes, settings writes, or long-term adoption
+history.
 
 The admin **Content Support** tab mirrors that fixed-flow posture. Its default
 AI Draft Support group runs lightweight title/summary, outline, and

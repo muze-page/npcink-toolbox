@@ -302,7 +302,7 @@ final class Rest_Controller {
 
 	public function editor_content_support( WP_REST_Request $request ) {
 		$intent = sanitize_key( (string) ( $request->get_param( 'intent' ) ?: '' ) );
-		if ( ! in_array( $intent, array( 'taxonomy_tags', 'internal_links', 'image_candidates', 'publish_preflight', 'discoverability' ), true ) ) {
+		if ( ! in_array( $intent, array( 'writing_support', 'taxonomy_tags', 'internal_links', 'image_candidates', 'publish_preflight', 'discoverability' ), true ) ) {
 			return new WP_Error(
 				'npcink_toolbox_invalid_editor_support_intent',
 				__( 'A supported editor content-support intent is required.', 'npcink-toolbox' ),
@@ -339,6 +339,19 @@ final class Rest_Controller {
 				'direct_wordpress_write' => false,
 			),
 		);
+
+		if ( 'writing_support' === $intent ) {
+			$result['sections']['writing_support'] = $this->editor_support_section(
+				$this->client->search_site_knowledge(
+					array(
+						'query'           => $query,
+						'intent'          => 'writing_support_plan',
+						'current_post_id' => absint( $context['post_id'] ?? 0 ),
+						'max_results'     => 6,
+					)
+				)
+			);
+		}
 
 		if ( 'taxonomy_tags' === $intent ) {
 			$result['sections']['taxonomy_terms'] = $this->editor_taxonomy_term_candidates( $context, $query );
@@ -526,6 +539,11 @@ final class Rest_Controller {
 			'selected_block_text' => wp_trim_words( sanitize_textarea_field( (string) ( $context['selected_block_text'] ?? '' ) ), 80, '' ),
 			'selected_block_name' => sanitize_key( (string) ( $context['selected_block_name'] ?? '' ) ),
 			'avoid_brand_logos'   => ! empty( $context['avoid_brand_logos'] ),
+			'query_intent'        => array(
+				'rewrite_abstract_terms'       => ! empty( $context['query_intent']['rewrite_abstract_terms'] ),
+				'prefer_concrete_visual_scene' => ! empty( $context['query_intent']['prefer_concrete_visual_scene'] ),
+				'return_alternate_queries'     => ! empty( $context['query_intent']['return_alternate_queries'] ),
+			),
 		);
 	}
 

@@ -16,7 +16,7 @@ Status: MVP architecture.
 | `Abilities` | WordPress Abilities API exposure for Toolbox actions. |
 | `assets/admin.js` | Vanilla JS for fixed tool form submission and summary-first result rendering. |
 | `assets/admin.css` | Admin layout, summary/detail result panels, and tool result styling. |
-| `assets/editor-content-support.js` | Block editor sidebar panel for publish preflight, taxonomy/tag, internal-link, and image-candidate support flows. |
+| `assets/editor-content-support.js` | Block editor sidebar panel for writing preparation, publish preflight, taxonomy/tag, internal-link, and image-candidate support flows. |
 | `assets/editor-content-support.css` | Compact editor-side layout for the content-support panel. |
 
 ## Current Data Storage
@@ -270,10 +270,10 @@ not submit the plan to Core or approve execution.
 The admin **Content Support** tab groups fixed buttons by operator job. The
 default **Everyday Support** group uses the same fixed
 `/editor/content-support` intents as the post editor panel: discoverability,
-publish preflight, taxonomy/tag candidates, internal-link candidates, and image
-candidates. Media work and governed handoffs are separate groups. The combined
-`Article Planning Bundle` is kept as a fallback bundle, not the default support
-flow.
+writing preparation, publish preflight, taxonomy/tag candidates, internal-link
+candidates, and image candidates. Media work and governed handoffs are separate
+groups. The combined `Article Planning Bundle` is kept as a fallback bundle,
+not the default support flow.
 
 Toolbox also renders additive `operator_feedback` payloads from governed
 handoff failures, including reasons, revision fields, next steps, retry state,
@@ -322,6 +322,16 @@ listen for the selected `image_candidate.v1` and media SEO payload. That
 selection-only mode returns data to the caller; any option, theme-mod, media, or
 featured-image write must still use the governed Ability/Core path for that
 surface.
+
+The picker keeps local behavior small and Cloud behavior richer. Locally it
+owns the modal shell, one manual search input, short-lived result caching,
+empty-state query suggestions, concise source cards, and the selected-image
+inspector. Cloud owns abstract-topic query rewriting, visual brief generation,
+site-context vector lookup, candidate rerank, near-duplicate filtering,
+watermark/quality filtering, rights/attribution evidence, risk tags, and media
+SEO suggestions. This keeps image-source reuse fast for editor and settings
+surfaces without turning Toolbox into an image index, provider router, media
+registry, or write executor.
 
 Cloud Checks use compact tabs for Cloud-managed search, image-source,
 preview-only media derivative, and Site Knowledge checks. Each panel opens
