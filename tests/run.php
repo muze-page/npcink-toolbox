@@ -76,6 +76,10 @@ foreach ( array( 'Media Optimization V1', 'media_optimization_v1', 'fixed govern
 	toolbox_assert( false !== strpos( $readme, $required_media_readme_text ), 'README documents media optimization as an existing fixed governed workflow: ' . $required_media_readme_text );
 }
 
+$composer = file_get_contents( $root . '/composer.json' );
+toolbox_assert( false !== $composer && false !== strpos( $composer, 'smoke:article-core' ), 'Composer exposes the article draft to Core smoke script.' );
+toolbox_assert( false !== strpos( $composer, 'tests/smoke-article-draft-core-proof.php' ), 'Composer article smoke runs the Toolbox/Core handoff proof.' );
+
 $architecture_doc = file_get_contents( $root . '/docs/architecture.md' );
 foreach ( array( 'media_optimization_v1', 'existing **Optimize Existing Image** surface', 'does not introduce a Toolbox custom table', '/workflow-runs route', 'artifact registry, or direct media writer' ) as $required_media_architecture_doc ) {
 	toolbox_assert( false !== strpos( $architecture_doc, $required_media_architecture_doc ), 'Architecture doc keeps media optimization out of runtime storage: ' . $required_media_architecture_doc );
@@ -756,6 +760,13 @@ toolbox_assert( false !== strpos( $content_context_smoke, 'npcink_ai_open_platfo
 toolbox_assert( false !== strpos( $content_context_smoke, "direct_wordpress_write'] ?? true" ) && false !== strpos( $content_context_smoke, "'suggestion_only'" ), 'Content context smoke verifies suggestion-only no-write outputs.' );
 toolbox_assert( false !== strpos( $content_context_smoke, 'build-ai-article-writing-pack' ) && false !== strpos( $content_context_smoke, 'ai_article_writing_pack' ), 'Content context smoke verifies the AI article writing pack.' );
 toolbox_assert( false === strpos( $content_context_smoke, 'update_post_meta' ) && false === strpos( $content_context_smoke, 'wp_update_post' ), 'Content context smoke does not write WordPress content.' );
+
+$article_core_smoke = file_get_contents( $root . '/tests/smoke-article-draft-core-proof.php' );
+toolbox_assert( false !== $article_core_smoke && false !== strpos( $article_core_smoke, '/npcink-toolbox/v1/flows/article-plan' ), 'Article Core smoke calls the Toolbox article-plan REST route.' );
+toolbox_assert( false !== strpos( $article_core_smoke, '/npcink-governance-core/v1/proposals/from-plan' ), 'Article Core smoke calls Core from-plan intake.' );
+toolbox_assert( false !== strpos( $article_core_smoke, 'npcink-toolbox/build-article-write-plan' ) && false !== strpos( $article_core_smoke, 'npcink-abilities-toolkit/create-draft' ), 'Article Core smoke verifies the planning and target ability ids.' );
+toolbox_assert( false !== strpos( $article_core_smoke, "'direct_wordpress_write'] ?? true" ) && false !== strpos( $article_core_smoke, "'commit_execution'] ?? true" ), 'Article Core smoke verifies no direct write or commit execution.' );
+toolbox_assert( false !== strpos( $article_core_smoke, 'toolbox_article_core_smoke_post_title_count' ) && false === strpos( $article_core_smoke, 'wp_insert_post' ) && false === strpos( $article_core_smoke, 'wp_update_post' ), 'Article Core smoke proves no WordPress post is created.' );
 
 $openclaw_handoff_doc = file_get_contents( $root . '/docs/openclaw-content-discoverability-handoff.md' );
 toolbox_assert( false !== $openclaw_handoff_doc && false !== strpos( $openclaw_handoff_doc, 'OpenClaw Content Discoverability Handoff' ), 'OpenClaw handoff documentation exists.' );

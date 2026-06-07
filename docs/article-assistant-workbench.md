@@ -100,6 +100,22 @@ become the article writing owner.
 6. Let Core handle proposal review, preflight, approval, audit, and final
    authorized ability execution.
 
+## Core Handoff Smoke
+
+Run the local Core handoff proof with:
+
+```bash
+composer smoke:article-core
+```
+
+The smoke builds one reviewed `article_write_plan` through Toolbox REST, submits
+that plan to Core `/proposals/from-plan`, and verifies Core creates one pending
+`npcink-abilities-toolkit/create-draft` proposal. It also verifies the handoff
+stays draft-only, dry-run, `commit=false`, `commit_execution=false`, and that no
+WordPress post is created during proposal intake. By default the script purges
+the Core proposal/audit rows it created; set
+`NPCINK_TOOLBOX_ARTICLE_CORE_SMOKE_PURGE=0` to inspect them after a run.
+
 For normal editorial operations, prefer the smaller support buttons first:
 taxonomy/tag recommendations, internal-link candidates, image candidates,
 content discoverability suggestions, media metadata, and publish/readiness
