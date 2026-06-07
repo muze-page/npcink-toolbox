@@ -141,12 +141,12 @@
 		{
 			intent: 'summary_terms_optimization',
 			label: __('Optimize summary and terms', 'npcink-toolbox'),
-			description: __('Use AI, Site Knowledge, and saved context to suggest excerpt, category, and tag candidates.', 'npcink-toolbox'),
+			description: __('Review layered summaries, existing terms, proposed new terms, evidence, and handoff preview.', 'npcink-toolbox'),
 		},
 		{
 			intent: 'taxonomy_tags',
-			label: __('Recommend terms', 'npcink-toolbox'),
-			description: __('Suggest existing categories and tags from the current draft context.', 'npcink-toolbox'),
+			label: __('Recommend existing terms', 'npcink-toolbox'),
+			description: __('Suggest only existing categories and tags from the current article or selected text.', 'npcink-toolbox'),
 		},
 		{
 			intent: 'internal_links',
@@ -335,7 +335,11 @@
 			{ className: 'npcink-toolbox-editor-support__list' },
 			items.slice(0, 8).map((item, index) => {
 				const title = item.name || item.title || item.label || item.source_title || item.url || item.download_url || item.id || __('Candidate', 'npcink-toolbox');
-				const detail = item.reason || item.detail || item.excerpt || item.source_url || item.status || item.taxonomy || item.provider || '';
+				const detail = [
+					item.value || '',
+					item.reason || item.detail || item.excerpt || item.source_url || item.status || item.taxonomy || item.provider || '',
+					Array.isArray(item.matched_tokens) && item.matched_tokens.length ? __('Matched: ', 'npcink-toolbox') + item.matched_tokens.slice(0, 5).join(', ') : '',
+				].filter(Boolean).join(' · ');
 				return createElement(
 					'li',
 					{ key: String(index) + '-' + String(title) },
@@ -1108,6 +1112,10 @@
 		const summary = section.summary_candidates && typeof section.summary_candidates === 'object' ? section.summary_candidates : {};
 		const summaryText = summary.output_text || '';
 		blocks.push(createElement('h4', { key: 'summary-optimization-title' }, __('Summary and terms optimization', 'npcink-toolbox')));
+		if (section.input_scope) {
+			blocks.push(createElement('h4', { key: 'summary-input-scope-title' }, __('Input scope', 'npcink-toolbox')));
+			blocks.push(renderItems([section.input_scope], __('No input scope returned.', 'npcink-toolbox')));
+		}
 		if (summary.status === 'error') {
 			blocks.push(createElement('p', { key: 'summary-ai-error', className: 'npcink-toolbox-editor-support__muted' }, summary.message || __('AI summary candidates were unavailable.', 'npcink-toolbox')));
 		} else if (summaryText) {
@@ -1123,6 +1131,10 @@
 		blocks.push(renderItems(section.category_candidates || [], __('No matching existing categories found.', 'npcink-toolbox')));
 		blocks.push(createElement('h4', { key: 'summary-tag-title' }, __('Tag candidates', 'npcink-toolbox')));
 		blocks.push(renderItems(section.tag_candidates || [], __('No matching existing tags found.', 'npcink-toolbox')));
+		if (section.proposed_new_terms) {
+			blocks.push(createElement('h4', { key: 'summary-new-terms-title' }, __('Proposed new terms', 'npcink-toolbox')));
+			blocks.push(renderItems(section.proposed_new_terms.items || [], section.proposed_new_terms.empty_message || __('No proposed new terms returned.', 'npcink-toolbox')));
+		}
 
 		if (section.optimization_strategy && Array.isArray(section.optimization_strategy.ranking_signals)) {
 			blocks.push(createElement('h4', { key: 'summary-strategy-title' }, __('Ranking and dedupe strategy', 'npcink-toolbox')));
@@ -1147,6 +1159,11 @@
 		if (section.review_metrics) {
 			blocks.push(createElement('h4', { key: 'summary-metrics-title' }, __('Review metrics', 'npcink-toolbox')));
 			blocks.push(renderItems(section.review_metrics.items || [], __('No review metrics returned.', 'npcink-toolbox')));
+		}
+
+		if (section.handoff_preview) {
+			blocks.push(createElement('h4', { key: 'summary-handoff-preview-title' }, __('Handoff preview', 'npcink-toolbox')));
+			blocks.push(renderItems((section.handoff_preview.next_steps || []).map((step) => ({ name: step })), __('No handoff preview returned.', 'npcink-toolbox')));
 		}
 
 		return createElement('div', { className: 'npcink-toolbox-editor-support__optimization' }, blocks);

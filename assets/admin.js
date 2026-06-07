@@ -1763,7 +1763,11 @@
 			const row = el('article', 'npcink-toolbox__result-item');
 			const titleText = item.name || item.title || item.label || item.source_title || item.url || item.id || 'Candidate ' + (index + 1);
 			row.appendChild(el('h4', '', titleText));
-			const detail = item.reason || item.detail || item.excerpt || item.snippet || item.source_url || item.status || '';
+			const detail = [
+				item.value || '',
+				item.reason || item.detail || item.excerpt || item.snippet || item.source_url || item.status || '',
+				Array.isArray(item.matched_tokens) && item.matched_tokens.length ? 'Matched: ' + item.matched_tokens.slice(0, 6).join(', ') : '',
+			].filter(Boolean).join(' · ');
 			if (detail) {
 				row.appendChild(el('p', '', truncate(detail, 260)));
 			}
@@ -1773,6 +1777,8 @@
 			const meta = el('div', 'npcink-toolbox__result-meta');
 			appendMeta(meta, 'Score', item.score);
 			appendMeta(meta, 'Taxonomy', item.taxonomy ? formatLabel(item.taxonomy) : '');
+			appendMeta(meta, 'Vocabulary', item.controlled_vocabulary_status ? formatLabel(item.controlled_vocabulary_status) : '');
+			appendMeta(meta, 'Normalize', item.normalization_key);
 			appendMeta(meta, 'Post', item.post_id);
 			appendMeta(meta, 'Status', item.status ? formatLabel(item.status) : '');
 			appendMeta(meta, 'Provider', item.provider ? formatLabel(item.provider) : '');
@@ -1804,6 +1810,10 @@
 		appendMeta(meta, 'Artifact', section.artifact_type ? formatLabel(section.artifact_type) : '');
 		appendMeta(meta, 'Write posture', section.write_posture || 'suggestion_only');
 		appendMeta(meta, 'Final path', section.final_write_path || 'core_proposal_required');
+		if (section.input_scope) {
+			appendMeta(meta, 'Input scope', section.input_scope.label || (section.input_scope.id ? formatLabel(section.input_scope.id) : ''));
+			appendMeta(meta, 'Scope mode', section.input_scope.operator_selected_mode ? formatLabel(section.input_scope.operator_selected_mode) : '');
+		}
 		if (meta.childNodes.length) {
 			shell.appendChild(meta);
 		}
@@ -1821,6 +1831,9 @@
 		}
 		renderSupportItems(container, 'Category candidates', section.category_candidates || [], 'No matching existing categories found.');
 		renderSupportItems(container, 'Tag candidates', section.tag_candidates || [], 'No matching existing tags found.');
+		if (section.proposed_new_terms) {
+			renderSupportItems(container, 'Proposed new terms', supportItems(section.proposed_new_terms), section.proposed_new_terms.empty_message || 'No proposed new terms returned.');
+		}
 		if (section.optimization_strategy && Array.isArray(section.optimization_strategy.ranking_signals)) {
 			renderSupportItems(container, 'Ranking and dedupe strategy', section.optimization_strategy.ranking_signals, 'No ranking strategy returned.');
 		}
@@ -1835,6 +1848,10 @@
 		}
 		if (section.review_metrics) {
 			renderSupportItems(container, 'Review metrics', supportItems(section.review_metrics), 'No review metrics returned.');
+		}
+		if (section.handoff_preview) {
+			renderSupportItems(container, 'Handoff preview', (section.handoff_preview.next_steps || []).map((step) => ({ name: step })), 'No handoff preview returned.');
+			container.appendChild(createRawDetails(section.handoff_preview, 'Handoff preview packet'));
 		}
 	}
 

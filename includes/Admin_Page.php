@@ -1103,7 +1103,7 @@ final class Admin_Page {
 				'id'          => 'summary-terms-optimization',
 				'endpoint'    => 'editor/content-support',
 				'title'       => __( 'Summary and Terms Optimization', 'npcink-toolbox' ),
-				'description' => __( 'Use hosted AI, existing WordPress terms, Cloud-managed Site Knowledge, web-search evidence, and saved content context to suggest layered summaries, category/tag candidates, ranking reasons, dedupe guidance, and review metrics.', 'npcink-toolbox' ),
+				'description' => __( 'Review layered summaries, existing terms, proposed new terms, evidence, and a Core handoff preview without writing WordPress data.', 'npcink-toolbox' ),
 				'intent'      => 'summary_terms_optimization',
 				'button'      => __( 'Optimize metadata', 'npcink-toolbox' ),
 				'custom'      => 'content_support_flow',
@@ -1112,10 +1112,10 @@ final class Admin_Page {
 				'group'       => __( 'Everyday Support', 'npcink-toolbox' ),
 				'id'          => 'taxonomy-tags',
 				'endpoint'    => 'editor/content-support',
-				'title'       => __( 'Taxonomy/Tag Candidates', 'npcink-toolbox' ),
-				'description' => __( 'Suggest matching existing categories and tags from the supplied draft context.', 'npcink-toolbox' ),
+				'title'       => __( 'Existing Taxonomy/Tag Candidates', 'npcink-toolbox' ),
+				'description' => __( 'Suggest matching existing categories and tags from the supplied article, selected text, or topic context.', 'npcink-toolbox' ),
 				'intent'      => 'taxonomy_tags',
-				'button'      => __( 'Find terms', 'npcink-toolbox' ),
+				'button'      => __( 'Find existing terms', 'npcink-toolbox' ),
 				'custom'      => 'content_support_flow',
 			),
 			array(
@@ -1340,8 +1340,17 @@ final class Admin_Page {
 			<input type="hidden" name="post_status" value="draft" />
 			<div class="npcink-toolbox__example">
 				<strong><?php esc_html_e( 'Fixed support flow', 'npcink-toolbox' ); ?></strong>
-				<span><?php esc_html_e( 'This runs one bounded suggestion flow from the supplied draft context. It does not write posts, assign terms, insert links, import media, or publish.', 'npcink-toolbox' ); ?></span>
+				<span><?php esc_html_e( 'This runs one bounded suggestion flow from the supplied article, selected text, topic, or brief. It does not write posts, assign terms, insert links, import media, or publish.', 'npcink-toolbox' ); ?></span>
 			</div>
+			<label>
+				<span><?php esc_html_e( 'Input scope', 'npcink-toolbox' ); ?></span>
+				<select name="context_scope">
+					<option value="auto"><?php esc_html_e( 'Auto: selected text when present, otherwise full article', 'npcink-toolbox' ); ?></option>
+					<option value="full_article"><?php esc_html_e( 'Full article context', 'npcink-toolbox' ); ?></option>
+					<option value="selected_text"><?php esc_html_e( 'Selected text or supplied snippet', 'npcink-toolbox' ); ?></option>
+					<option value="topic_only"><?php esc_html_e( 'Topic or short brief only', 'npcink-toolbox' ); ?></option>
+				</select>
+			</label>
 			<label>
 				<span><?php esc_html_e( 'Post ID (optional)', 'npcink-toolbox' ); ?></span>
 				<input type="number" min="0" step="1" name="post_id" placeholder="<?php esc_attr_e( 'Use 0 for topic-only runs', 'npcink-toolbox' ); ?>" />
