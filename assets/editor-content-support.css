@@ -560,6 +560,24 @@
 	line-height: 1.4;
 }
 
+.npcink-toolbox-editor-support__image-feedback {
+	display: grid;
+	gap: 8px;
+	padding-top: 10px;
+	border-top: 1px solid #f0f0f0;
+}
+
+.npcink-toolbox-editor-support__image-feedback-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.npcink-toolbox-editor-support__image-feedback-actions .components-button {
+	min-height: 30px;
+	font-size: 12px;
+}
+
 .npcink-toolbox-editor-support__field textarea,
 .npcink-toolbox-editor-support__seo-fields textarea {
 	min-height: 64px;
