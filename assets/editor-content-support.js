@@ -1630,14 +1630,15 @@
 							},
 							imageRunning === 'generate' ? __('Generating', 'npcink-toolbox') : __('Generate AI image', 'npcink-toolbox')
 						),
-						createElement(
-							Button,
-							{
-								type: 'button',
-								variant: 'tertiary',
-								isBusy: imageRunning === 'auto',
-								disabled: Boolean(imageRunning),
-								onClick: runAutoImageRecommendations,
+							createElement(
+								Button,
+								{
+									type: 'button',
+									variant: 'tertiary',
+									className: 'npcink-toolbox-editor-support__article-search-button',
+									isBusy: imageRunning === 'auto',
+									disabled: Boolean(imageRunning),
+									onClick: runAutoImageRecommendations,
 							},
 							__('Search from article', 'npcink-toolbox')
 						),
