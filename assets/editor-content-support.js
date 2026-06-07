@@ -364,7 +364,7 @@
 	}
 
 	function imageTitle(image) {
-		return image.description || image.alt_description || image.title || image.prompt || image.id || __('Image candidate', 'npcink-toolbox');
+		return image.title || image.alt_description || image.description || image.prompt || image.id || __('Image candidate', 'npcink-toolbox');
 	}
 
 	function imagePreviewUrl(image) {
@@ -1402,6 +1402,7 @@
 					response_format: 'url',
 					n: 1,
 					purpose: 'editor_image_source_modal_generation',
+					prompt_reviewed_by_operator: true,
 					media_context: {
 						title: truncateText(postContext.title || context.title || imageQuery || '', 120),
 						alt: '',

@@ -1447,6 +1447,7 @@ final class Admin_Page {
 			<input type="hidden" name="resolution" value="high" />
 			<input type="hidden" name="response_format" value="url" />
 			<input type="hidden" name="purpose" value="cloud_check_ai_image_generation" />
+			<input type="hidden" name="prompt_reviewed_by_operator" value="1" />
 			<input type="hidden" name="media_title" value="<?php esc_attr_e( 'AI image generation governance', 'npcink-toolbox' ); ?>" />
 			<input type="hidden" name="media_alt" value="<?php esc_attr_e( 'Original editorial image for AI image generation governance.', 'npcink-toolbox' ); ?>" />
 			<input type="hidden" name="media_description" value="<?php esc_attr_e( 'AI-generated image candidate for the hosted image generation smoke test. Review it before importing or setting it as featured media.', 'npcink-toolbox' ); ?>" />
