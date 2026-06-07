@@ -4173,6 +4173,7 @@
 	initContextGroupSwitcher();
 	initContextDrafts();
 	initSiteKnowledge();
+	initAgentFeedbackQuality();
 	initMediaDerivativeControls();
 	initUrlState();
 
