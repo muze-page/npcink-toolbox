@@ -527,7 +527,7 @@
 			}
 
 			const body = el('div', 'npcink-toolbox__image-body');
-			body.appendChild(el('h4', '', image.description || image.alt_description || image.id || 'Image candidate'));
+			body.appendChild(el('h4', '', image.title || image.alt_description || image.description || image.id || 'Image candidate'));
 			if (image.attribution) {
 				body.appendChild(el('p', '', image.attribution));
 			}
@@ -714,6 +714,7 @@
 					resolution: handoff.input_defaults && handoff.input_defaults.resolution ? handoff.input_defaults.resolution : 'high',
 					response_format: 'url',
 					n: count.value,
+					prompt_reviewed_by_operator: true,
 					media_title: payload.query || payload.primary_query || '',
 					media_description: payload.message || '',
 					handoff
@@ -1246,6 +1247,60 @@
 			.map((label) => ({ name: formatLabel(label), value: labels[label] }));
 		if (labelItems.length) {
 			renderSupportItems(container, 'Feedback labels', labelItems, 'No feedback labels returned.');
+		}
+
+		const lowQualityItems = Array.isArray(payload && payload.low_quality_labels) ? payload.low_quality_labels : [];
+		if (lowQualityItems.length) {
+			renderSupportItems(
+				container,
+				'Low quality labels',
+				lowQualityItems.map((item) => ({
+					name: formatLabel(item.label || ''),
+					value: item.count,
+				})),
+				'No low quality labels returned.'
+			);
+		}
+
+		const rejectedItems = Array.isArray(payload && payload.rejection_reasons) ? payload.rejection_reasons : [];
+		if (rejectedItems.length) {
+			renderSupportItems(
+				container,
+				'Rejected reasons',
+				rejectedItems.map((item) => ({
+					name: formatLabel(item.label || ''),
+					value: item.count,
+				})),
+				'No rejected reasons returned.'
+			);
+		}
+
+		const scenarios = Array.isArray(payload && payload.scenarios) ? payload.scenarios : [];
+		if (scenarios.length) {
+			renderSupportItems(
+				container,
+				'Scenarios',
+				scenarios.slice(0, 4).map((item) => ({
+					name: formatLabel(item.local_surface || item.source_runtime || 'Scenario'),
+					value: (item.events_total || 0) + ' events',
+					reason: 'Accepted ' + formatRate(item.accepted_rate) + ' · Weak evidence ' + formatRate(item.evidence_weak_rate) + ' · Wrong next step ' + formatRate(item.wrong_next_step_rate),
+				})),
+				'No scenario summary returned.'
+			);
+		}
+
+		const trend = Array.isArray(payload && payload.quality_trend) ? payload.quality_trend : [];
+		if (trend.length) {
+			renderSupportItems(
+				container,
+				'Quality trend',
+				trend.slice(-6).map((item) => ({
+					name: formatDateTime(item.bucket || ''),
+					value: (item.events_total || 0) + ' events',
+					reason: 'Accepted ' + (item.accepted || 0) + ' · Rejected ' + (item.rejected || 0) + ' · Weak evidence ' + (item.evidence_weak || 0) + ' · Wrong next step ' + (item.wrong_next_step || 0),
+				})),
+				'No quality trend returned.'
+			);
 		}
 	}
 
