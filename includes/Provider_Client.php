@@ -577,23 +577,25 @@ final class Provider_Client {
 		$model    = sanitize_text_field( (string) ( $candidate['model'] ?? $candidate['generation_model'] ?? '' ) );
 		$prompt   = trim( sanitize_textarea_field( (string) ( $candidate['prompt'] ?? $candidate['generation_prompt'] ?? $fallback_prompt ) ) );
 		$asset_persistence = $this->ai_generated_asset_persistence_policy( $url, $candidate );
-		$title    = trim( sanitize_text_field( (string) ( $candidate['title'] ?? $media_context['title'] ?? $query ) ) );
+		$context_title = trim( sanitize_text_field( (string) ( $media_context['title'] ?? '' ) ) );
+		$prompt_subject = $this->ai_image_subject_from_prompt( $prompt );
+		$title    = trim( sanitize_text_field( (string) ( $candidate['title'] ?? '' ) ) );
 		if ( '' === $title || $this->is_ai_generation_instruction_text( $title ) ) {
-			$title = $this->ai_image_media_title_from_subject( $this->ai_image_subject_from_prompt( $prompt ) );
+			$title = '' !== $context_title ? $context_title : $this->ai_image_media_title_from_subject( $prompt_subject );
 		}
 		$description = trim( sanitize_textarea_field( (string) ( $candidate['description'] ?? $media_context['description'] ?? '' ) ) );
 		if ( '' === $description || $this->is_ai_generation_instruction_text( $description ) ) {
 			$description = trim( sanitize_textarea_field( (string) ( $media_context['description'] ?? '' ) ) );
 		}
 		if ( '' === $description ) {
-			$description = $this->ai_image_media_description_from_subject( $title );
+			$description = $this->ai_image_media_description_from_subject( '' !== $context_title ? $context_title : $title );
 		}
 		$alt = trim( sanitize_textarea_field( (string) ( $candidate['alt_description'] ?? $candidate['alt'] ?? $media_context['alt'] ?? '' ) ) );
 		if ( '' === $alt || $this->is_ai_generation_instruction_text( $alt ) ) {
 			$alt = trim( sanitize_textarea_field( (string) ( $media_context['alt'] ?? '' ) ) );
 		}
 		if ( '' === $alt ) {
-			$alt = $this->ai_image_media_alt_from_subject( $title );
+			$alt = $this->ai_image_media_alt_from_subject( '' !== $context_title ? $context_title : $title );
 		}
 		$seo_suggestions = is_array( $candidate['seo_suggestions'] ?? null ) ? $this->sanitize_payload( $candidate['seo_suggestions'] ) : array();
 		$seo_suggestions = array_merge(
@@ -603,6 +605,7 @@ final class Provider_Client {
 				'alt'         => $alt,
 				'alt_text'    => $alt,
 				'description' => $description,
+				'basis'       => 'reviewed_article_context',
 			)
 		);
 		$warnings = $this->sanitize_string_list( $candidate['warnings'] ?? array() );
@@ -650,19 +653,21 @@ final class Provider_Client {
 	private function ai_image_media_context_from_input( array $input, string $prompt ): array {
 		$raw_context = is_array( $input['media_context'] ?? null ) ? $input['media_context'] : array();
 		$post_context = is_array( $input['post_context'] ?? null ) ? $input['post_context'] : array();
+		$post_title = trim( sanitize_text_field( (string) ( $post_context['title'] ?? '' ) ) );
+		$selected_text = trim( sanitize_textarea_field( (string) ( $post_context['selected_text'] ?? $post_context['selected_block_text'] ?? '' ) ) );
 		$subject = trim(
 			sanitize_text_field(
 				(string) (
 					$input['media_title']
 					?? $raw_context['title']
-					?? $post_context['title']
+					?? $post_title
 					?? $input['title']
 					?? ''
 				)
 			)
 		);
 		if ( '' === $subject || $this->is_ai_generation_instruction_text( $subject ) ) {
-			$subject = $this->ai_image_subject_from_prompt( $prompt );
+			$subject = '' !== $post_title ? $post_title : ( '' !== $selected_text ? $selected_text : $this->ai_image_subject_from_prompt( $prompt ) );
 		}
 		$title = $this->ai_image_media_title_from_subject( $subject );
 		$description = trim( sanitize_textarea_field( (string) ( $input['media_description'] ?? '' ) ) );
@@ -699,6 +704,8 @@ final class Provider_Client {
 		}
 		$first_line = trim( (string) strtok( $prompt, "\r\n" ) );
 		$subject = preg_replace( '/^\\s*create\\s+an?\\s+original\\s+[^:：]*[:：]\\s*/i', '', $first_line );
+		$subject = preg_replace( '/^\\s*create\\s+a\\s+publication-safe\\s+editorial\\s+illustration\\s+for\\s+[^:：]*[:：]\\s*/i', '', (string) $subject );
+		$subject = preg_replace( '/^\\s*create\\s+[^:：]*\\s+for\\s*[:：]\\s*/i', '', (string) $subject );
 		$subject = preg_replace( '/\\s*composition\\s*[:：].*$/i', '', (string) $subject );
 		$subject = trim( sanitize_text_field( (string) $subject ) );
 		if ( '' === $subject || $this->is_ai_generation_instruction_text( $subject ) ) {
@@ -750,7 +757,7 @@ final class Provider_Client {
 		if ( '' === $text ) {
 			return false;
 		}
-		foreach ( array( 'create an original', 'composition:', 'composition：', 'style:', 'style：', 'avoid visible text', 'watermarks', 'copyrighted characters' ) as $needle ) {
+		foreach ( array( 'create an original', 'create a publication-safe', 'editorial illustration for', 'source context:', 'context source:', 'visual task:', 'operator visual direction:', 'composition:', 'composition：', 'style:', 'style：', 'text rule:', 'avoid visible text', 'avoid distorted', 'watermarks', 'copyrighted characters', 'regenerate this ai image' ) as $needle ) {
 			if ( false !== strpos( $text, $needle ) ) {
 				return true;
 			}

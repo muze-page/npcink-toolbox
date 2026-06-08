@@ -1876,6 +1876,16 @@
 						alt: '',
 						description: '',
 					},
+					post_context: {
+						post_id: postContext.post_id || 0,
+						post_type: postContext.post_type || 'post',
+						title: truncateText(context.title || postContext.title || '', 160),
+						excerpt: truncateText(context.excerpt || postContext.excerpt || '', 260),
+						selected_text: truncateText(context.selected_text || '', 500),
+						selected_block_text: truncateText(context.selected_block_text || '', 500),
+						selected_block_name: context.selected_block_name || '',
+						image_use: activePicker.imageUse,
+					},
 					handoff: {
 						trigger: 'manual_user_action',
 						action_id: 'ai_generate_image',

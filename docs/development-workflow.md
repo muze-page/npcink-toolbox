@@ -71,6 +71,16 @@ This dispatches `/wp-json/npcink-toolbox/v1/editor/content-support` with the
 returned `content_metadata_delta` remains suggestion-only, points final writes
 to Core proposals, and does not mutate the sampled post.
 
+For AI-generated image media SEO normalization, run:
+
+```bash
+composer smoke:ai-image-media-seo
+```
+
+This mocks the Cloud image-generation response and verifies that prompt-like
+candidate title, ALT, and description text are replaced with reviewed article
+context before the candidate reaches Core adoption.
+
 ## Coding Rules
 
 - Keep admin UI server-rendered unless a real build need appears.
