@@ -608,37 +608,52 @@
 			});
 	}
 
-	function imageResultSourceLabel(payload) {
+	function imageResultProviderDetails(payload) {
+		const source = imageResultSource(payload || {});
+		if (!source || typeof source !== 'object') {
+			return [];
+		}
+		return compactLabelParts([
+			source.hosted_profile,
+			source.model_id,
+			source.resolved_provider,
+		]);
+	}
+
+	function imageResultSourceLabel(payload, includeDetails) {
 		const source = imageResultSource(payload || {});
 		if (!source || typeof source !== 'object') {
 			return '';
 		}
 		if (String(source.provider_mode || '').toLowerCase() === 'ai_generated') {
-			const parts = compactLabelParts([
-				source.hosted_profile,
-				source.model_id,
-				source.resolved_provider,
-			]);
+			const parts = includeDetails ? imageResultProviderDetails(payload) : [];
 			return parts.length ? parts.join(' / ') : __('AI generated', 'npcink-toolbox');
 		}
 		return source.resolved_provider ? formatMetaLabel(source.resolved_provider) : '';
 	}
 
-	function imageCandidateSourceLabel(image, payload) {
+	function imageCandidateProviderDetails(image, payload) {
+		if (!image || typeof image !== 'object') {
+			return [];
+		}
+		const source = imageResultSource(payload || {});
+		return compactLabelParts([
+			image.hosted_profile,
+			source && source.hosted_profile,
+			image.generation_model || image.model,
+			source && source.model_id,
+			image.generation_provider || image.provider_name,
+		]);
+	}
+
+	function imageCandidateSourceLabel(image, payload, includeDetails) {
 		if (!image || typeof image !== 'object') {
 			return '';
 		}
 		const sourceType = String(image.source_type || '').toLowerCase();
 		const provider = String(image.provider || '').toLowerCase();
 		if (sourceType === 'ai_generated' || provider === 'ai_generated') {
-			const source = imageResultSource(payload || {});
-			const parts = compactLabelParts([
-				image.hosted_profile,
-				source && source.hosted_profile,
-				image.generation_model || image.model,
-				source && source.model_id,
-				image.generation_provider || image.provider_name,
-			]);
+			const parts = includeDetails ? imageCandidateProviderDetails(image, payload) : [];
 			return parts.length ? parts.join(' / ') : __('AI generated', 'npcink-toolbox');
 		}
 		return image.provider ? formatMetaLabel(image.provider) : '';
@@ -713,6 +728,38 @@
 			'Text rule: no visible text, letters, numbers, labels, logos, watermarks, UI copy, or reproduced article wording.',
 			'Avoid distorted hands or faces and copyrighted characters.'
 		].join('\n');
+	}
+
+	function aiImageRevisionPrompt(postContext, picker, selectedImage, currentPrompt, aspectRatio, revisionMode) {
+		const activePicker = normalizeImagePickerOptions(picker || {});
+		const basePrompt = String(currentPrompt || selectedImage && (selectedImage.generation_prompt || selectedImage.prompt || selectedImage.description) || '').trim()
+			|| defaultAiImageGenerationPrompt(postContext, activePicker, '', aspectRatio);
+		const context = imageRequestContext(postContext || {}, activePicker.context);
+		const selectedContext = String(context.selected_text || context.selected_block_text || context.title || context.excerpt || '').trim();
+		const mode = String(revisionMode || 'more_editorial');
+		const instruction = mode === 'more_specific'
+			? 'Revision direction: make the visual concept more specific and concrete while preserving the selected paragraph meaning.'
+			: (mode === 'simpler'
+				? 'Revision direction: simplify the composition, reduce visual clutter, and keep one clear editorial idea.'
+				: 'Revision direction: make it feel more like a polished editorial article image with stronger composition and natural context.');
+		return [
+			basePrompt,
+			'',
+			'Regenerate this AI image candidate as a revised alternative.',
+			instruction,
+			selectedContext ? 'Preserve semantic context: ' + truncateText(selectedContext, 240) : '',
+			'Keep composition: ' + (aspectRatio || '16:9') + '.',
+			'Do not add visible text, letters, numbers, logos, watermarks, UI screenshots, posters, or copied article wording.'
+		].filter(Boolean).join('\n');
+	}
+
+	function imageIsAiGenerated(image) {
+		if (!image || typeof image !== 'object') {
+			return false;
+		}
+		const sourceType = String(image.source_type || '').toLowerCase();
+		const provider = String(image.provider || '').toLowerCase();
+		return sourceType === 'ai_generated' || provider === 'ai_generated';
 	}
 
 	function imageCandidateTagValues(image) {
@@ -1091,7 +1138,40 @@
 		);
 	}
 
-	function renderSelectedImagePanel(selectedImage, seoFields, adoptionRunning, adoptionResult, adoptionError, picker, onSeoFieldChange, onAdoptFeatured, onImportOnly, onSelectOnly, feedbackRunning, feedbackStatus, onSubmitFeedback) {
+	function renderAiImageRegenerationControls(selectedImage, generationRunning, onRegenerate) {
+		if (!imageIsAiGenerated(selectedImage) || typeof onRegenerate !== 'function') {
+			return null;
+		}
+		const options = [
+			{ mode: 'more_specific', label: __('More specific', 'npcink-toolbox') },
+			{ mode: 'simpler', label: __('Simpler', 'npcink-toolbox') },
+			{ mode: 'more_editorial', label: __('More editorial', 'npcink-toolbox') },
+		];
+		return createElement(
+			'div',
+			{ className: 'npcink-toolbox-editor-support__image-regenerate', 'data-toolbox-editor-ai-image-regenerate': 'true' },
+			createElement('h3', null, __('Regenerate AI image', 'npcink-toolbox')),
+			createElement('small', null, __('Keeps the selected paragraph meaning and creates a revised candidate through the existing AI image runtime.', 'npcink-toolbox')),
+			createElement(
+				'div',
+				{ className: 'npcink-toolbox-editor-support__image-regenerate-actions' },
+				options.map((option) => createElement(
+					Button,
+					{
+						key: option.mode,
+						type: 'button',
+						variant: 'secondary',
+						isBusy: generationRunning === option.mode,
+						disabled: Boolean(generationRunning),
+						onClick: () => onRegenerate(option.mode),
+					},
+					option.label
+				))
+			)
+		);
+	}
+
+	function renderSelectedImagePanel(selectedImage, seoFields, adoptionRunning, adoptionResult, adoptionError, picker, onSeoFieldChange, onAdoptFeatured, onImportOnly, onSelectOnly, feedbackRunning, feedbackStatus, onSubmitFeedback, regenerationRunning, onRegenerate) {
 		const activePicker = normalizeImagePickerOptions(picker || {});
 		const paragraphMode = activePicker.mode === 'paragraph';
 		const selectOnlyMode = activePicker.adoptionMode === 'select_only';
@@ -1107,6 +1187,7 @@
 		const seo = seoFields || {};
 		const previewUrl = imagePreviewUrl(selectedImage);
 		const sourceUrl = imageSourceUrl(selectedImage);
+		const providerDetails = imageCandidateProviderDetails(selectedImage);
 		const rows = [
 			renderInfoRow(__('Source', 'npcink-toolbox'), imageCandidateSourceLabel(selectedImage), 'source'),
 			renderInfoRow(__('Review', 'npcink-toolbox'), selectedImage.license_review_status ? formatMetaLabel(selectedImage.license_review_status) : '', 'review'),
@@ -1177,6 +1258,7 @@
 				)
 			),
 			createElement('span', { className: 'npcink-toolbox-editor-support__selected-note' }, selectOnlyMode ? __('Selection is returned to the calling field. Toolbox does not write settings directly.', 'npcink-toolbox') : paragraphMode ? __('Uses Adapter/Core for media import and media SEO fields. Toolbox does not insert images into the paragraph directly.', 'npcink-toolbox') : __('Uses Adapter/Core for import, media SEO fields, and featured image changes. Toolbox does not write media directly.', 'npcink-toolbox')),
+			renderAiImageRegenerationControls(selectedImage, regenerationRunning, onRegenerate),
 			createElement(
 				'div',
 				{ className: 'npcink-toolbox-editor-support__seo-fields' },
@@ -1214,6 +1296,7 @@
 				createElement('summary', null, __('Source details', 'npcink-toolbox')),
 				sourceUrl ? createElement('a', { href: sourceUrl, target: '_blank', rel: 'noreferrer' }, __('Open source', 'npcink-toolbox')) : null,
 				selectedImage.source_type ? createElement('small', null, __('Type: ', 'npcink-toolbox') + formatMetaLabel(selectedImage.source_type)) : null,
+				providerDetails.length ? createElement('small', null, __('Runtime: ', 'npcink-toolbox') + providerDetails.join(' / ')) : null,
 				imageFormatLabel(selectedImage) ? createElement('small', null, __('Format: ', 'npcink-toolbox') + imageFormatLabel(selectedImage)) : null,
 				selectedImage.match_reason ? createElement('small', null, __('Match reason: ', 'npcink-toolbox') + selectedImage.match_reason) : null,
 				Array.isArray(selectedImage.visual_keywords) && selectedImage.visual_keywords.length ? createElement('small', null, __('Visual keywords: ', 'npcink-toolbox') + selectedImage.visual_keywords.slice(0, 6).join(', ')) : null,
@@ -1233,7 +1316,7 @@
 		}
 
 		const source = payload.sections && payload.sections.image_candidates ? payload.sections.image_candidates : payload;
-		const sourceLabel = imageResultSourceLabel(payload);
+		const sourceLabel = imageResultSourceLabel(payload, true);
 		const cloudMessage = source.message ? String(source.message) : '';
 		const displayMessage = cloudMessage.toLowerCase().indexOf('connect npcink cloud') >= 0
 			? __('Npcink Cloud Addon is not connected or not configured for managed image-source search.', 'npcink-toolbox')
@@ -1301,15 +1384,19 @@
 			promptCandidates.length ? createElement(
 				'div',
 				{ className: 'npcink-toolbox-editor-support__prompt-candidates' },
-				createElement('small', null, __('AI prompt candidates', 'npcink-toolbox')),
+				createElement('small', null, __('AI image directions', 'npcink-toolbox')),
 				promptCandidates.map((candidate, index) => createElement(
 					'button',
 					{
 						key: String(candidate.id || index),
 						type: 'button',
+						className: 'npcink-toolbox-editor-support__prompt-card',
+						title: truncateText(candidate.prompt, 220),
 						onClick: () => onUsePrompt && onUsePrompt(String(candidate.prompt || '')),
 					},
-					truncateText(candidate.label || candidate.prompt, 72)
+					createElement('strong', null, truncateText(candidate.label || candidate.prompt, 72)),
+					candidate.visual_strategy || candidate.direction_type ? createElement('span', null, truncateText(candidate.visual_strategy || formatMetaLabel(candidate.direction_type), 120)) : null,
+					candidate.reason ? createElement('small', null, truncateText(candidate.reason, 180)) : null
 				))
 			) : null,
 			status.length ? createElement('small', null, status.join(' | ')) : null
@@ -1499,6 +1586,7 @@
 		const [imageAdoptionError, setImageAdoptionError] = useState('');
 		const [imageFeedbackRunning, setImageFeedbackRunning] = useState('');
 		const [imageFeedbackStatus, setImageFeedbackStatus] = useState(null);
+		const [imageRegenerationRunning, setImageRegenerationRunning] = useState('');
 
 		useEffect(() => {
 			function handleParagraphImageRequest(event) {
@@ -1655,20 +1743,21 @@
 			}
 		}
 
-		async function runAiImageGeneration(event) {
+		async function runAiImageGeneration(event, promptOverride) {
 			if (event && event.preventDefault) {
 				event.preventDefault();
 			}
 			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
 			const context = imageRequestContext(postContext || {}, activePicker.context);
-			const prompt = defaultAiImageGenerationPrompt(postContext, activePicker, imageQuery, aiImageAspectRatio);
+			const override = promptOverride && typeof promptOverride === 'object' ? promptOverride : {};
+			const prompt = String(override.prompt || defaultAiImageGenerationPrompt(postContext, activePicker, imageQuery, aiImageAspectRatio)).trim();
 			if (!prompt) {
 				setImageError(__('Enter an AI image prompt, article title, or selected paragraph before generating.', 'npcink-toolbox'));
 				return;
 			}
 			setImageRunning('generate');
 			setImageError('');
-			setImageGuidance('');
+			setImageGuidance(override.guidance || '');
 			setImageResult(null);
 			setSelectedImage(null);
 			setSelectedImageSeo(null);
@@ -1685,6 +1774,7 @@
 					n: candidateCount,
 					purpose: 'editor_image_source_modal_generation',
 					prompt_reviewed_by_operator: true,
+					regeneration_mode: override.regenerationMode || '',
 					media_context: {
 						title: truncateText(postContext.title || context.title || imageQuery || '', 120),
 						alt: '',
@@ -1694,6 +1784,7 @@
 						trigger: 'manual_user_action',
 						action_id: 'ai_generate_image',
 						image_use: activePicker.imageUse,
+						regeneration_mode: override.regenerationMode || '',
 						runtime_request_template: {
 							ability_name: 'magick-ai-cloud/generate-image',
 						},
@@ -1708,6 +1799,32 @@
 				setImageError(formatImageErrorMessage(requestError, __('AI image generation failed.', 'npcink-toolbox')));
 			} finally {
 				setImageRunning('');
+			}
+		}
+
+		async function regenerateSelectedImage(revisionMode) {
+			if (!selectedImage) {
+				return;
+			}
+			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
+			const currentPrompt = selectedImage.generation_prompt || selectedImage.prompt || imageQuery || '';
+			const prompt = aiImageRevisionPrompt(postContext, activePicker, selectedImage, currentPrompt, aiImageAspectRatio, revisionMode);
+			if (!prompt) {
+				setImageError(__('No AI image prompt is available to regenerate.', 'npcink-toolbox'));
+				return;
+			}
+			setImageSearchMode('generate');
+			setImageQuery(prompt);
+			setImageRegenerationRunning(revisionMode);
+			setImageGuidance(__('Regenerating a revised AI image while preserving the selected paragraph meaning.', 'npcink-toolbox'));
+			try {
+				await runAiImageGeneration(null, {
+					prompt,
+					regenerationMode: revisionMode,
+					guidance: __('Regenerating a revised AI image while preserving the selected paragraph meaning.', 'npcink-toolbox'),
+				});
+			} finally {
+				setImageRegenerationRunning('');
 			}
 		}
 
@@ -2046,7 +2163,9 @@
 									dispatchSelectedImageToCaller,
 									imageFeedbackRunning,
 									imageFeedbackStatus,
-									submitSelectedImageFeedback
+									submitSelectedImageFeedback,
+									imageRegenerationRunning || (imageRunning === 'generate' ? 'generate' : ''),
+									regenerateSelectedImage
 								)
 							)
 					)
