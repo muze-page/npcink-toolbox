@@ -84,6 +84,7 @@ foreach ( array( 'Media Optimization V1', 'media_optimization_v1', 'fixed govern
 $composer = file_get_contents( $root . '/composer.json' );
 toolbox_assert( false !== $composer && false !== strpos( $composer, 'smoke:article-core' ), 'Composer exposes the article draft to Core smoke script.' );
 toolbox_assert( false !== strpos( $composer, 'tests/smoke-article-draft-core-proof.php' ), 'Composer article smoke runs the Toolbox/Core handoff proof.' );
+toolbox_assert( false !== strpos( $composer, 'smoke:metadata-delta' ) && false !== strpos( $composer, 'tests/smoke-content-metadata-delta.php' ), 'Composer exposes the Content Metadata Delta smoke script.' );
 
 $rest_controller = file_get_contents( $root . '/includes/Rest_Controller.php' );
 toolbox_assert( false !== $rest_controller && false !== strpos( $rest_controller, 'REQUIRED_TEXT_MAX_CHARS = 500' ) && false !== strpos( $rest_controller, 'mb_substr( $value, 0, $max_chars )' ), 'REST controller bounds common text inputs before Cloud calls.' );
@@ -855,6 +856,7 @@ toolbox_assert( false !== strpos( $content_context_doc, 'npcink-toolbox/build-ai
 toolbox_assert( false !== strpos( $content_context_doc, 'primary lightweight SEO/AEO/GEO contract' ) && false !== strpos( $content_context_doc, 'special_cases' ), 'Content context documentation records the lightweight contract and special cases.' );
 toolbox_assert( false !== strpos( $content_context_doc, 'does not call a model and does not write WordPress data' ), 'Content context documentation keeps brief generation bounded.' );
 toolbox_assert( false !== strpos( $content_context_doc, 'wp eval-file tests/smoke-content-discoverability.php' ), 'Content context documentation records the local readiness smoke command.' );
+toolbox_assert( false !== strpos( $development_workflow, 'composer smoke:metadata-delta' ) && false !== strpos( $development_workflow, 'content_metadata_delta' ), 'Development workflow documents the Content Metadata Delta smoke command.' );
 toolbox_assert( false !== strpos( $content_context_doc, 'Missing `wp_*` Agent Gateway exposure is a host-side admission task' ), 'Content context documentation keeps Agent Gateway admission outside Toolbox.' );
 toolbox_assert( false !== strpos( $content_context_doc, 'Do not add an update-context ability' ), 'Content context documentation blocks third-party updates in the first version.' );
 
@@ -872,6 +874,10 @@ toolbox_assert( false !== strpos( $article_core_smoke, '/npcink-governance-core/
 toolbox_assert( false !== strpos( $article_core_smoke, 'npcink-toolbox/build-article-write-plan' ) && false !== strpos( $article_core_smoke, 'npcink-abilities-toolkit/create-draft' ), 'Article Core smoke verifies the planning and target ability ids.' );
 toolbox_assert( false !== strpos( $article_core_smoke, "'direct_wordpress_write'] ?? true" ) && false !== strpos( $article_core_smoke, "'commit_execution'] ?? true" ), 'Article Core smoke verifies no direct write or commit execution.' );
 toolbox_assert( false !== strpos( $article_core_smoke, 'toolbox_article_core_smoke_post_title_count' ) && false === strpos( $article_core_smoke, 'wp_insert_post' ) && false === strpos( $article_core_smoke, 'wp_update_post' ), 'Article Core smoke proves no WordPress post is created.' );
+$metadata_delta_smoke = file_get_contents( $root . '/tests/smoke-content-metadata-delta.php' );
+toolbox_assert( false !== $metadata_delta_smoke && false !== strpos( $metadata_delta_smoke, '/npcink-toolbox/v1/editor/content-support' ) && false !== strpos( $metadata_delta_smoke, "'summary_terms_optimization'" ), 'Content Metadata Delta smoke calls the editor content-support REST route.' );
+toolbox_assert( false !== strpos( $metadata_delta_smoke, "'content_metadata_delta'" ) && false !== strpos( $metadata_delta_smoke, "'operation-classification-v1'" ) && false !== strpos( $metadata_delta_smoke, "'suggestion_only'" ), 'Content Metadata Delta smoke verifies the classifier-backed suggestion-only artifact.' );
+toolbox_assert( false !== strpos( $metadata_delta_smoke, 'toolbox_metadata_delta_smoke_post_snapshot' ) && false === strpos( $metadata_delta_smoke, 'wp_insert_post' ) && false === strpos( $metadata_delta_smoke, 'wp_update_post' ), 'Content Metadata Delta smoke proves the sampled post is not mutated.' );
 
 $openclaw_handoff_doc = file_get_contents( $root . '/docs/openclaw-content-discoverability-handoff.md' );
 toolbox_assert( false !== $openclaw_handoff_doc && false !== strpos( $openclaw_handoff_doc, 'OpenClaw Content Discoverability Handoff' ), 'OpenClaw handoff documentation exists.' );

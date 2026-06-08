@@ -60,6 +60,17 @@ Then verify:
 - Abilities API discovery includes the Toolbox ability ids when the Abilities
   API is available.
 
+For the post-editor metadata feedback loop, run:
+
+```bash
+composer smoke:metadata-delta
+```
+
+This dispatches `/wp-json/npcink-toolbox/v1/editor/content-support` with the
+`summary_terms_optimization` intent against a local post and verifies that the
+returned `content_metadata_delta` remains suggestion-only, points final writes
+to Core proposals, and does not mutate the sampled post.
+
 ## Coding Rules
 
 - Keep admin UI server-rendered unless a real build need appears.
