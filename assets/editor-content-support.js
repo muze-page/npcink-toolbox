@@ -874,11 +874,24 @@
 		if (!visualBrief && !diagnostics) {
 			return null;
 		}
+		const detailPanel = diagnostics ? createElement(
+			'details',
+			{ className: 'npcink-toolbox-editor-support__cloud-details' },
+			createElement('summary', null, __('Cloud details', 'npcink-toolbox')),
+			diagnostics
+		) : null;
+		if (visualBrief) {
+			return createElement(
+				'div',
+				{ className: 'npcink-toolbox-editor-support__image-cloud-context' },
+				visualBrief,
+				detailPanel
+			);
+		}
 		return createElement(
 			'details',
 			{ className: 'npcink-toolbox-editor-support__cloud-details' },
 			createElement('summary', null, __('Cloud details', 'npcink-toolbox')),
-			visualBrief,
 			diagnostics
 		);
 	}
@@ -1416,7 +1429,7 @@
 								className: 'npcink-toolbox-editor-support__prompt-card-action',
 								onClick: usePrompt,
 							},
-							__('Use direction', 'npcink-toolbox')
+							__('使用方向', 'npcink-toolbox')
 						)
 					);
 				})

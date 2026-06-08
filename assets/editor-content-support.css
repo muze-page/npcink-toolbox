@@ -299,7 +299,15 @@
 	line-height: 1.35;
 }
 
+.npcink-toolbox-editor-support__image-cloud-context {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+}
+
 .npcink-toolbox-editor-support__cloud-details {
+	position: relative;
+	z-index: 2;
 	display: grid;
 	gap: 8px;
 	padding: 8px 10px;
@@ -317,6 +325,8 @@
 }
 
 .npcink-toolbox-editor-support__visual-brief {
+	position: relative;
+	z-index: 2;
 	display: grid;
 	gap: 6px;
 	padding: 10px;
@@ -427,6 +437,8 @@
 }
 
 .npcink-toolbox-editor-support__image-grid {
+	position: relative;
+	z-index: 1;
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 	gap: 10px;
