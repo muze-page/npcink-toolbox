@@ -174,7 +174,11 @@ summary, Recommend and apply tags, Recommend categories, and Create new tags
 and assign. Auto-approval eligibility belongs to Core policy; Toolbox must not
 auto-approve, create terms, assign terms, or update excerpts itself. Proposed
 new terms are vocabulary-gap candidates only; Toolbox must not create terms or
-assign them to posts.
+assign them to posts. The only apply-oriented local surface is
+`/flows/content-metadata-apply-plan` / `npcink-toolbox/build-content-metadata-apply-plan`,
+which is still read-only planning output: it packages reviewed excerpt,
+existing category, and existing tag choices into dry-run Core handoff actions
+and rejects missing term creation by keeping `create_missing=false`.
 Site-level and media-helper AI routes must be added as separate narrow
 surfaces; they must not be hidden compatibility modes inside the draft-support
 route.

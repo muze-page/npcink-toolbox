@@ -42,6 +42,7 @@ final class Rest_Controller {
 		$this->post( '/flows/article-plan', 'article_plan' );
 		$this->post( '/flows/image-candidate-adoption-plan', 'image_candidate_adoption_plan' );
 		$this->post( '/flows/site-knowledge-review-plan', 'site_knowledge_review_plan' );
+		$this->post( '/flows/content-metadata-apply-plan', 'content_metadata_apply_plan' );
 		$this->post( '/flows/media-brief', 'media_brief' );
 		$this->post( '/editor/content-support', 'editor_content_support' );
 		$this->post( '/media-derivative-handoff', 'media_derivative_handoff' );
@@ -306,6 +307,11 @@ final class Rest_Controller {
 	public function site_knowledge_review_plan( WP_REST_Request $request ) {
 		$params = method_exists( $request, 'get_params' ) ? $request->get_params() : array();
 		return rest_ensure_response( $this->client->build_site_knowledge_review_plan( is_array( $params ) ? $params : array() ) );
+	}
+
+	public function content_metadata_apply_plan( WP_REST_Request $request ) {
+		$params = method_exists( $request, 'get_params' ) ? $request->get_params() : array();
+		return rest_ensure_response( $this->client->build_content_metadata_apply_plan( is_array( $params ) ? $params : array() ) );
 	}
 
 	public function media_brief( WP_REST_Request $request ) {
@@ -1404,13 +1410,13 @@ final class Rest_Controller {
 		$auto_apply_actions = $this->editor_summary_terms_auto_apply_actions( $summary_layers, $categories, $tags, $proposed_new_terms );
 
 		return array(
-			'artifact_type'          => 'summary_terms_handoff_preview.v1',
-			'status'                 => 'operator_selection_required',
-			'write_posture'          => 'suggestion_only',
-			'final_write_path'       => 'core_proposal_required',
-			'direct_wordpress_write' => false,
-			'preview_only'           => true,
-			'auto_apply_actions'     => $auto_apply_actions,
+			'artifact_type'             => 'summary_terms_handoff_preview.v1',
+			'status'                    => 'operator_selection_required',
+			'write_posture'             => 'suggestion_only',
+			'final_write_path'          => 'core_proposal_required',
+			'direct_wordpress_write'    => false,
+			'preview_only'              => true,
+			'auto_apply_actions'        => $auto_apply_actions,
 			'core_auto_approval_policy' => array(
 				'request_supported'          => true,
 				'toolbox_direct_apply'       => false,
@@ -1425,7 +1431,40 @@ final class Rest_Controller {
 					'create_new_tags_assign',
 				),
 			),
-			'available_fields'       => array(
+			'proposal_targets'          => array(
+				array(
+					'id'                     => 'accepted_excerpt_update',
+					'source_action_id'       => 'generate_apply_summary',
+					'target_ability_id'      => 'npcink-abilities-toolkit/update-post',
+					'proposal_kind'          => 'single_post_excerpt_update',
+					'target_input_fields'    => array( 'post_id', 'excerpt', 'dry_run', 'commit', 'idempotency_key' ),
+					'auto_approval_request'  => true,
+					'direct_wordpress_write' => false,
+				),
+				array(
+					'id'                     => 'accepted_existing_tags',
+					'source_action_id'       => 'recommend_apply_tags',
+					'target_ability_id'      => 'npcink-abilities-toolkit/set-post-terms',
+					'proposal_kind'          => 'single_post_existing_tag_append',
+					'taxonomy'               => 'post_tag',
+					'mode'                   => 'append',
+					'target_input_fields'    => array( 'post_id', 'taxonomy', 'mode', 'term_ids', 'create_missing', 'dry_run', 'commit', 'idempotency_key' ),
+					'auto_approval_request'  => ! empty( $auto_apply_actions[1]['available_fields'] ),
+					'direct_wordpress_write' => false,
+				),
+				array(
+					'id'                     => 'accepted_existing_categories',
+					'source_action_id'       => 'recommend_categories',
+					'target_ability_id'      => 'npcink-abilities-toolkit/set-post-terms',
+					'proposal_kind'          => 'single_post_existing_category_append',
+					'taxonomy'               => 'category',
+					'mode'                   => 'append',
+					'target_input_fields'    => array( 'post_id', 'taxonomy', 'mode', 'term_ids', 'create_missing', 'dry_run', 'commit', 'idempotency_key' ),
+					'auto_approval_request'  => false,
+					'direct_wordpress_write' => false,
+				),
+			),
+			'available_fields'          => array(
 				'summary_layers'      => $auto_apply_actions[0]['available_fields'],
 				'existing_categories' => $auto_apply_actions[2]['available_fields'],
 				'existing_tags'       => $auto_apply_actions[1]['available_fields'],

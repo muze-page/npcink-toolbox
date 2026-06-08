@@ -277,6 +277,75 @@
 		return '';
 	}
 
+	function metadataTermId(item) {
+		return parseInt(item && (item.term_id || item.id) ? (item.term_id || item.id) : 0, 10) || 0;
+	}
+
+	function metadataDeltaTermItems(section, key) {
+		const delta = section && section.content_metadata_delta && section.content_metadata_delta.delta ? section.content_metadata_delta.delta : {};
+		const items = Array.isArray(delta[key]) ? delta[key] : [];
+		return items.filter((item) => metadataTermId(item) > 0);
+	}
+
+	function metadataRecommendedExcerpt(section) {
+		const delta = section && section.content_metadata_delta && section.content_metadata_delta.delta ? section.content_metadata_delta.delta : {};
+		const excerpt = delta.excerpt && typeof delta.excerpt === 'object' ? delta.excerpt : {};
+		return String(excerpt.recommended || '').trim();
+	}
+
+	function metadataSelectionHasValue(selection) {
+		return Boolean(
+			selection && (
+				selection.excerpt ||
+				(Array.isArray(selection.tag_ids) && selection.tag_ids.length) ||
+				(Array.isArray(selection.category_ids) && selection.category_ids.length)
+			)
+		);
+	}
+
+	function selectedMetadataTermIds(items, selectedIds) {
+		const allowed = {};
+		items.forEach((item) => {
+			const termId = metadataTermId(item);
+			if (termId > 0) {
+				allowed[String(termId)] = true;
+			}
+		});
+		return (Array.isArray(selectedIds) ? selectedIds : [])
+			.map((termId) => parseInt(termId, 10) || 0)
+			.filter((termId) => termId > 0 && allowed[String(termId)])
+			.filter((termId, index, list) => list.indexOf(termId) === index);
+	}
+
+	function buildMetadataApplyPlanInput(section, selection, postContext) {
+		const postId = parseInt(postContext && postContext.post_id ? postContext.post_id : 0, 10) || 0;
+		const excerpt = selection && selection.excerpt ? metadataRecommendedExcerpt(section) : '';
+		return {
+			post_id: postId,
+			excerpt,
+			category_ids: selectedMetadataTermIds(metadataDeltaTermItems(section, 'categories'), selection ? selection.category_ids : []),
+			tag_ids: selectedMetadataTermIds(metadataDeltaTermItems(section, 'tags'), selection ? selection.tag_ids : []),
+			category_mode: 'append',
+			tag_mode: 'append',
+			content_metadata_delta: section && section.content_metadata_delta ? section.content_metadata_delta : {},
+			evidence_refs: section && section.content_metadata_delta && section.content_metadata_delta.issue_record ? (section.content_metadata_delta.issue_record.context_refs || []) : [],
+			new_term_candidates: section && section.content_metadata_delta && section.content_metadata_delta.delta ? (section.content_metadata_delta.delta.new_term_candidates || []) : [],
+		};
+	}
+
+	async function postContentMetadataApplyPlanToAdapter(plan, planInput) {
+		return postJsonToUrl(adapterRestUrl('proposals/from-plan'), {
+			plan_ability_id: 'npcink-toolbox/build-content-metadata-apply-plan',
+			plan,
+			plan_input: planInput,
+			caller: {
+				surface: 'toolbox_editor_content_support',
+				external_thread_id: 'toolbox-editor-content-metadata-delta',
+				source: 'content_metadata_delta_handoff',
+			},
+		});
+	}
+
 	async function postAdapterAdoption(plan, planInput) {
 		const bridge = await postJsonToUrl(adapterRestUrl('proposals/from-plan'), {
 			plan_ability_id: 'npcink-toolbox/build-image-candidate-adoption-plan',
@@ -1539,7 +1608,105 @@
 		);
 	}
 
-	function renderSummaryOptimization(section) {
+	function renderMetadataHandoffCheckbox(label, checked, disabled, onChange, detail) {
+		return createElement(
+			'label',
+			{ className: 'npcink-toolbox-editor-support__metadata-choice' },
+			createElement('input', {
+				type: 'checkbox',
+				checked: Boolean(checked),
+				disabled: Boolean(disabled),
+				onChange: (event) => onChange && onChange(Boolean(event.target.checked)),
+			}),
+			createElement(
+				'span',
+				null,
+				createElement('strong', null, label),
+				detail ? createElement('small', null, detail) : null
+			)
+		);
+	}
+
+	function renderMetadataTermChoices(title, items, selectedIds, disabled, onToggle) {
+		if (!items.length) {
+			return null;
+		}
+
+		return createElement(
+			'div',
+			{ className: 'npcink-toolbox-editor-support__metadata-choice-group' },
+			createElement('h4', null, title),
+			items.slice(0, 6).map((item) => {
+				const termId = metadataTermId(item);
+				return renderMetadataHandoffCheckbox(
+					item.name || String(termId),
+					(Array.isArray(selectedIds) ? selectedIds : []).indexOf(termId) >= 0,
+					disabled,
+					(checked) => onToggle(termId, checked),
+					item.reason || item.taxonomy || ''
+				);
+			})
+		);
+	}
+
+	function renderMetadataHandoffControl(section, controls) {
+		if (!section || !controls) {
+			return null;
+		}
+		const selection = controls.selection || {};
+		const excerpt = metadataRecommendedExcerpt(section);
+		const tags = metadataDeltaTermItems(section, 'tags');
+		const categories = metadataDeltaTermItems(section, 'categories');
+		const hasSelection = metadataSelectionHasValue(selection);
+		const disabled = Boolean(controls.running);
+
+		return createElement(
+			'div',
+			{ className: 'npcink-toolbox-editor-support__metadata-handoff' },
+			createElement('h4', null, __('Accepted metadata choices', 'npcink-toolbox')),
+			createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, __('Select reviewed suggestions, then create Core review proposals. Toolbox does not approve, execute, or write metadata.', 'npcink-toolbox')),
+			excerpt ? renderMetadataHandoffCheckbox(
+				__('Include reviewed excerpt', 'npcink-toolbox'),
+				selection.excerpt,
+				disabled,
+				(checked) => controls.setSelection((current) => Object.assign({}, current || {}, { excerpt: checked })),
+				truncateText(excerpt, 140)
+			) : null,
+			renderMetadataTermChoices(
+				__('Existing tags to append', 'npcink-toolbox'),
+				tags,
+				selection.tag_ids,
+				disabled,
+				(termId, checked) => controls.toggleTerm('tag_ids', termId, checked)
+			),
+			renderMetadataTermChoices(
+				__('Existing categories to append', 'npcink-toolbox'),
+				categories,
+				selection.category_ids,
+				disabled,
+				(termId, checked) => controls.toggleTerm('category_ids', termId, checked)
+			),
+			createElement(
+				Button,
+				{
+					type: 'button',
+					variant: 'primary',
+					isBusy: Boolean(controls.running),
+					disabled: disabled || !hasSelection,
+					onClick: controls.submit,
+				},
+				controls.running ? __('Submitting', 'npcink-toolbox') : __('Submit Core review proposal', 'npcink-toolbox')
+			),
+			controls.error ? createElement(Notice, { status: 'error', isDismissible: false }, controls.error) : null,
+			controls.result ? createElement(
+				Notice,
+				{ status: 'success', isDismissible: false },
+				controls.result.message || __('Core proposal created. Review it in Governance Core before execution.', 'npcink-toolbox')
+			) : null
+		);
+	}
+
+	function renderSummaryOptimization(section, metadataHandoffControls) {
 		if (!section || typeof section !== 'object') {
 			return null;
 		}
@@ -1610,10 +1777,14 @@
 			blocks.push(renderItems((section.handoff_preview.next_steps || []).map((step) => ({ name: step })), __('No handoff preview returned.', 'npcink-toolbox')));
 		}
 
+		if (metadataHandoffControls) {
+			blocks.push(renderMetadataHandoffControl(section, metadataHandoffControls));
+		}
+
 		return createElement('div', { className: 'npcink-toolbox-editor-support__optimization' }, blocks);
 	}
 
-	function renderResult(payload) {
+	function renderResult(payload, metadataHandoffControls) {
 		if (!payload || typeof payload !== 'object') {
 			return null;
 		}
@@ -1640,7 +1811,7 @@
 		}
 
 		if (sections.summary_terms_optimization) {
-			blocks.push(renderSummaryOptimization(sections.summary_terms_optimization));
+			blocks.push(renderSummaryOptimization(sections.summary_terms_optimization, metadataHandoffControls));
 		}
 
 		if (sections.taxonomy_terms) {
@@ -1696,6 +1867,10 @@
 		const [imageFeedbackRunning, setImageFeedbackRunning] = useState('');
 		const [imageFeedbackStatus, setImageFeedbackStatus] = useState(null);
 		const [imageRegenerationRunning, setImageRegenerationRunning] = useState('');
+		const [metadataHandoffSelection, setMetadataHandoffSelection] = useState({});
+		const [metadataHandoffRunning, setMetadataHandoffRunning] = useState(false);
+		const [metadataHandoffResult, setMetadataHandoffResult] = useState(null);
+		const [metadataHandoffError, setMetadataHandoffError] = useState('');
 
 		useEffect(() => {
 			function handleParagraphImageRequest(event) {
@@ -1729,6 +1904,9 @@
 			setRunning(intent);
 			setError('');
 			setResult(null);
+			setMetadataHandoffSelection({});
+			setMetadataHandoffResult(null);
+			setMetadataHandoffError('');
 			try {
 				const payload = Object.assign({}, postContext, {
 					intent,
@@ -2052,6 +2230,72 @@
 					window.dispatchEvent(event);
 				}
 			}
+
+			function toggleMetadataTermSelection(field, termId, checked) {
+				setMetadataHandoffSelection((current) => {
+					const next = Object.assign({}, current || {});
+					const values = Array.isArray(next[field]) ? next[field].slice() : [];
+					const normalized = parseInt(termId, 10) || 0;
+					if (!normalized) {
+						return next;
+					}
+					if (checked && values.indexOf(normalized) < 0) {
+						values.push(normalized);
+					}
+					if (!checked) {
+						const index = values.indexOf(normalized);
+						if (index >= 0) {
+							values.splice(index, 1);
+						}
+					}
+					next[field] = values;
+					return next;
+				});
+				setMetadataHandoffResult(null);
+				setMetadataHandoffError('');
+			}
+
+			async function submitMetadataHandoff() {
+				const section = result && result.sections && result.sections.summary_terms_optimization ? result.sections.summary_terms_optimization : null;
+				const planInput = buildMetadataApplyPlanInput(section, metadataHandoffSelection, postContext || {});
+				if (!planInput.post_id || (!planInput.excerpt && !planInput.category_ids.length && !planInput.tag_ids.length)) {
+					setMetadataHandoffError(__('Select at least one reviewed excerpt, tag, or category before creating a Core proposal.', 'npcink-toolbox'));
+					return;
+				}
+
+				setMetadataHandoffRunning(true);
+				setMetadataHandoffError('');
+				setMetadataHandoffResult(null);
+				try {
+					const plan = await postJson('flows/content-metadata-apply-plan', planInput);
+					const bridge = await postContentMetadataApplyPlanToAdapter(plan, planInput);
+					const proposalIds = [];
+					if (Array.isArray(bridge && bridge.proposals)) {
+						bridge.proposals.forEach((proposal) => {
+							const proposalId = extractProposalId(proposal, 0);
+							if (proposalId) {
+								proposalIds.push(proposalId);
+							}
+						});
+					}
+					const topLevelProposalId = extractProposalId(bridge, 0);
+					if (topLevelProposalId && proposalIds.indexOf(topLevelProposalId) < 0) {
+						proposalIds.push(topLevelProposalId);
+					}
+					setMetadataHandoffResult({
+						plan,
+						bridge,
+						proposal_ids: proposalIds,
+						message: proposalIds.length
+							? __('Created Core review proposal(s): ', 'npcink-toolbox') + proposalIds.join(', ')
+							: __('Created Core review proposal(s). Review them in Governance Core before execution.', 'npcink-toolbox'),
+					});
+				} catch (requestError) {
+					setMetadataHandoffError(requestError && requestError.message ? requestError.message : __('Could not create the Core metadata proposal.', 'npcink-toolbox'));
+				} finally {
+					setMetadataHandoffRunning(false);
+				}
+			}
 			setImageGuidance(__('Image source selected for the calling field.', 'npcink-toolbox'));
 			setImageAdoptionError('');
 			if (activePicker.closeOnSelect) {
@@ -2331,7 +2575,15 @@
 					),
 					running ? createElement('div', { className: 'npcink-toolbox-editor-support__running' }, createElement(Spinner, null), createElement('span', null, __('Running content support flow...', 'npcink-toolbox'))) : null,
 					error ? createElement(Notice, { status: 'error', isDismissible: false }, error) : null,
-					result ? renderResult(result) : null,
+						result ? renderResult(result, {
+							selection: metadataHandoffSelection,
+							setSelection: setMetadataHandoffSelection,
+							toggleTerm: toggleMetadataTermSelection,
+							submit: submitMetadataHandoff,
+							running: metadataHandoffRunning,
+							result: metadataHandoffResult,
+							error: metadataHandoffError,
+						}) : null,
 					config.adminUrl ? createElement('p', { className: 'npcink-toolbox-editor-support__admin-link' }, createElement(ExternalLink, { href: config.adminUrl }, __('Open Toolbox Content Support', 'npcink-toolbox'))) : null
 				)
 			),

@@ -275,14 +275,20 @@ learning candidates. Operators can scope the input to the full article,
 selected text or block, or a topic-only brief. The same section may expose
 proposed new terms only as review-only vocabulary-gap candidates and may
 include a preview-only Core handoff packet for accepted summary and
-existing-term choices. The handoff packet includes proposal-ready
-actions for Generate and apply summary, Recommend and apply tags, Recommend
-categories, and Create new tags and assign. Toolbox marks summary application
-and existing tag assignment as Core auto-approval candidates, keeps categories
-recommendation-first by default, and treats new tag creation as Core
-policy-gated after duplicate-term review. The delta artifact is suggestion-only
-and does not create a route, persist learning/audit state, or write WordPress
-metadata.
+existing-term choices. `/flows/content-metadata-apply-plan` and
+`npcink-toolbox/build-content-metadata-apply-plan` can turn accepted excerpt,
+existing category, and existing tag choices into a dry-run
+`content_metadata_apply_plan` for Core plan-to-proposal intake. The plan targets
+only `npcink-abilities-toolkit/update-post` for excerpts and
+`npcink-abilities-toolkit/set-post-terms` for existing category or post-tag ids,
+always with `create_missing=false`, `dry_run=true`, and `commit=false`. The
+handoff packet includes proposal-ready actions for Generate and apply summary,
+Recommend and apply tags, Recommend categories, and Create new tags and assign.
+Toolbox marks summary application and existing tag assignment as Core
+auto-approval candidates, keeps categories recommendation-first by default, and
+treats new tag creation as Core policy-gated after duplicate-term review. The
+delta artifact is suggestion-only and does not persist learning/audit state or
+write WordPress metadata.
 
 ## Admin Surface
 

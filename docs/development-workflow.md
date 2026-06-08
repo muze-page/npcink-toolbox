@@ -70,7 +70,9 @@ composer smoke:metadata-delta
 This dispatches `/wp-json/npcink-toolbox/v1/editor/content-support` with the
 `summary_terms_optimization` intent against a local post and verifies that the
 returned `content_metadata_delta` remains suggestion-only, points final writes
-to Core proposals, and does not mutate the sampled post.
+to Core proposals, that accepted metadata choices can build a dry-run
+`/wp-json/npcink-toolbox/v1/flows/content-metadata-apply-plan` Core handoff
+without term creation, and does not mutate the sampled post.
 
 For AI-generated image media SEO normalization, run:
 

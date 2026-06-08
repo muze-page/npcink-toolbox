@@ -2176,6 +2176,235 @@ final class Provider_Client {
 		);
 	}
 
+	public function build_content_metadata_apply_plan( array $input ) {
+		$post_id = absint( $input['post_id'] ?? 0 );
+		if ( $post_id <= 0 ) {
+			return new WP_Error(
+				'npcink_toolbox_content_metadata_post_required',
+				__( 'A post_id is required to build a content metadata apply plan.', 'npcink-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return new WP_Error(
+				'npcink_toolbox_content_metadata_post_not_found',
+				__( 'The requested post was not found.', 'npcink-toolbox' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$excerpt = trim(
+			$this->bounded_text(
+				(string) ( $input['excerpt'] ?? ( $input['selected_excerpt'] ?? ( $input['summary'] ?? '' ) ) ),
+				500
+			)
+		);
+		$category_ids = $this->sanitize_existing_term_ids( $input['category_ids'] ?? ( $input['categories'] ?? array() ), 'category' );
+		if ( is_wp_error( $category_ids ) ) {
+			return $category_ids;
+		}
+		$tag_ids = $this->sanitize_existing_term_ids( $input['tag_ids'] ?? ( $input['tags'] ?? array() ), 'post_tag' );
+		if ( is_wp_error( $tag_ids ) ) {
+			return $tag_ids;
+		}
+
+		if ( '' === $excerpt && empty( $category_ids ) && empty( $tag_ids ) ) {
+			return new WP_Error(
+				'npcink_toolbox_content_metadata_selection_required',
+				__( 'At least one reviewed excerpt, category id, or tag id is required to build a content metadata apply plan.', 'npcink-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$category_mode = sanitize_key( (string) ( $input['category_mode'] ?? ( $input['mode'] ?? 'append' ) ) );
+		if ( ! in_array( $category_mode, array( 'append', 'replace' ), true ) ) {
+			$category_mode = 'append';
+		}
+		$tag_mode = sanitize_key( (string) ( $input['tag_mode'] ?? ( $input['mode'] ?? 'append' ) ) );
+		if ( ! in_array( $tag_mode, array( 'append', 'replace' ), true ) ) {
+			$tag_mode = 'append';
+		}
+
+		$new_term_candidates = $this->content_metadata_new_term_candidates_from_input( $input );
+		$evidence_refs       = is_array( $input['evidence_refs'] ?? null ) ? array_values( $input['evidence_refs'] ) : array();
+		$source_delta        = is_array( $input['content_metadata_delta'] ?? null )
+			? $input['content_metadata_delta']
+			: ( is_array( $input['source_delta'] ?? null ) ? $input['source_delta'] : array() );
+		$current_categories = $this->current_post_term_ids( $post_id, 'category' );
+		$current_tags       = $this->current_post_term_ids( $post_id, 'post_tag' );
+		$hash_basis         = wp_json_encode(
+			array(
+				'post_id'       => $post_id,
+				'excerpt'       => $excerpt,
+				'category_ids'  => $category_ids,
+				'tag_ids'       => $tag_ids,
+				'category_mode' => $category_mode,
+				'tag_mode'      => $tag_mode,
+			)
+		);
+		$hash_basis         = is_string( $hash_basis ) ? $hash_basis : (string) $post_id;
+		$batch_suffix       = substr( md5( $hash_basis ), 0, 12 );
+		$write_actions      = array();
+		$accepted_choices   = array(
+			'excerpt_selected'         => '' !== $excerpt,
+			'category_ids'             => $category_ids,
+			'category_mode'            => $category_mode,
+			'tag_ids'                  => $tag_ids,
+			'tag_mode'                 => $tag_mode,
+			'new_term_candidate_count' => count( $new_term_candidates ),
+			'new_term_policy'          => 'manual_review_only_no_create_term_action',
+		);
+
+		if ( '' !== $excerpt ) {
+			$write_actions[] = array(
+				'action_id'         => 'apply_selected_excerpt',
+				'target_ability_id' => 'npcink-abilities-toolkit/update-post',
+				'recipe_step'       => 'host_governed_update_excerpt',
+				'input'             => array(
+					'post_id'         => $post_id,
+					'excerpt'         => $excerpt,
+					'dry_run'         => true,
+					'commit'          => false,
+					'idempotency_key' => 'content-metadata-excerpt-' . $post_id . '-' . $batch_suffix,
+				),
+				'risk'              => 'low',
+				'required_scopes'   => array( 'post.write' ),
+				'requires_approval' => true,
+				'commit_execution'  => false,
+				'proposal_ready'    => true,
+				'reason'            => __( 'Apply the reviewed excerpt through Core-governed update-post.', 'npcink-toolbox' ),
+			);
+		}
+
+		if ( ! empty( $category_ids ) ) {
+			$write_actions[] = array(
+				'action_id'         => 'assign_existing_categories',
+				'target_ability_id' => 'npcink-abilities-toolkit/set-post-terms',
+				'recipe_step'       => 'host_governed_assign_existing_categories',
+				'input'             => array(
+					'post_id'         => $post_id,
+					'taxonomy'        => 'category',
+					'mode'            => $category_mode,
+					'term_ids'        => $category_ids,
+					'create_missing'  => false,
+					'dry_run'         => true,
+					'commit'          => false,
+					'idempotency_key' => 'content-metadata-categories-' . $post_id . '-' . $batch_suffix,
+				),
+				'risk'              => 'medium',
+				'required_scopes'   => array( 'taxonomy.manage' ),
+				'requires_approval' => true,
+				'commit_execution'  => false,
+				'proposal_ready'    => true,
+				'reason'            => __( 'Assign reviewed existing categories through Core-governed set-post-terms; Toolbox does not create or assign terms directly.', 'npcink-toolbox' ),
+			);
+		}
+
+		if ( ! empty( $tag_ids ) ) {
+			$write_actions[] = array(
+				'action_id'         => 'assign_existing_tags',
+				'target_ability_id' => 'npcink-abilities-toolkit/set-post-terms',
+				'recipe_step'       => 'host_governed_assign_existing_tags',
+				'input'             => array(
+					'post_id'         => $post_id,
+					'taxonomy'        => 'post_tag',
+					'mode'            => $tag_mode,
+					'term_ids'        => $tag_ids,
+					'create_missing'  => false,
+					'dry_run'         => true,
+					'commit'          => false,
+					'idempotency_key' => 'content-metadata-tags-' . $post_id . '-' . $batch_suffix,
+				),
+				'risk'              => 'low',
+				'required_scopes'   => array( 'taxonomy.manage' ),
+				'requires_approval' => true,
+				'commit_execution'  => false,
+				'proposal_ready'    => true,
+				'reason'            => __( 'Assign reviewed existing tags through Core-governed set-post-terms; Toolbox does not create or assign terms directly.', 'npcink-toolbox' ),
+			);
+		}
+
+		$manual_review = array();
+		if ( ! empty( $new_term_candidates ) ) {
+			$manual_review[] = array(
+				'code'       => 'new_term_candidates_not_applied',
+				'fields'     => array( 'new_term_candidates' ),
+				'item_count' => count( $new_term_candidates ),
+				'reason'     => __( 'Proposed new terms are preserved as vocabulary-gap review notes only. This plan never creates missing taxonomy terms.', 'npcink-toolbox' ),
+			);
+		}
+
+		$preview = array(
+			array(
+				'action_id' => 'content_metadata_apply',
+				'post_id'   => $post_id,
+				'before'    => array(
+					'excerpt'      => sanitize_textarea_field( (string) ( $post->post_excerpt ?? '' ) ),
+					'category_ids' => $current_categories,
+					'tag_ids'      => $current_tags,
+				),
+				'after_suggestion' => array(
+					'excerpt'       => $excerpt,
+					'category_ids'  => $category_ids,
+					'category_mode' => $category_mode,
+					'tag_ids'       => $tag_ids,
+					'tag_mode'      => $tag_mode,
+				),
+			),
+		);
+
+		return array(
+			'artifact_type'          => 'content_metadata_apply_plan',
+			'composition_role'       => 'core_content_metadata_apply_plan',
+			'version'                => 1,
+			'source_recipe_id'       => 'content_metadata_delta_v1',
+			'source_recipe_ref'      => 'workflow/content_metadata_delta',
+			'source_recipe_provider' => 'npcink-toolbox',
+			'recipe_execution'       => 'local_operator_orchestration',
+			'write_posture'          => 'core_proposal_handoff',
+			'direct_wordpress_write' => false,
+			'batch_id'               => 'content_metadata_apply_' . $batch_suffix,
+			'requires_approval'      => true,
+			'dry_run'                => true,
+			'commit_execution'       => false,
+			'proposal_mode'          => 'batch',
+			'batch_approval'         => true,
+			'post'                   => array(
+				'post_id'     => $post_id,
+				'post_type'   => get_post_type( $post ),
+				'post_status' => get_post_status( $post ),
+				'title'       => sanitize_text_field( get_the_title( $post ) ),
+			),
+			'accepted_choices'       => $accepted_choices,
+			'evidence_refs'          => $this->sanitize_payload( $evidence_refs ),
+			'source_delta'           => $this->sanitize_payload( $source_delta ),
+			'new_term_candidates'    => $this->sanitize_payload( $new_term_candidates ),
+			'preview'                => $preview,
+			'manual_review'          => $manual_review,
+			'write_actions'          => $write_actions,
+			'risk'                   => array(
+				'level'   => ! empty( $category_ids ) ? 'medium' : 'low',
+				'reasons' => array(
+					'excerpt_update_only_if_selected',
+					'existing_terms_only',
+					'no_create_missing_terms',
+					'core_proposal_required',
+				),
+			),
+			'handoff'                => array(
+				'plan_ability_id'        => 'npcink-toolbox/build-content-metadata-apply-plan',
+				'recipe_id'              => 'content_metadata_delta_v1',
+				'recipe_ref'             => 'workflow/content_metadata_delta',
+				'core_route'             => '/wp-json/npcink-governance-core/v1/proposals/from-plan',
+				'final_write_path'       => 'core_proposal_required',
+				'direct_wordpress_write' => false,
+				'proposal_ready'         => true,
+			),
+		);
+	}
+
 	public function build_content_discoverability_brief( array $input ) {
 		$source = $this->resolve_discoverability_source( $input );
 		if ( is_wp_error( $source ) ) {
@@ -4098,11 +4327,18 @@ final class Provider_Client {
 	}
 
 	private function sanitize_absint_list( $value ): array {
-		$items = is_array( $value ) ? $value : array_filter( array_map( 'trim', explode( ',', (string) $value ) ) );
+		if ( is_string( $value ) ) {
+			$decoded = json_decode( $value, true );
+			$value   = is_array( $decoded ) ? $decoded : explode( ',', $value );
+		}
+		$items = is_array( $value ) ? $value : array();
+
 		return array_values(
-			array_filter(
-				array_map( 'absint', $items ),
-				static fn( int $item ): bool => 0 < $item
+			array_unique(
+				array_filter(
+					array_map( 'absint', $items ),
+					static fn( int $item ): bool => 0 < $item
+				)
 			)
 		);
 	}
@@ -4631,6 +4867,97 @@ final class Provider_Client {
 				static fn( string $item ): bool => '' !== $item
 			)
 		);
+	}
+
+	private function sanitize_existing_term_ids( $value, string $taxonomy ) {
+		$ids     = $this->sanitize_absint_list( $value );
+		$missing = array();
+		foreach ( $ids as $term_id ) {
+			$term = get_term( $term_id, $taxonomy );
+			if ( ! $term || is_wp_error( $term ) ) {
+				$missing[] = $term_id;
+			}
+		}
+
+		if ( ! empty( $missing ) ) {
+			return new WP_Error(
+				'npcink_toolbox_content_metadata_term_not_found',
+				__( 'Content metadata apply plans may use only existing WordPress term ids.', 'npcink-toolbox' ),
+				array(
+					'status'   => 400,
+					'taxonomy' => $taxonomy,
+					'term_ids' => $missing,
+				)
+			);
+		}
+
+		return $ids;
+	}
+
+	private function current_post_term_ids( int $post_id, string $taxonomy ): array {
+		$ids = wp_get_object_terms(
+			$post_id,
+			$taxonomy,
+			array(
+				'fields' => 'ids',
+			)
+		);
+		if ( is_wp_error( $ids ) || ! is_array( $ids ) ) {
+			return array();
+		}
+
+		return $this->sanitize_absint_list( $ids );
+	}
+
+	private function content_metadata_new_term_candidates_from_input( array $input ): array {
+		$candidates = array();
+		foreach ( array( 'new_term_candidates', 'proposed_new_terms', 'new_terms' ) as $key ) {
+			if ( ! array_key_exists( $key, $input ) ) {
+				continue;
+			}
+			$value = $input[ $key ];
+			if ( is_string( $value ) ) {
+				$decoded = json_decode( $value, true );
+				$value   = is_array( $decoded ) ? $decoded : $this->sanitize_string_list( $value );
+			}
+			if ( is_array( $value['items'] ?? null ) ) {
+				$value = $value['items'];
+			}
+			if ( is_array( $value ) ) {
+				$candidates = array_merge( $candidates, array_values( $value ) );
+			}
+		}
+
+		return array_values(
+			array_filter(
+				array_map(
+					function ( $item ) {
+						if ( is_array( $item ) ) {
+							return $this->sanitize_payload( $item );
+						}
+
+						return sanitize_text_field( (string) $item );
+					},
+					$candidates
+				),
+				static function ( $item ): bool {
+					return is_array( $item ) ? ! empty( $item ) : '' !== (string) $item;
+				}
+			)
+		);
+	}
+
+	private function bounded_text( string $value, int $max_chars ): string {
+		$value     = sanitize_textarea_field( $value );
+		$max_chars = max( 1, $max_chars );
+		if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) && mb_strlen( $value ) > $max_chars ) {
+			return mb_substr( $value, 0, $max_chars );
+		}
+		if ( strlen( $value ) > $max_chars ) {
+			return substr( $value, 0, $max_chars );
+		}
+
+		return $value;
 	}
 
 	private function resolve_article_media_candidate( array $article, string $title, string $topic, bool $search_images, string $image_provider ) {

@@ -104,7 +104,7 @@ function toolbox_metadata_delta_smoke_rest( string $route, array $params ): arra
 	}
 
 	$data = $response->get_data();
-	toolbox_metadata_delta_smoke_assert( $response->get_status() >= 200 && $response->get_status() < 300, 'Editor content-support REST dispatch succeeds.' );
+	toolbox_metadata_delta_smoke_assert( $response->get_status() >= 200 && $response->get_status() < 300, 'REST dispatch succeeds for ' . $route . '.' );
 
 	return is_array( $data ) ? $data : array();
 }
@@ -169,6 +169,54 @@ toolbox_metadata_delta_smoke_assert( in_array( 'core_proposal_required_for_exter
 toolbox_metadata_delta_smoke_assert( in_array( 'no_toolbox_direct_wordpress_write', $checks, true ), 'Outcome contract forbids Toolbox direct writes.' );
 toolbox_metadata_delta_smoke_assert( in_array( 'related_content_terms_used_for_ranking_only', $checks, true ), 'Outcome contract keeps related terms as ranking evidence only.' );
 toolbox_metadata_delta_smoke_assert( in_array( 'accepted_write_like_changes_route_through_core_or_future_classified_local_consent', $checks, true ), 'Outcome contract keeps accepted write-like changes on governed paths.' );
+
+$apply_plan = toolbox_metadata_delta_smoke_rest(
+	'/npcink-toolbox/v1/flows/content-metadata-apply-plan',
+	array(
+		'post_id'                => $sample_post_id,
+		'excerpt'                => wp_trim_words( wp_strip_all_tags( get_the_title( $sample_post_id ) . ' metadata smoke reviewed excerpt' ), 28, '' ),
+		'category_ids'           => is_array( $category_ids ) ? $category_ids : array(),
+		'tag_ids'                => is_array( $tag_ids ) ? $tag_ids : array(),
+		'content_metadata_delta' => $delta,
+		'evidence_refs'          => array(
+			array(
+				'id'     => 'metadata-smoke-target-post',
+				'type'   => 'target_post',
+				'post_id' => $sample_post_id,
+			),
+		),
+		'new_term_candidates'    => array(
+			array(
+				'name'   => 'Metadata Smoke New Term',
+				'status' => 'review_only_vocabulary_gap',
+			),
+		),
+	)
+);
+$apply_actions = is_array( $apply_plan['write_actions'] ?? null ) ? array_values( $apply_plan['write_actions'] ) : array();
+toolbox_metadata_delta_smoke_assert( 'content_metadata_apply_plan' === (string) ( $apply_plan['artifact_type'] ?? '' ), 'Content metadata apply plan artifact is returned.' );
+toolbox_metadata_delta_smoke_assert( false === (bool) ( $apply_plan['direct_wordpress_write'] ?? true ), 'Content metadata apply plan disables direct WordPress writes.' );
+toolbox_metadata_delta_smoke_assert( true === (bool) ( $apply_plan['dry_run'] ?? false ) && false === (bool) ( $apply_plan['commit_execution'] ?? true ), 'Content metadata apply plan remains dry-run without commit execution.' );
+toolbox_metadata_delta_smoke_assert( 'batch' === (string) ( $apply_plan['proposal_mode'] ?? '' ) && true === (bool) ( $apply_plan['batch_approval'] ?? false ), 'Content metadata apply plan requests one Core batch approval.' );
+toolbox_metadata_delta_smoke_assert( ! empty( $apply_actions ), 'Content metadata apply plan contains reviewed write actions.' );
+toolbox_metadata_delta_smoke_assert( 'npcink-toolbox/build-content-metadata-apply-plan' === (string) ( $apply_plan['handoff']['plan_ability_id'] ?? '' ), 'Content metadata apply plan points to its Core handoff ability.' );
+toolbox_metadata_delta_smoke_assert( ! empty( $apply_plan['manual_review'] ?? array() ), 'Content metadata apply plan keeps new terms as manual-review notes.' );
+
+$has_excerpt_action = false;
+foreach ( $apply_actions as $action ) {
+	$target = (string) ( is_array( $action ) ? ( $action['target_ability_id'] ?? '' ) : '' );
+	$input  = is_array( $action['input'] ?? null ) ? $action['input'] : array();
+	toolbox_metadata_delta_smoke_assert( true === (bool) ( $input['dry_run'] ?? false ) && false === (bool) ( $input['commit'] ?? true ), 'Every content metadata apply action is dry-run and non-commit.' );
+	toolbox_metadata_delta_smoke_assert( false === strpos( $target, 'create-term' ), 'Content metadata apply plan does not include term creation actions.' );
+	if ( 'npcink-abilities-toolkit/update-post' === $target ) {
+		$has_excerpt_action = ! empty( $input['excerpt'] ?? '' );
+	}
+	if ( 'npcink-abilities-toolkit/set-post-terms' === $target ) {
+		toolbox_metadata_delta_smoke_assert( false === (bool) ( $input['create_missing'] ?? true ), 'Term assignment actions reject create_missing.' );
+		toolbox_metadata_delta_smoke_assert( in_array( (string) ( $input['taxonomy'] ?? '' ), array( 'category', 'post_tag' ), true ), 'Term assignment actions target only categories or post tags.' );
+	}
+}
+toolbox_metadata_delta_smoke_assert( $has_excerpt_action, 'Content metadata apply plan can route a reviewed excerpt through update-post.' );
 
 $after = toolbox_metadata_delta_smoke_post_snapshot( $sample_post_id );
 toolbox_metadata_delta_smoke_assert( $post_count === toolbox_metadata_delta_smoke_post_count(), 'Metadata delta smoke does not create or delete posts.' );
