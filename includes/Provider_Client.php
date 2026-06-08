@@ -2848,6 +2848,7 @@ final class Provider_Client {
 		$title     = trim( sanitize_text_field( (string) ( $context['title'] ?? '' ) ) );
 		$excerpt   = trim( sanitize_textarea_field( (string) ( $context['excerpt'] ?? '' ) ) );
 		$content   = trim( sanitize_textarea_field( (string) ( $context['content_summary'] ?? $context['content_text'] ?? $context['content'] ?? '' ) ) );
+		$post_id   = max( 0, absint( $context['post_id'] ?? $options['post_id'] ?? 0 ) );
 		$mode      = sanitize_key( (string) ( $context['image_mode'] ?? $context['image_use'] ?? $options['image_mode'] ?? 'featured_image' ) );
 		if ( ! in_array( $mode, array( 'featured_image', 'paragraph_image', 'inline_image', 'setting_image' ), true ) ) {
 			$mode = 'featured_image';
@@ -2858,6 +2859,7 @@ final class Provider_Client {
 			'image_use'              => $mode,
 			'manual_query'           => sanitize_text_field( (string) ( $context['manual_query'] ?? $options['manual_query'] ?? '' ) ),
 			'fallback_query'         => sanitize_text_field( $query ),
+			'post_id'                => $post_id,
 			'title'                  => wp_trim_words( $title, 18, '' ),
 			'excerpt'                => wp_trim_words( $excerpt, 36, '' ),
 			'selected_text'          => wp_trim_words( $selection, 80, '' ),
@@ -3151,6 +3153,7 @@ final class Provider_Client {
 			$resolved_provider = sanitize_key( (string) ( $active_sources[0]['provider'] ?? '' ) );
 		}
 		$visual_brief = $this->normalize_image_visual_brief( $result, $runtime_payload );
+		$prompt_candidates = is_array( $result['prompt_candidates'] ?? null ) ? $this->sanitize_payload( $result['prompt_candidates'] ) : array();
 		$ai_generation_handoff = is_array( $result['ai_generation_handoff'] ?? null ) ? $this->sanitize_payload( $result['ai_generation_handoff'] ) : array();
 		$result_handoff        = is_array( $result['handoff'] ?? null ) ? $this->sanitize_payload( $result['handoff'] ) : array();
 		if ( array() !== $ai_generation_handoff ) {
@@ -3180,6 +3183,7 @@ final class Provider_Client {
 					'provider_errors'            => is_array( $result['provider_errors'] ?? null ) ? $this->sanitize_payload( $result['provider_errors'] ) : array(),
 					'query'                      => $query,
 					'visual_brief'               => $visual_brief,
+					'prompt_candidates'          => $prompt_candidates,
 					'optimized_query'            => sanitize_text_field( (string) ( $result['optimized_query'] ?? $visual_brief['primary_query'] ?? $query ) ),
 					'alternate_queries'          => $visual_brief['alternate_queries'],
 					'query_suggestions'          => $visual_brief['query_suggestions'],

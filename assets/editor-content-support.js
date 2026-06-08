@@ -103,7 +103,7 @@
 			mode: 'paragraph',
 			imageUse: 'paragraph_image',
 			adoptionMode: 'media_import',
-			initialSearchMode: 'generate',
+			initialSearchMode: 'source',
 			autoSearch: true,
 			title: __('Paragraph image suggestions', 'npcink-toolbox'),
 			intro: __('Search uses the selected paragraph plus article context. Select one image to import it with media details through Adapter/Core.', 'npcink-toolbox'),
@@ -575,6 +575,7 @@
 			image_mode: imageUse || (imageMode === 'paragraph' ? 'paragraph_image' : 'featured_image'),
 			manual_query: String(manualQuery || '').trim(),
 			title: truncateText(context.title, 160),
+			post_id: context.post_id || 0,
 			excerpt: truncateText(context.excerpt, 260),
 			content_summary: truncateText(plainTextFromHtml(context.content), 600),
 			selected_text: truncateText(context.selected_text, 500),
@@ -769,8 +770,8 @@
 		);
 	}
 
-	function renderImageCloudDetails(payload) {
-		const visualBrief = renderImageVisualBrief(payload);
+	function renderImageCloudDetails(payload, onUsePrompt) {
+		const visualBrief = renderImageVisualBrief(payload, onUsePrompt);
 		const diagnostics = renderImageDiagnostics(payload);
 		if (!visualBrief && !diagnostics) {
 			return null;
@@ -1207,19 +1208,31 @@
 		);
 	}
 
-	function renderImageVisualBrief(payload) {
+	function renderImageVisualBrief(payload, onUsePrompt) {
 		if (!payload || typeof payload !== 'object') {
 			return null;
 		}
 
 		const source = payload.sections && payload.sections.image_candidates ? payload.sections.image_candidates : payload;
 		const brief = source.visual_brief && typeof source.visual_brief === 'object' ? source.visual_brief : {};
+		const handoff = source.ai_generation_handoff && typeof source.ai_generation_handoff === 'object' ? source.ai_generation_handoff : {};
+		const promptCandidates = []
+			.concat(Array.isArray(source.prompt_candidates) ? source.prompt_candidates : [])
+			.concat(Array.isArray(handoff.prompt_candidates) ? handoff.prompt_candidates : [])
+			.map((candidate, index) => {
+				if (typeof candidate === 'string') {
+					return { id: String(index), label: candidate, prompt: candidate };
+				}
+				return candidate && typeof candidate === 'object' ? candidate : null;
+			})
+			.filter((candidate) => candidate && String(candidate.prompt || '').trim())
+			.slice(0, 3);
 		const chips = []
 			.concat(brief.primary_query ? [brief.primary_query] : [])
 			.concat(Array.isArray(brief.alternate_queries) ? brief.alternate_queries.slice(0, 4) : [])
 			.filter(Boolean);
 		const status = [brief.status, source.rerank_status, source.site_context_status].filter(Boolean).map(formatMetaLabel);
-		if (!chips.length && !brief.visual_intent && !status.length) {
+		if (!chips.length && !promptCandidates.length && !brief.visual_intent && !status.length) {
 			return null;
 		}
 
@@ -1232,6 +1245,20 @@
 				'div',
 				{ className: 'npcink-toolbox-editor-support__query-chips' },
 				chips.map((chip, index) => createElement('span', { key: String(index) }, chip))
+			) : null,
+			promptCandidates.length ? createElement(
+				'div',
+				{ className: 'npcink-toolbox-editor-support__prompt-candidates' },
+				createElement('small', null, __('AI prompt candidates', 'npcink-toolbox')),
+				promptCandidates.map((candidate, index) => createElement(
+					'button',
+					{
+						key: String(candidate.id || index),
+						type: 'button',
+						onClick: () => onUsePrompt && onUsePrompt(String(candidate.prompt || '')),
+					},
+					truncateText(candidate.label || candidate.prompt, 72)
+				))
 			) : null,
 			status.length ? createElement('small', null, status.join(' | ')) : null
 		);
@@ -1633,6 +1660,16 @@
 			runImageSearch(null, query);
 		}
 
+		function useAiPromptCandidate(prompt) {
+			const reviewedPrompt = String(prompt || '').trim();
+			if (!reviewedPrompt) {
+				return;
+			}
+			setImageSearchMode('generate');
+			setImageQuery(reviewedPrompt);
+			setImageGuidance(__('Review the suggested prompt, then generate an AI image candidate.', 'npcink-toolbox'));
+		}
+
 		function renderAiImageOption(label, value, onChange, options) {
 			return createElement(
 				'label',
@@ -1831,7 +1868,7 @@
 									'aria-pressed': imageSearchMode === 'source' ? 'true' : 'false',
 									onClick: () => setImageSearchMode('source'),
 								},
-								__('Image sources', 'npcink-toolbox')
+								__('Recommended image', 'npcink-toolbox')
 							),
 							createElement(
 								'button',
@@ -1841,13 +1878,13 @@
 									'aria-pressed': imageSearchMode === 'generate' ? 'true' : 'false',
 									onClick: () => setImageSearchMode('generate'),
 								},
-								__('AI image', 'npcink-toolbox')
+								__('Manual prompt', 'npcink-toolbox')
 							)
 						),
 						createElement('input', {
 							type: 'search',
 							value: imageQuery,
-							placeholder: imageSearchMode === 'generate' ? __('Enter a reviewed AI image prompt', 'npcink-toolbox') : __('Search image sources', 'npcink-toolbox'),
+							placeholder: imageSearchMode === 'generate' ? __('Review or enter an AI image prompt', 'npcink-toolbox') : __('Search or describe image needs', 'npcink-toolbox'),
 							onChange: (event) => setImageQuery(event.target.value),
 						}),
 						imageSearchMode === 'generate' ? createElement(
@@ -1867,7 +1904,7 @@
 								isBusy: imageRunning === 'search',
 								disabled: Boolean(imageRunning),
 							},
-							imageRunning === 'search' ? __('Searching', 'npcink-toolbox') : __('Search', 'npcink-toolbox')
+							imageRunning === 'search' ? __('Recommending', 'npcink-toolbox') : __('Recommend images', 'npcink-toolbox')
 						),
 						createElement(
 							Button,
@@ -1934,7 +1971,7 @@
 								createElement('span', null, truncateText(selectedContext, 180))
 							) : null,
 							renderImageResultSummary(imageResult, images, queryLabel, selectedImage),
-							renderImageCloudDetails(imageResult),
+							renderImageCloudDetails(imageResult, useAiPromptCandidate),
 								imageRunning ? createElement('div', { className: 'npcink-toolbox-editor-support__running' }, createElement(Spinner, null), createElement('span', null, imageRunning === 'generate' ? __('Generating AI image candidate...', 'npcink-toolbox') : __('Loading cloud image candidates...', 'npcink-toolbox'))) : null,
 								imageResult && !imageRunning ? renderImageCandidateCards(images, imageResult, selectedImage, selectImageCandidate, useSuggestedImageQuery, activePicker) : null
 						),

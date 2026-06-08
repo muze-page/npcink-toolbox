@@ -596,6 +596,7 @@ final class Rest_Controller {
 			'image_mode'          => $mode,
 			'manual_query'        => sanitize_text_field( (string) ( $context['manual_query'] ?? '' ) ),
 			'fallback_query'      => sanitize_text_field( (string) ( $context['fallback_query'] ?? '' ) ),
+			'post_id'             => max( 0, absint( $context['post_id'] ?? 0 ) ),
 			'title'               => wp_trim_words( sanitize_text_field( (string) ( $context['title'] ?? '' ) ), 18, '' ),
 			'excerpt'             => wp_trim_words( sanitize_textarea_field( (string) ( $context['excerpt'] ?? '' ) ), 36, '' ),
 			'content_summary'     => wp_trim_words( sanitize_textarea_field( (string) ( $context['content_summary'] ?? $context['content_text'] ?? $context['content'] ?? '' ) ), 80, '' ),
