@@ -27,6 +27,41 @@ article-context and related-content evidence, excerpt/category/tag
 recommendations, operator selection, Core proposal handoff, and no direct
 WordPress write from Toolbox.
 
+## Loop Status At Close
+
+Content Metadata Delta now forms a P0 governed handoff loop, not a full
+self-learning loop.
+
+The closed P0 loop is:
+
+```text
+Current post and related site context
+-> content_metadata_delta issue/diagnosis/delta artifact
+-> operator-reviewed excerpt/category/tag choices
+-> Toolbox content_metadata_apply_plan
+-> Core /proposals/from-plan
+-> one pending plan_to_proposal_batch review proposal
+```
+
+This proves the new operating pattern through the governance handoff boundary:
+Toolbox can detect and frame a metadata problem, produce a bounded delta,
+package accepted choices, and hand the write-like change to Core without
+mutating WordPress state directly.
+
+The full feedback loop is intentionally not complete yet:
+
+```text
+Proposal approval
+-> Adapter/Abilities execution
+-> post-apply measurement
+-> durable feedback records
+-> learning-store updates
+```
+
+That second half should wait until real operator usage produces accepted,
+edited, rejected, and measured outcomes. Adding a learning store before then
+would create artificial signal and extra state without proving product value.
+
 ## Implemented Scope
 
 ### Toolbox
@@ -55,6 +90,9 @@ Relevant commits:
 - `47be90f Use related content for metadata suggestions`
 - `09a1a7e Add governed content metadata apply handoff`
 - `7c50108 Remove legacy metadata proposal target preview`
+- `9821e1a Document content metadata handoff summary`
+- `e4471d7 Update metadata handoff status summary`
+- `bb68798 Extend metadata delta Core proposal smoke`
 
 ### Core
 
@@ -80,6 +118,26 @@ Relevant commits:
 
 - `802a158 Record toolbox metadata ranking handoff`
 - `42b56e2 Accept content metadata apply plans`
+- `20db401 Align operation classification proof docs`
+
+### Boundary Proofs Around The Loop
+
+Two adjacent authorization proofs are now in place:
+
+- Low-risk Local Admin Consent proof:
+  `8a51c37 Add local featured image consent proof` and
+  `49a00e6 Add local admin consent audit hook`.
+- High-risk Core proposal proof:
+  `49158fd Add article media batch proposal smoke` and
+  `487e983 Document high-risk batch proposal proof`.
+
+These prove the operation classifier is not just a label:
+
+- one visible, low-risk, single-object existing attachment -> featured image
+  action may use Local Admin Consent with Core audit;
+- high-risk article/media batch plans remain Core proposal review;
+- metadata excerpt/category/tag changes remain Core apply-plan handoffs, not
+  Local Admin Consent expansion targets.
 
 ## Verification Already Run
 
@@ -110,6 +168,8 @@ included, and that the sampled WordPress post is not mutated.
 
 These are intentionally not implemented in the current slice:
 
+- Core approval and Adapter/Abilities final execution for accepted metadata
+  proposals;
 - persistent feedback store;
 - self-learning loop;
 - automatic measurement of accepted metadata results;
@@ -136,10 +196,13 @@ and Core proposal path.
 ## Recommended Next Step
 
 Treat Content Metadata Delta P0 as complete for the current phase. The next
-useful step is not another metadata implementation layer; it is contract
-alignment and real editor end-to-end QA so future agents do not confuse
-suggestion-only metadata deltas, Core proposal handoffs, and the single
-local-admin-consent featured-image proof.
+useful step is not another metadata implementation layer; it is real editor
+review QA:
+
+- confirm the editor panel copy makes the operator path obvious;
+- confirm the Core proposal review detail shows the before/after metadata
+  evidence clearly;
+- only after real usage, design measurement and feedback storage.
 
 ## Prompt For Another AI
 
@@ -152,11 +215,18 @@ changing anything. Content Metadata Delta P0 is already implemented:
 - Toolbox commit 09a1a7e builds the governed content metadata apply handoff.
 - Toolbox commit 7c50108 removes legacy metadata proposal target preview
   scaffolding.
+- Toolbox commit bb68798 extends the metadata smoke through Core
+  /proposals/from-plan and verifies one pending plan_to_proposal_batch review
+  proposal.
 - Core commit 42b56e2 accepts content_metadata_apply_plan fail-closed.
 
 Do not reintroduce direct Toolbox writes for excerpts, categories, tags, SEO, or
 new term creation. Accepted metadata choices must go through
 /flows/content-metadata-apply-plan and then Adapter/Core from-plan intake.
+
+This is a P0 governed handoff loop, not a full self-learning loop. Do not add a
+persistent learning store, automatic measurement system, or self-training path
+until there is real operator usage data.
 
 If you work on local-admin-consent/featured-image, treat it as a separate
 boundary-sensitive proof that already exists. First read docs/decisions/
