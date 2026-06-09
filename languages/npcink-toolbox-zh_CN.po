@@ -2006,6 +2006,12 @@ msgstr "发布预检"
 msgid "Check missing terms, excerpt, image, duplicate risk, and discoverability hints."
 msgstr "检查缺失的分类/标签、摘要、图片、重复风险和可发现性提示。"
 
+msgid "Optimize summary and terms"
+msgstr "优化摘要与分类标签"
+
+msgid "Review layered summaries, existing terms, proposed new terms, evidence, and handoff preview."
+msgstr "审阅分层摘要、已有分类标签、拟新增标签、依据和交接预览。"
+
 msgid "Recommend terms"
 msgstr "推荐分类标签"
 
