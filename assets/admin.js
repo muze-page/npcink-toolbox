@@ -1626,6 +1626,7 @@
 		if (payload.evidence_pack && typeof payload.evidence_pack === 'object') {
 			appendMeta(meta, 'Pack', payload.evidence_pack.pack_type ? formatLabel(payload.evidence_pack.pack_type) : '');
 			appendMeta(meta, 'Pack contract', payload.evidence_pack.contract_version || payload.output_contract || 'search_evidence_pack.v1');
+			appendMeta(meta, 'Source priority', payload.source_priority || payload.evidence_pack.source_priority ? formatLabel(payload.source_priority || payload.evidence_pack.source_priority) : '');
 		}
 		if (meta.childNodes.length) {
 			result.appendChild(meta);
@@ -3126,6 +3127,45 @@
 		}
 	}
 
+	function applyWebSearchPreset(select, force) {
+		if (!(select instanceof HTMLSelectElement)) {
+			return;
+		}
+		const form = select.closest('form');
+		if (!(form instanceof HTMLFormElement)) {
+			return;
+		}
+		const option = select.selectedOptions && select.selectedOptions.length ? select.selectedOptions[0] : null;
+		if (!option) {
+			return;
+		}
+		const queryInput = form.querySelector('input[name="query"]');
+		const recencyInput = form.querySelector('input[name="recency_days"]');
+		const presetQuery = option.getAttribute('data-toolbox-query') || '';
+		const previousPreset = form.getAttribute('data-toolbox-last-preset-query') || '';
+		if (queryInput instanceof HTMLInputElement && presetQuery) {
+			const currentQuery = String(queryInput.value || '').trim();
+			if (force || !currentQuery || currentQuery === previousPreset) {
+				queryInput.value = presetQuery;
+				form.setAttribute('data-toolbox-last-preset-query', presetQuery);
+			}
+		}
+		const presetRecency = option.getAttribute('data-toolbox-recency');
+		if (recencyInput instanceof HTMLInputElement && presetRecency !== null) {
+			recencyInput.value = presetRecency;
+		}
+	}
+
+	function initWebSearchPresets() {
+		document.querySelectorAll('form[data-toolbox-endpoint="web-search/test"] select[name="intent"]').forEach((select) => {
+			if (!(select instanceof HTMLSelectElement)) {
+				return;
+			}
+			applyWebSearchPreset(select, true);
+			select.addEventListener('change', () => applyWebSearchPreset(select, false));
+		});
+	}
+
 	async function runTool(form) {
 		const endpoint = form.getAttribute('data-toolbox-endpoint');
 		if (!endpoint || !config.restUrl) {
@@ -4333,6 +4373,7 @@
 	initContextSectionSwitcher();
 	initContextGroupSwitcher();
 	initContextDrafts();
+	initWebSearchPresets();
 	initSiteKnowledge();
 	initAgentFeedbackQuality();
 	initMediaDerivativeControls();

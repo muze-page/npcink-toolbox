@@ -592,15 +592,15 @@ final class Admin_Page {
 											<label>
 												<span><?php esc_html_e( 'Intent', 'npcink-toolbox' ); ?></span>
 												<select name="intent">
-													<option value="article_background"><?php esc_html_e( 'Article background', 'npcink-toolbox' ); ?></option>
-													<option value="fact_check"><?php esc_html_e( 'Fact check', 'npcink-toolbox' ); ?></option>
-													<option value="competitor_research"><?php esc_html_e( 'Competitor research', 'npcink-toolbox' ); ?></option>
-													<option value="pricing_snapshot"><?php esc_html_e( 'Pricing snapshot', 'npcink-toolbox' ); ?></option>
-													<option value="product_comparison"><?php esc_html_e( 'Product comparison', 'npcink-toolbox' ); ?></option>
-													<option value="writing_context"><?php esc_html_e( 'Writing context', 'npcink-toolbox' ); ?></option>
-													<option value="news"><?php esc_html_e( 'News', 'npcink-toolbox' ); ?></option>
-													<option value="source_discovery"><?php esc_html_e( 'Source discovery', 'npcink-toolbox' ); ?></option>
-													<option value="external_links"><?php esc_html_e( 'External links', 'npcink-toolbox' ); ?></option>
+													<option value="article_background" data-toolbox-query="latest WordPress AI search trends" data-toolbox-recency="30"><?php esc_html_e( 'Article background', 'npcink-toolbox' ); ?></option>
+													<option value="fact_check" data-toolbox-query="official WordPress 6.9 release WordPress.org AI Experiments plugin" data-toolbox-recency="0"><?php esc_html_e( 'Fact check', 'npcink-toolbox' ); ?></option>
+													<option value="competitor_research" data-toolbox-query="Surfer SEO Clearscope MarketMuse content optimization competitors pricing features 2026" data-toolbox-recency="30"><?php esc_html_e( 'Competitor research', 'npcink-toolbox' ); ?></option>
+													<option value="pricing_snapshot" data-toolbox-query="Tavily API pricing official pricing page" data-toolbox-recency="0"><?php esc_html_e( 'Pricing snapshot', 'npcink-toolbox' ); ?></option>
+													<option value="product_comparison" data-toolbox-query="Surfer SEO Clearscope MarketMuse product comparison official features" data-toolbox-recency="0"><?php esc_html_e( 'Product comparison', 'npcink-toolbox' ); ?></option>
+													<option value="writing_context" data-toolbox-query="WordPress AI content workflow current best practices" data-toolbox-recency="30"><?php esc_html_e( 'Writing context', 'npcink-toolbox' ); ?></option>
+													<option value="news" data-toolbox-query="latest WordPress AI search news" data-toolbox-recency="7"><?php esc_html_e( 'News', 'npcink-toolbox' ); ?></option>
+													<option value="source_discovery" data-toolbox-query="official WordPress AI plugin source references" data-toolbox-recency="0"><?php esc_html_e( 'Source discovery', 'npcink-toolbox' ); ?></option>
+													<option value="external_links" data-toolbox-query="WordPress AI content workflow authoritative references" data-toolbox-recency="0"><?php esc_html_e( 'External links', 'npcink-toolbox' ); ?></option>
 												</select>
 											</label>
 											<label>
