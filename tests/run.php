@@ -97,6 +97,7 @@ toolbox_assert( false !== $composer && false !== strpos( $composer, 'smoke:artic
 toolbox_assert( false !== strpos( $composer, 'tests/smoke-article-draft-core-proof.php' ), 'Composer article smoke runs the Toolbox/Core handoff proof.' );
 toolbox_assert( false !== strpos( $composer, 'smoke:article-media-batch-core' ) && false !== strpos( $composer, 'tests/smoke-article-media-batch-core-proof.php' ), 'Composer exposes the high-risk article/media batch Core proposal smoke script.' );
 toolbox_assert( false !== strpos( $composer, 'smoke:metadata-delta' ) && false !== strpos( $composer, 'tests/smoke-content-metadata-delta.php' ), 'Composer exposes the Content Metadata Delta smoke script.' );
+toolbox_assert( false !== strpos( $composer, 'smoke:site-knowledge-review-ui' ) && false !== strpos( $composer, 'tests/smoke-site-knowledge-review-ui.php' ), 'Composer exposes the Site Knowledge review UI no-write smoke script.' );
 toolbox_assert( false !== strpos( $composer, 'smoke:local-featured-image' ) && false !== strpos( $composer, 'tests/smoke-local-featured-image-consent.php' ), 'Composer exposes the Local Admin Consent featured image smoke script.' );
 toolbox_assert( false !== strpos( $composer, 'smoke:ai-image-media-seo' ) && false !== strpos( $composer, 'tests/smoke-ai-image-media-seo.php' ), 'Composer exposes the AI image media SEO smoke script.' );
 

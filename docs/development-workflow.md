@@ -76,6 +76,18 @@ term creation, that Core `/wp-json/npcink-governance-core/v1/proposals/from-plan
 creates one pending `plan_to_proposal_batch` review proposal, and that the
 smoke does not mutate the sampled post.
 
+For the Site Knowledge review handoff UI, run:
+
+```bash
+composer smoke:site-knowledge-review-ui
+```
+
+This is a source-only smoke. It verifies that the Site Knowledge admin surface
+keeps review proposals operator-triggered, routes the handoff through
+`/flows/site-knowledge-review-plan` and Adapter/Core from-plan intake, preserves
+evidence refs, keeps Agent feedback as Cloud eval metadata, and does not call
+REST, Adapter, Core proposal intake, or WordPress write paths.
+
 For AI-generated image media SEO normalization, run:
 
 ```bash
