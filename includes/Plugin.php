@@ -46,14 +46,57 @@ final class Plugin {
 	public function register_hooks(): void {
 		$this->load_textdomain();
 		add_action( 'admin_init', array( $this->settings, 'register' ) );
-		add_action( 'admin_menu', array( $this->admin_page, 'register_menu' ) );
+		add_action( 'admin_menu', array( $this->admin_page, 'register_menu' ), 45 );
 		add_action( 'admin_enqueue_scripts', array( $this->admin_page, 'enqueue' ) );
 		add_action( 'enqueue_block_editor_assets', array( $this->editor_content_support, 'enqueue' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( NPCINK_TOOLBOX_FILE ), array( $this, 'filter_plugin_action_links' ) );
 		$this->site_knowledge_auto_sync->register_hooks();
 		add_action( 'rest_api_init', array( $this->rest_controller, 'register_routes' ) );
 		add_action( 'wp_abilities_api_categories_init', array( $this->abilities, 'register_with_npcink_abilities_toolkit' ), 1 );
 		add_action( 'wp_abilities_api_categories_init', array( $this->abilities, 'register_native_category' ) );
 		add_action( 'wp_abilities_api_init', array( $this->abilities, 'register_native_abilities' ) );
+	}
+
+	/**
+	 * Adds a settings shortcut on the WordPress plugins screen.
+	 *
+	 * @param array<int|string,string> $links Existing plugin action links.
+	 * @return array<int|string,string>
+	 */
+	public function filter_plugin_action_links( array $links ): array {
+		array_unshift(
+			$links,
+			sprintf(
+				'<a href="%1$s">%2$s</a>',
+				esc_url( $this->plugin_settings_url() ),
+				esc_html__( 'Settings', 'default' )
+			)
+		);
+
+		return $links;
+	}
+
+	private function plugin_settings_url(): string {
+		if ( function_exists( 'menu_page_url' ) ) {
+			$url = menu_page_url( 'npcink-toolbox', false );
+			if ( is_string( $url ) && '' !== $url ) {
+				return $url;
+			}
+		}
+
+		return admin_url( $this->has_npcink_parent_menu() ? 'admin.php?page=npcink-toolbox' : 'tools.php?page=npcink-toolbox' );
+	}
+
+	private function has_npcink_parent_menu(): bool {
+		global $menu;
+
+		foreach ( (array) $menu as $item ) {
+			if ( isset( $item[2] ) && 'npcink-ai' === $item[2] ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private function load_textdomain(): void {

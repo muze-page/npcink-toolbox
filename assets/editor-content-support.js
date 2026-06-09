@@ -82,9 +82,6 @@
 	const Spinner = components.Spinner || function SpinnerFallback() {
 		return createElement('span', { className: 'npcink-toolbox-editor-support__spinner' }, '...');
 	};
-	const ExternalLink = components.ExternalLink || function ExternalLinkFallback(props) {
-		return createElement('a', { href: props.href, target: '_blank', rel: 'noreferrer' }, props.children);
-	};
 	const sidebarIcon = createElement('span', { className: 'npcink-toolbox-editor-support__toolbar-icon', 'aria-hidden': 'true' }, 'AI');
 	const paragraphImageIcon = createElement('span', { className: 'dashicons dashicons-format-image npcink-toolbox-editor-support__block-toolbar-icon', 'aria-hidden': 'true' });
 
@@ -669,7 +666,36 @@
 	}
 
 	function formatMetaLabel(value) {
-		return String(value || '').replace(/[_-]+/g, ' ');
+		const raw = String(value || '').trim();
+		const key = raw.toLowerCase().replace(/\s+/g, '_').replace(/-+/g, '_');
+		const labels = {
+			issue: __('Issue', 'npcink-toolbox'),
+			diagnosis: __('Diagnosis', 'npcink-toolbox'),
+			authorization: __('Authorization boundary', 'npcink-toolbox'),
+			summary: __('Summary', 'npcink-toolbox'),
+			taxonomy: __('Categories and tags', 'npcink-toolbox'),
+			evidence: __('Evidence', 'npcink-toolbox'),
+			suggestion_only: __('Suggestion only', 'npcink-toolbox'),
+			core_proposal_required: __('Core review required', 'npcink-toolbox'),
+			content_metadata_delta_handoff: __('Content metadata handoff', 'npcink-toolbox'),
+			summary_suggestions: __('Summary suggestions', 'npcink-toolbox'),
+			category_suggestions: __('Category suggestions', 'npcink-toolbox'),
+			tag_suggestions: __('Tag suggestions', 'npcink-toolbox'),
+			metadata_suggestions: __('Metadata suggestions', 'npcink-toolbox'),
+			summary_terms_optimization: __('Metadata optimization', 'npcink-toolbox'),
+			recommended_excerpt: __('Recommended excerpt', 'npcink-toolbox'),
+			hosted_summary: __('Hosted summary', 'npcink-toolbox'),
+			good: __('Good', 'npcink-toolbox'),
+			ok: __('OK', 'npcink-toolbox'),
+			warning: __('Warning', 'npcink-toolbox'),
+			error: __('Error', 'npcink-toolbox'),
+			missing: __('Missing', 'npcink-toolbox'),
+			present: __('Present', 'npcink-toolbox'),
+			high: __('High', 'npcink-toolbox'),
+			medium: __('Medium', 'npcink-toolbox'),
+			low: __('Low', 'npcink-toolbox'),
+		};
+		return labels[key] || raw.replace(/[_-]+/g, ' ');
 	}
 
 	function compactLabelParts(parts) {
@@ -754,6 +780,19 @@
 			return __('Tag suggestions', 'npcink-toolbox');
 		}
 		return formatMetaLabel(value);
+	}
+
+	function resultScopeLabel(value) {
+		if (value === 'summary_suggestions') {
+			return __('Choose a suggestion, then apply it to the current draft excerpt.', 'npcink-toolbox');
+		}
+		if (value === 'category_suggestions' || value === 'tag_suggestions') {
+			return __('Review suggestions here, then confirm existing terms in the editor.', 'npcink-toolbox');
+		}
+		if (value === 'summary_terms_optimization') {
+			return __('Suggestions only. Final writes require Core approval.', 'npcink-toolbox');
+		}
+		return __('Review suggestions for the current draft.', 'npcink-toolbox');
 	}
 
 	function formatImageErrorMessage(error, fallback) {
@@ -1290,13 +1329,14 @@
 			if (direct) {
 				return readableItemText(direct, fallback);
 			}
-			try {
-				return truncateText(JSON.stringify(value), 180);
-			} catch (error) {
-				return fallback || '';
-			}
+			const pairs = Object.keys(value).slice(0, 6).map((key) => {
+				const itemText = readableItemText(value[key], '');
+				return itemText ? formatMetaLabel(key) + ': ' + itemText : '';
+			}).filter(Boolean);
+			return pairs.length ? truncateText(pairs.join(' · '), 180) : (fallback || '');
 		}
-		return String(value);
+		const text = String(value);
+		return /^[a-z0-9_-]+$/i.test(text) ? formatMetaLabel(text) : text;
 	}
 
 	function renderSelectedImagePanel(selectedImage, seoFields, adoptionRunning, adoptionResult, adoptionError, picker, onSeoFieldChange, onAdoptFeatured, onImportOnly, onSelectOnly, feedbackRunning, feedbackStatus, onSubmitFeedback, regenerationRunning, onRegenerate) {
@@ -1696,9 +1736,66 @@
 		);
 	}
 
-	function renderEvidenceDetails(blocks) {
+	function renderSummarySuggestionSection(items, controls) {
+		const candidates = Array.isArray(items) ? items : [];
+		const status = controls && controls.excerptApplyStatus ? controls.excerptApplyStatus : null;
+		const activeIntent = controls && controls.intent ? controls.intent : '';
+		const showHeading = activeIntent !== 'summary_suggestions';
+		return createElement(
+			'section',
+			{ className: 'npcink-toolbox-editor-support__metadata-compact-section' },
+			showHeading ? createElement('h4', null, __('Summary suggestions', 'npcink-toolbox')) : null,
+			candidates.length
+				? createElement(
+					'ul',
+					{ className: 'npcink-toolbox-editor-support__metadata-compact-list npcink-toolbox-editor-support__summary-candidate-list' },
+					candidates.slice(0, 3).map((item, index) => {
+						const titleText = readableItemText(item && (item.name || item.title || item.label), __('Summary candidate', 'npcink-toolbox'));
+						const excerptText = readableItemText(item && (item.detail || item.value || item.excerpt), '');
+						return createElement(
+							'li',
+							{ key: String(index) + '-' + titleText },
+							createElement('strong', null, titleText),
+							excerptText ? createElement('span', null, excerptText) : null,
+							excerptText && controls && controls.applyExcerpt ? createElement(
+								'div',
+								{ className: 'npcink-toolbox-editor-support__candidate-actions' },
+								createElement(
+									Button,
+									{
+										type: 'button',
+										variant: status && status.excerpt === excerptText ? 'secondary' : 'primary',
+										onClick: () => controls.applyExcerpt(excerptText),
+									},
+									status && status.excerpt === excerptText ? __('Applied', 'npcink-toolbox') : __('Use this summary', 'npcink-toolbox')
+								)
+							) : null
+						);
+					})
+				)
+				: createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, __('No summary suggestions returned.', 'npcink-toolbox')),
+			status ? createElement(Notice, { status: status.status || 'success', isDismissible: false }, status.message) : null
+		);
+	}
+
+	function renderEvidenceDetails(blocks, controls) {
 		if (!Array.isArray(blocks) || !blocks.length) {
 			return null;
+		}
+		if (controls && controls.openEvidence) {
+			return createElement(
+				'div',
+				{ className: 'npcink-toolbox-editor-support__metadata-evidence-entry' },
+				createElement(
+					Button,
+					{
+						type: 'button',
+						variant: 'link',
+						onClick: () => controls.openEvidence(blocks),
+					},
+					__('View evidence and diagnostics', 'npcink-toolbox')
+				)
+			);
 		}
 		return createElement(
 			'details',
@@ -1863,7 +1960,11 @@
 		const mergedMetadataRun = metadataSectionHasSource(section, 'metadata_suggestions');
 		const summary = section.summary_candidates && typeof section.summary_candidates === 'object' ? section.summary_candidates : {};
 		const summaryText = summary.output_text || '';
-		blocks.push(createElement('h4', { key: 'summary-optimization-title' }, __('Metadata optimization', 'npcink-toolbox')));
+		const activeIntent = metadataHandoffControls && metadataHandoffControls.intent ? metadataHandoffControls.intent : '';
+		const showFullMetadataSurface = activeIntent === 'summary_terms_optimization' || (!activeIntent && fullMetadataRun);
+		if (showFullMetadataSurface) {
+			blocks.push(createElement('h4', { key: 'summary-optimization-title' }, __('Metadata optimization', 'npcink-toolbox')));
+		}
 		if (section.input_scope) {
 			evidenceBlocks.push(createElement('h4', { key: 'summary-input-scope-title' }, __('Input scope', 'npcink-toolbox')));
 			evidenceBlocks.push(renderItems([section.input_scope], __('No input scope returned.', 'npcink-toolbox')));
@@ -1873,11 +1974,7 @@
 		}
 
 		if (summaryItems.length || metadataSectionHasSource(section, 'summary_suggestions') || fullMetadataRun) {
-			blocks.push(renderCompactMetadataSection(
-				__('Summary suggestions', 'npcink-toolbox'),
-				summaryItems,
-				__('No summary suggestions returned.', 'npcink-toolbox')
-			));
+			blocks.push(renderSummarySuggestionSection(summaryItems, metadataHandoffControls));
 		}
 
 		if (section.content_metadata_delta) {
@@ -1940,10 +2037,10 @@
 			evidenceBlocks.push(renderItems((section.handoff_preview.next_steps || []).map((step) => ({ name: step })), __('No handoff preview returned.', 'npcink-toolbox')));
 		}
 
-		if (metadataHandoffControls && (metadataHandoffHasChoices(section) || mergedMetadataRun)) {
+		if (metadataHandoffControls && metadataHandoffControls.showHandoff && (metadataHandoffHasChoices(section) || mergedMetadataRun)) {
 			blocks.push(renderMetadataHandoffControl(section, metadataHandoffControls));
 		}
-		blocks.push(renderEvidenceDetails(evidenceBlocks));
+		blocks.push(renderEvidenceDetails(evidenceBlocks, metadataHandoffControls));
 
 		return createElement('div', { className: 'npcink-toolbox-editor-support__optimization' }, blocks);
 	}
@@ -1955,14 +2052,6 @@
 
 		const sections = payload.sections || {};
 		const blocks = [];
-		blocks.push(
-			createElement(
-				'div',
-				{ key: 'summary', className: 'npcink-toolbox-editor-support__summary' },
-				createElement('strong', null, payload.intent ? formatIntentLabel(payload.intent) : __('Content support', 'npcink-toolbox')),
-				createElement('span', null, __('Suggestions only. Final writes require Core approval.', 'npcink-toolbox'))
-			)
-		);
 
 		if (sections.writing_support) {
 			blocks.push(createElement('h4', { key: 'writing-support-title' }, __('Writing preparation', 'npcink-toolbox')));
@@ -2091,6 +2180,8 @@
 		const [running, setRunning] = useState('');
 		const [result, setResult] = useState(null);
 		const [error, setError] = useState('');
+		const [supportView, setSupportView] = useState('menu');
+		const [activeFlowIntent, setActiveFlowIntent] = useState('');
 		const [imageModalOpen, setImageModalOpen] = useState(false);
 		const [imageRunning, setImageRunning] = useState('');
 		const [imageResult, setImageResult] = useState(null);
@@ -2115,6 +2206,8 @@
 		const [metadataHandoffRunning, setMetadataHandoffRunning] = useState(false);
 		const [metadataHandoffResult, setMetadataHandoffResult] = useState(null);
 		const [metadataHandoffError, setMetadataHandoffError] = useState('');
+		const [excerptApplyStatus, setExcerptApplyStatus] = useState(null);
+		const [evidenceModalBlocks, setEvidenceModalBlocks] = useState(null);
 
 		useEffect(() => {
 			function handleParagraphImageRequest(event) {
@@ -2145,6 +2238,8 @@
 				return;
 			}
 
+			setSupportView('result');
+			setActiveFlowIntent(intent);
 			setRunning(intent);
 			setError('');
 			if (!isMetadataIntent(intent)) {
@@ -2153,6 +2248,7 @@
 			}
 			setMetadataHandoffResult(null);
 			setMetadataHandoffError('');
+			setExcerptApplyStatus(null);
 			try {
 				const payload = Object.assign({}, postContext, {
 					intent,
@@ -2163,6 +2259,7 @@
 				setResult((current) => mergeContentSupportResult(current, flowResult, intent));
 			} catch (requestError) {
 				setError(requestError && requestError.message ? requestError.message : __('Request failed.', 'npcink-toolbox'));
+				setSupportView('result');
 			} finally {
 				setRunning('');
 			}
@@ -2509,6 +2606,49 @@
 			setMetadataHandoffError('');
 		}
 
+		function applyRecommendedExcerpt(excerpt) {
+			const value = String(excerpt || '').trim();
+			if (!value) {
+				setExcerptApplyStatus({
+					status: 'error',
+					excerpt: '',
+					message: __('No summary text is available to apply.', 'npcink-toolbox'),
+				});
+				return;
+			}
+			const editorDispatch = data.dispatch ? data.dispatch('core/editor') : null;
+			if (!editorDispatch || !editorDispatch.editPost) {
+				setExcerptApplyStatus({
+					status: 'error',
+					excerpt: value,
+					message: __('Could not update the current excerpt in this editor.', 'npcink-toolbox'),
+				});
+				return;
+			}
+			editorDispatch.editPost({ excerpt: value });
+			setExcerptApplyStatus({
+				status: 'success',
+				excerpt: value,
+				message: __('Applied to the current excerpt. Save the draft to persist it.', 'npcink-toolbox'),
+			});
+		}
+
+		function renderEvidenceModal() {
+			if (!Array.isArray(evidenceModalBlocks) || !evidenceModalBlocks.length) {
+				return null;
+			}
+			return createElement(
+				Modal,
+				{
+					title: __('Evidence and diagnostics', 'npcink-toolbox'),
+					onRequestClose: () => setEvidenceModalBlocks(null),
+					className: 'npcink-toolbox-editor-support__evidence-modal',
+				},
+				createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, __('Use this to verify why a suggestion was produced, what related content was checked, and whether any review risk exists. It does not write to the article.', 'npcink-toolbox')),
+				createElement('div', { className: 'npcink-toolbox-editor-support__metadata-evidence-body' }, evidenceModalBlocks)
+			);
+		}
+
 		async function submitMetadataHandoff() {
 			const section = result && result.sections && result.sections.summary_terms_optimization ? result.sections.summary_terms_optimization : null;
 			const planInput = buildMetadataApplyPlanInput(section, metadataHandoffSelection, postContext || {});
@@ -2809,6 +2949,24 @@
 			);
 		}
 
+		const rerunIntent = running || activeFlowIntent || (result && result.intent) || '';
+		const resultTitle = rerunIntent ? formatIntentLabel(rerunIntent) : __('Content support', 'npcink-toolbox');
+		const resultControls = {
+			intent: activeFlowIntent || (result && result.intent) || '',
+			showHandoff: activeFlowIntent === 'summary_terms_optimization',
+			selection: metadataHandoffSelection,
+			setSelection: setMetadataHandoffSelection,
+			toggleTerm: toggleMetadataTermSelection,
+			submit: submitMetadataHandoff,
+			running: metadataHandoffRunning,
+			result: metadataHandoffResult,
+			error: metadataHandoffError,
+			applyExcerpt: applyRecommendedExcerpt,
+			excerptApplyStatus,
+			openEvidence: setEvidenceModalBlocks,
+		};
+		const showResultView = supportView === 'result';
+
 		return createElement(
 			Fragment,
 			null,
@@ -2823,39 +2981,80 @@
 				createElement(
 					'div',
 					{ className: 'npcink-toolbox-editor-support__surface' },
-					createElement('p', { className: 'npcink-toolbox-editor-support__intro' }, __('Run fixed support flows around the current draft. Article text stays with the editor.', 'npcink-toolbox')),
-					flows.map((flow) =>
+					showResultView ? createElement(
+						'div',
+						{ className: 'npcink-toolbox-editor-support__result-view' },
 						createElement(
 							'div',
-							{ className: 'npcink-toolbox-editor-support__flow', key: flow.intent },
-							createElement('div', null, createElement('strong', null, flow.label), createElement('span', null, flow.description)),
+							{ className: 'npcink-toolbox-editor-support__view-header' },
 							createElement(
 								Button,
 								{
-									variant: 'secondary',
-									isBusy: running === flow.intent,
-									disabled: Boolean(running),
-									onClick: () => runFlow(flow.intent),
+									type: 'button',
+									variant: 'tertiary',
+									className: 'npcink-toolbox-editor-support__back-button',
+									'aria-label': __('Back to tools', 'npcink-toolbox'),
+									title: __('Back to tools', 'npcink-toolbox'),
+									onClick: () => setSupportView('menu'),
 								},
-								flow.intent === 'image_candidates' ? __('Open', 'npcink-toolbox') : (running === flow.intent ? __('Running', 'npcink-toolbox') : __('Run', 'npcink-toolbox'))
+								createElement('span', { className: 'dashicons dashicons-arrow-left-alt2', 'aria-hidden': 'true' })
+							)
+						),
+						createElement(
+							'div',
+							{ className: 'npcink-toolbox-editor-support__view-title' },
+							createElement('strong', null, resultTitle),
+							createElement('span', null, running ? __('Running content support flow...', 'npcink-toolbox') : resultScopeLabel(rerunIntent))
+						),
+						rerunIntent ? createElement(
+							'div',
+							{ className: 'npcink-toolbox-editor-support__view-actions' },
+							createElement(
+								Button,
+								{
+									type: 'button',
+									variant: 'secondary',
+									isBusy: Boolean(running),
+									disabled: Boolean(running),
+									onClick: () => runFlow(rerunIntent),
+								},
+								running ? __('Running', 'npcink-toolbox') : __('Run again', 'npcink-toolbox')
+							)
+						) : null,
+						running ? createElement(
+							'div',
+							{ className: 'npcink-toolbox-editor-support__running' },
+							createElement(Spinner, null),
+							createElement('span', null, __('Running content support flow...', 'npcink-toolbox'))
+						) : null,
+						error ? createElement(Notice, { status: 'error', isDismissible: false }, error) : null,
+						result ? renderResult(result, resultControls) : null
+					) : createElement(
+						'div',
+						{ className: 'npcink-toolbox-editor-support__menu-view' },
+						createElement('p', { className: 'npcink-toolbox-editor-support__intro' }, __('Run fixed support flows around the current draft. Article text stays with the editor.', 'npcink-toolbox')),
+						flows.map((flow) =>
+							createElement(
+								'div',
+								{ className: 'npcink-toolbox-editor-support__flow', key: flow.intent },
+								createElement('div', null, createElement('strong', null, flow.label), createElement('span', null, flow.description)),
+								createElement(
+									Button,
+									{
+										variant: 'secondary',
+										isBusy: running === flow.intent,
+										disabled: Boolean(running),
+										onClick: () => runFlow(flow.intent),
+									},
+									flow.intent === 'image_candidates' ? __('Open', 'npcink-toolbox') : (running === flow.intent ? __('Running', 'npcink-toolbox') : __('Run', 'npcink-toolbox'))
+								)
 							)
 						)
-					),
-					running ? createElement('div', { className: 'npcink-toolbox-editor-support__running' }, createElement(Spinner, null), createElement('span', null, __('Running content support flow...', 'npcink-toolbox'))) : null,
-					error ? createElement(Notice, { status: 'error', isDismissible: false }, error) : null,
-						result ? renderResult(result, {
-							selection: metadataHandoffSelection,
-							setSelection: setMetadataHandoffSelection,
-							toggleTerm: toggleMetadataTermSelection,
-							submit: submitMetadataHandoff,
-							running: metadataHandoffRunning,
-							result: metadataHandoffResult,
-							error: metadataHandoffError,
-						}) : null,
-					config.adminUrl ? createElement('p', { className: 'npcink-toolbox-editor-support__admin-link' }, createElement(ExternalLink, { href: config.adminUrl }, __('Open Toolbox Content Support', 'npcink-toolbox'))) : null
+					)
 				)
 			),
-			renderImageRecommendationModal()
+			renderImageRecommendationModal(),
+			renderEvidenceModal()
 		);
 	}
 

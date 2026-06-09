@@ -98,6 +98,17 @@ This mocks the Cloud image-generation response and verifies that prompt-like
 candidate title, ALT, and description text are replaced with reviewed article
 context before the candidate reaches Core adoption.
 
+For the fixed Optimize Existing Image flow, run:
+
+```bash
+composer smoke:media-derivative-core
+```
+
+This starts at Toolbox `/media-derivative-handoff`, generates a Cloud derivative
+through Adapter, submits the returned optimization plan to Core, executes it
+through Adapter approve-and-execute, verifies the attachment file replacement,
+and restores the original backup.
+
 ## Coding Rules
 
 - Keep admin UI server-rendered unless a real build need appears.
@@ -129,6 +140,10 @@ context before the candidate reaches Core adoption.
   media upload, metadata, and featured-image actions must stay in
   `core_proposal_required` and be verified with
   `composer smoke:article-media-batch-core`.
+- Treat Optimize Existing Image as a governed fixed flow: Toolbox builds the
+  operator handoff, Adapter/Cloud generates the short-lived preview, Core owns
+  proposal approval, and release checks should run
+  `composer smoke:media-derivative-core`.
 - Keep Cloud-managed web search output as source candidates, not verified truth.
   Toolbox does not own web search provider configuration, local key storage, or
   local search execution.

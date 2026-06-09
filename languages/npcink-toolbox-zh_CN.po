@@ -2111,6 +2111,78 @@ msgstr "Cloud 返回了提供方错误。"
 msgid "Suggestions only. Final writes require Core approval."
 msgstr "仅提供建议。最终写入需要 Core 审批。"
 
+msgid "Back to tools"
+msgstr "返回工具"
+
+msgid "Run again"
+msgstr "重新运行"
+
+msgid "Choose a suggestion, then apply it to the current draft excerpt."
+msgstr "选择一个建议后，填入当前草稿摘要。"
+
+msgid "Review suggestions here, then confirm existing terms in the editor."
+msgstr "在这里审阅建议，然后到编辑器中确认已有分类或标签。"
+
+msgid "Review suggestions for the current draft."
+msgstr "审阅当前草稿的建议。"
+
+msgid "Issue"
+msgstr "问题"
+
+msgid "Diagnosis"
+msgstr "诊断"
+
+msgid "Summary"
+msgstr "摘要"
+
+msgid "Evidence"
+msgstr "依据"
+
+msgid "Authorization boundary"
+msgstr "授权边界"
+
+msgid "Categories and tags"
+msgstr "分类与标签"
+
+msgid "Suggestion only"
+msgstr "仅建议"
+
+msgid "Core review required"
+msgstr "需要 Core 审核"
+
+msgid "Content metadata handoff"
+msgstr "内容元数据交接"
+
+msgid "Metadata suggestions"
+msgstr "元数据建议"
+
+msgid "Good"
+msgstr "良好"
+
+msgid "OK"
+msgstr "正常"
+
+msgid "Warning"
+msgstr "需注意"
+
+msgid "Error"
+msgstr "错误"
+
+msgid "Missing"
+msgstr "缺失"
+
+msgid "Present"
+msgstr "已存在"
+
+msgid "High"
+msgstr "高"
+
+msgid "Medium"
+msgstr "中"
+
+msgid "Low"
+msgstr "低"
+
 msgid "Checks"
 msgstr "检查项"
 
@@ -2128,6 +2200,27 @@ msgstr "推荐摘要"
 
 msgid "Hosted summary"
 msgstr "托管摘要"
+
+msgid "Use this summary"
+msgstr "使用此摘要"
+
+msgid "Applied"
+msgstr "已应用"
+
+msgid "No summary text is available to apply."
+msgstr "没有可应用的摘要文本。"
+
+msgid "Could not update the current excerpt in this editor."
+msgstr "无法更新当前编辑器中的摘要。"
+
+msgid "Applied to the current excerpt. Save the draft to persist it."
+msgstr "已填入当前摘要。保存草稿后生效。"
+
+msgid "View evidence and diagnostics"
+msgstr "查看依据与诊断"
+
+msgid "Use this to verify why a suggestion was produced, what related content was checked, and whether any review risk exists. It does not write to the article."
+msgstr "这里用于核对建议产生原因、检查过的相关内容以及是否存在审阅风险。它不会写入文章。"
 
 msgid "No summary suggestions returned."
 msgstr "没有返回摘要建议。"
@@ -2260,9 +2353,6 @@ msgstr "运行"
 
 msgid "Running content support flow..."
 msgstr "正在运行内容支持流程..."
-
-msgid "Open Toolbox Content Support"
-msgstr "打开工具箱内容支持"
 
 msgid "Npcink Content Support"
 msgstr "Npcink 内容支持"
