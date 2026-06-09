@@ -138,6 +138,43 @@ final class Abilities {
 					'cloud_contract'      => 'site_knowledge_search.v1',
 				)
 			),
+			'npcink-toolbox/cloud-web-search'                  => $this->definition(
+				__( 'Cloud Web Search', 'npcink-toolbox' ),
+				__( 'Run Cloud-managed web search for current external evidence without exposing local provider keys or writing WordPress content.', 'npcink-toolbox' ),
+				array( 'query' ),
+				array( $this, 'cloud_web_search' ),
+				'cap.toolbox.web_search',
+				array(
+					'data_classification'    => 'public_external_evidence',
+					'composition_role'       => 'external_web_evidence',
+					'provider_execution'     => 'cloud_runtime_via_addon',
+					'cloud_contract'         => 'web_search.v1',
+					'cloud_ability'          => 'npcink-cloud/web-search',
+					'provider_secret_source' => 'cloud_managed',
+				),
+				array(
+					'query'        => array(
+						'type'        => 'string',
+						'description' => __( 'Search query or research question.', 'npcink-toolbox' ),
+					),
+					'intent'       => array(
+						'type'        => 'string',
+						'description' => __( 'Search intent hint such as general_research, article_evidence, seo_research, or fact_check.', 'npcink-toolbox' ),
+					),
+					'max_results'  => array(
+						'type'        => 'integer',
+						'minimum'     => 1,
+						'maximum'     => 8,
+						'description' => __( 'Maximum result count requested from Cloud.', 'npcink-toolbox' ),
+					),
+					'recency_days' => array(
+						'type'        => 'integer',
+						'minimum'     => 0,
+						'maximum'     => 3650,
+						'description' => __( 'Optional freshness window in days.', 'npcink-toolbox' ),
+					),
+				)
+			),
 			'npcink-toolbox/get-site-knowledge-status'          => $this->definition(
 				__( 'Get Site Knowledge Status', 'npcink-toolbox' ),
 				__( 'Read Cloud-managed site knowledge coverage and sync status without writing WordPress content.', 'npcink-toolbox' ),
@@ -358,7 +395,7 @@ final class Abilities {
 		);
 	}
 
-	private function definition( string $label, string $description, array $required, callable $callback, string $required_scope, array $meta = array() ): array {
+	private function definition( string $label, string $description, array $required, callable $callback, string $required_scope, array $meta = array(), array $input_properties = array() ): array {
 		$default_meta = array(
 			'show_in_rest'             => true,
 			'readonly'                 => true,
@@ -376,6 +413,7 @@ final class Abilities {
 				'type' => 'string',
 			);
 		}
+		$properties = array_merge( $properties, $input_properties );
 
 		return array(
 			'label'               => $label,
@@ -431,6 +469,18 @@ final class Abilities {
 
 	public function search_site_knowledge( $input = array() ) {
 		return $this->client->search_site_knowledge( is_array( $input ) ? $input : array() );
+	}
+
+	public function cloud_web_search( $input = array() ) {
+		$input = is_array( $input ) ? $input : array();
+		return $this->client->test_cloud_web_search(
+			array(
+				'query'        => sanitize_textarea_field( (string) ( $input['query'] ?? '' ) ),
+				'intent'       => sanitize_key( (string) ( $input['intent'] ?? 'general_research' ) ),
+				'max_results'  => (int) ( $input['max_results'] ?? 3 ),
+				'recency_days' => (int) ( $input['recency_days'] ?? 7 ),
+			)
+		);
 	}
 
 	public function get_site_knowledge_status( $input = array() ) {

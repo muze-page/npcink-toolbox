@@ -573,10 +573,12 @@ foreach ( array( 'publish', 'delivery', 'workflow-run', 'workflow_run', 'queue',
 }
 
 $abilities = file_get_contents( $root . '/includes/Abilities.php' );
-foreach ( array( 'npcink-toolbox/search-image-source', 'npcink-toolbox/vector-search', 'npcink-toolbox/search-site-knowledge', 'npcink-toolbox/get-site-knowledge-status', 'npcink-toolbox/request-site-knowledge-sync', 'npcink-toolbox/build-article-brief', 'npcink-toolbox/build-article-assistant', 'npcink-toolbox/build-article-write-plan', 'npcink-toolbox/build-image-candidate-adoption-plan', 'npcink-toolbox/build-site-knowledge-review-plan', 'npcink-toolbox/build-content-metadata-apply-plan', 'npcink-toolbox/build-media-brief', 'npcink-toolbox/build-media-derivative-handoff', 'npcink-toolbox/get-content-discoverability-context', 'npcink-toolbox/validate-content-discoverability-context', 'npcink-toolbox/build-content-discoverability-brief', 'npcink-toolbox/build-ai-article-writing-pack' ) as $ability_id ) {
+foreach ( array( 'npcink-toolbox/search-image-source', 'npcink-toolbox/vector-search', 'npcink-toolbox/search-site-knowledge', 'npcink-toolbox/cloud-web-search', 'npcink-toolbox/get-site-knowledge-status', 'npcink-toolbox/request-site-knowledge-sync', 'npcink-toolbox/build-article-brief', 'npcink-toolbox/build-article-assistant', 'npcink-toolbox/build-article-write-plan', 'npcink-toolbox/build-image-candidate-adoption-plan', 'npcink-toolbox/build-site-knowledge-review-plan', 'npcink-toolbox/build-content-metadata-apply-plan', 'npcink-toolbox/build-media-brief', 'npcink-toolbox/build-media-derivative-handoff', 'npcink-toolbox/get-content-discoverability-context', 'npcink-toolbox/validate-content-discoverability-context', 'npcink-toolbox/build-content-discoverability-brief', 'npcink-toolbox/build-ai-article-writing-pack' ) as $ability_id ) {
 	toolbox_assert( false !== strpos( $abilities, $ability_id ), "Ability {$ability_id} is registered." );
 }
 toolbox_assert( false === strpos( $abilities, 'npcink-toolbox/web-research' ), 'Toolbox no longer registers a local web-research ability.' );
+toolbox_assert( false !== strpos( $abilities, 'cloud_web_search' ) && false !== strpos( $abilities, "'cloud_contract'         => 'web_search.v1'" ) && false !== strpos( $abilities, "'cloud_ability'          => 'npcink-cloud/web-search'" ), 'Toolbox registers a Cloud-managed web search bridge ability for AI callers.' );
+toolbox_assert( false !== strpos( $abilities, "'provider_execution'     => 'cloud_runtime_via_addon'" ) && false !== strpos( $abilities, "'provider_secret_source' => 'cloud_managed'" ), 'Cloud web search bridge keeps execution and provider secrets in Cloud.' );
 
 $client = file_get_contents( $root . '/includes/Provider_Client.php' );
 $legacy_model_name = 'GPT-' . '5.5';
