@@ -2708,6 +2708,14 @@
 		};
 	}
 
+	function preflightInputFromState(state) {
+		const proposalInput = proposalInputFromState(state);
+		return {
+			attachment_id: proposalInput.attachment_id,
+			derivative_artifact: proposalInput.derivative_artifact,
+		};
+	}
+
 	function planDataFromEnvelope(payload) {
 		if (payload && payload.result && payload.result.success && payload.result.data) {
 			return payload.result.data;
@@ -2790,6 +2798,22 @@
 		}
 		if (state.proposalPayload) {
 			renderArtifactSummary(result, 'Derivative-only payload', state.proposalPayload);
+		}
+		if (state.preflightEnvelope) {
+			const preflight = planDataFromEnvelope(state.preflightEnvelope);
+			if (preflight && preflight.artifact_type === 'media_adoption_preflight_summary') {
+				const ready = preflight.readiness && preflight.readiness.can_submit_core_proposal;
+				result.appendChild(el('div', ready ? 'npcink-toolbox__result-notice is-ok' : 'npcink-toolbox__result-notice is-warning', ready ? 'Adoption preflight passed. Review the summary before submitting Core proposal.' : 'Adoption preflight needs attention before Core proposal submission.'));
+				const preflightMeta = el('div', 'npcink-toolbox__result-meta');
+				appendMeta(preflightMeta, 'Proposal ready', ready ? 'Yes' : 'No');
+				appendMeta(preflightMeta, 'Content posts', preflight.content_reference_summary ? preflight.content_reference_summary.post_count : '');
+				appendMeta(preflightMeta, 'Replacements', preflight.content_reference_summary ? preflight.content_reference_summary.replacement_count : '');
+				appendMeta(preflightMeta, 'Settings scan', preflight.settings_reference_summary && preflight.settings_reference_summary.scan_available ? 'Available separately' : 'Not available');
+				result.appendChild(preflightMeta);
+				renderArtifactSummary(result, 'Adoption preflight', preflight);
+			} else if (state.preflightEnvelope.error) {
+				result.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'Adoption preflight is unavailable: ' + state.preflightEnvelope.error));
+			}
 		}
 		result.appendChild(createRawDetails(payload, 'Cloud result payload'));
 	}
@@ -3271,6 +3295,22 @@
 		if (!derivative || !derivative.artifact_id) {
 			throw { message: 'Cloud result did not include a derivative artifact id.' };
 		}
+		const preflightState = {
+			abilityInput: input,
+			runId,
+			derivative,
+		};
+		let preflightEnvelope = null;
+		try {
+			preflightEnvelope = await postJson(config.adapterRestUrl, 'run-read-ability', {
+				ability_id: 'npcink-abilities-toolkit/build-media-adoption-preflight-summary',
+				input: preflightInputFromState(preflightState),
+			});
+		} catch (error) {
+			preflightEnvelope = {
+				error: formatErrorMessage(error, 'Media adoption preflight is unavailable.'),
+			};
+		}
 
 		if (previewOnly) {
 			return {
@@ -3280,6 +3320,7 @@
 				result: resultPayload,
 				runId,
 				derivative,
+				preflightEnvelope,
 			};
 		}
 
@@ -3303,6 +3344,7 @@
 			proposalPayload: proposalEnvelope.proposal_payload || {},
 			proposalEnvelope,
 			fromPlanRequest: proposalEnvelope.from_plan_request || null,
+			preflightEnvelope,
 		};
 	}
 
