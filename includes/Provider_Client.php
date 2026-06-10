@@ -2510,7 +2510,7 @@ final class Provider_Client {
 
 	public function run_hosted_ai_content_support( array $input ) {
 		$intent = sanitize_key( (string) ( $input['intent'] ?? 'discoverability' ) );
-		if ( ! in_array( $intent, array( 'title_summary', 'article_outline', 'polish_notes', 'summary_terms_optimization' ), true ) ) {
+		if ( ! in_array( $intent, array( 'title_summary', 'article_outline', 'polish_notes', 'summary_suggestions', 'summary_terms_optimization' ), true ) ) {
 			return new WP_Error(
 				'npcink_toolbox_invalid_hosted_ai_intent',
 				__( 'A supported hosted AI content-support intent is required.', 'npcink-toolbox' ),
@@ -2538,6 +2538,7 @@ final class Provider_Client {
 			'title'                   => $title,
 			'excerpt'                 => $excerpt,
 			'content'                 => $content,
+			'generation_variant'       => sanitize_text_field( (string) ( $input['generation_variant'] ?? '' ) ),
 			'post_context'            => $this->collect_hosted_ai_post_context( $post_id ),
 			'related_content_context' => $related_context,
 			'site_snapshot'           => array(),
@@ -2567,8 +2568,8 @@ final class Provider_Client {
 					),
 				),
 				'params'   => array(
-					'temperature' => 0.2,
-					'max_tokens'  => 650,
+					'temperature' => 'summary_suggestions' === $intent ? 0.45 : 0.2,
+					'max_tokens'  => 'summary_suggestions' === $intent ? 450 : 650,
 				),
 				'quality_contract' => $quality_contract,
 			),
@@ -3616,6 +3617,21 @@ final class Provider_Client {
 					'Keep claims, numbers, and product details under human review.',
 				),
 			),
+			'summary_suggestions' => array(
+				'output_shape'     => array(
+					'recommended_excerpt' => 'one best WordPress excerpt candidate, 80 to 160 Chinese characters when the article is Chinese, grounded only in the supplied title, excerpt, and draft body',
+					'why_this_works'      => 'one short editor-facing reason that explains focus, audience value, and factual grounding',
+					'coverage_check'      => 'short checklist covering main topic, reader benefit, no unsupported claims, and no title repetition',
+					'alternate_excerpt'   => 'one alternate wording with the same facts and a different opening angle',
+				),
+				'review_checklist' => array(
+					'Read the full supplied draft context before summarizing.',
+					'Prefer a natural editor-ready excerpt over truncating the first paragraph.',
+					'State the core reader value, not just the topic label.',
+					'Do not add facts, product claims, comparisons, numbers, or outcomes missing from the draft.',
+					'Keep the recommended excerpt useful in WordPress archives, search snippets, and social previews.',
+				),
+			),
 			'summary_terms_optimization' => array(
 				'output_shape'     => array(
 					'short_summary'        => 'one compact excerpt candidate grounded in the supplied draft',
@@ -3906,6 +3922,7 @@ final class Provider_Client {
 			'title_summary'       => 'Generate only local draft-support suggestions: 5 title options, one concise excerpt, one SEO title, one meta description, and one direct answer summary.',
 			'article_outline'     => 'Generate only a compact article outline: working title, reader promise, 5-7 section headings, key points per section, and missing source questions for the editor.',
 			'polish_notes'        => 'Polish the supplied short draft section for clarity, tone, and structure. Preserve meaning, avoid new facts, and return the revised text plus review notes.',
+			'summary_suggestions' => 'Generate one high-quality AI WordPress excerpt for the current draft. Read the supplied title, existing excerpt, and draft body; identify the main claim, reader problem, audience value, and scope; then produce an editor-ready recommended excerpt plus one alternate wording. Do not truncate text, do not repeat the title, and do not add unsupported facts.',
 			'summary_terms_optimization' => 'Optimize only the article metadata around a human-written draft: short summary, standard summary, SEO meta description, category candidates, tag candidates, normalization notes, feedback metric hints, and risk notes. Prefer existing terms when supplied, include a reason and evidence_source for every term candidate, and mark proposed new tags separately.',
 		)[ $intent ] ?? 'Generate WordPress content-support suggestions.';
 		$quality_contract = $this->hosted_ai_quality_contract( $intent );
@@ -3921,6 +3938,7 @@ final class Provider_Client {
 				'Use concise headings.',
 				'Keep the answer short enough for an editor to review quickly.',
 				'Follow preferred_output_shape when possible; otherwise use clear headings with the same fields.',
+				'For summary_suggestions, return the recommended excerpt first and keep it ready to paste into the WordPress excerpt field.',
 				'Return reviewable suggestions only.',
 				'Do not generate a full article unless the operator explicitly supplied a reviewed draft section to polish.',
 				'Do not write or publish WordPress content.',

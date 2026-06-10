@@ -141,8 +141,8 @@
 		},
 		{
 			intent: 'summary_suggestions',
-			label: __('Summary suggestions', 'npcink-toolbox'),
-			description: __('Get excerpt and summary candidates from the current draft only.', 'npcink-toolbox'),
+			label: __('AI generate summary', 'npcink-toolbox'),
+			description: __('Generate a reviewed excerpt candidate from the current draft with hosted AI.', 'npcink-toolbox'),
 		},
 		{
 			intent: 'category_suggestions',
@@ -771,7 +771,7 @@
 			return __('Metadata optimization', 'npcink-toolbox');
 		}
 		if (value === 'summary_suggestions') {
-			return __('Summary suggestions', 'npcink-toolbox');
+			return __('AI generate summary', 'npcink-toolbox');
 		}
 		if (value === 'category_suggestions') {
 			return __('Category suggestions', 'npcink-toolbox');
@@ -784,7 +784,7 @@
 
 	function resultScopeLabel(value) {
 		if (value === 'summary_suggestions') {
-			return __('Choose a suggestion, then apply it to the current draft excerpt.', 'npcink-toolbox');
+			return __('AI reads the current draft and returns an editor-ready excerpt candidate.', 'npcink-toolbox');
 		}
 		if (value === 'category_suggestions' || value === 'tag_suggestions') {
 			return __('Review suggestions here, then confirm existing terms in the editor.', 'npcink-toolbox');
@@ -1693,10 +1693,11 @@
 		}
 
 		const excerpt = metadataRecommendedExcerpt(section);
+		const hasLayerItems = Boolean(section && section.summary_layers && Array.isArray(section.summary_layers.items) && section.summary_layers.items.length);
 		if (excerpt) {
 			addSummaryItem(__('Recommended excerpt', 'npcink-toolbox'), excerpt, '');
 		}
-		if (summaryText) {
+		if (summaryText && !excerpt && !hasLayerItems) {
 			addSummaryItem(__('Hosted summary', 'npcink-toolbox'), summaryText, '');
 		}
 		if (section && section.summary_layers && Array.isArray(section.summary_layers.items)) {
@@ -2254,6 +2255,7 @@
 					intent,
 					category_ids: Array.isArray(postContext.category_ids) ? postContext.category_ids.join(',') : '',
 					tag_ids: Array.isArray(postContext.tag_ids) ? postContext.tag_ids.join(',') : '',
+					generation_variant: intent === 'summary_suggestions' ? String(Date.now()) : '',
 				});
 				const flowResult = await postJson('editor/content-support', payload);
 				setResult((current) => mergeContentSupportResult(current, flowResult, intent));

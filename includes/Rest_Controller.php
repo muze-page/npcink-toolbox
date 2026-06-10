@@ -544,7 +544,7 @@ final class Rest_Controller {
 		}
 
 		if ( 'summary_suggestions' === $intent ) {
-			$result['sections']['summary_terms_optimization'] = $this->editor_fast_summary_suggestions( $context, $query );
+			$result['sections']['summary_terms_optimization'] = $this->editor_ai_summary_suggestions( $context, $query );
 		}
 
 		if ( 'category_suggestions' === $intent ) {
@@ -751,6 +751,7 @@ final class Rest_Controller {
 			'selected_text'       => wp_trim_words( sanitize_textarea_field( $selected_text ), 110, '' ),
 			'selected_block_text' => wp_trim_words( sanitize_textarea_field( $selected_block_text ), 110, '' ),
 			'selected_block_name' => sanitize_text_field( (string) $request->get_param( 'selected_block_name' ) ),
+			'generation_variant'  => sanitize_text_field( (string) $request->get_param( 'generation_variant' ) ),
 			'image_mode'          => sanitize_key( (string) $request->get_param( 'image_mode' ) ),
 			'category_ids'        => $this->csv_absint_list( (string) $request->get_param( 'category_ids' ) ),
 			'tag_ids'             => $this->csv_absint_list( (string) $request->get_param( 'tag_ids' ) ),
@@ -1318,13 +1319,24 @@ final class Rest_Controller {
 		);
 	}
 
-	private function editor_fast_summary_suggestions( array $context, string $query ): array {
-		$summary_layers     = $this->editor_summary_layer_candidates( $context );
+	private function editor_ai_summary_suggestions( array $context, string $query ): array {
+		$summary_ai = $this->editor_support_section(
+			$this->client->run_hosted_ai_content_support(
+				array(
+					'intent'             => 'summary_suggestions',
+					'post_id'            => absint( $context['post_id'] ?? 0 ),
+					'title'              => (string) ( $context['title'] ?? '' ),
+					'excerpt'            => (string) ( $context['excerpt'] ?? '' ),
+					'content'            => (string) ( $context['content_text'] ?? '' ),
+					'generation_variant' => (string) ( $context['generation_variant'] ?? '' ),
+				)
+			)
+		);
+		$summary_layers     = $this->editor_ai_summary_layer_candidates( $summary_ai );
 		$proposed_new_terms = $this->empty_proposed_new_terms_review();
 		$handoff_preview    = $this->editor_summary_terms_handoff_preview( $summary_layers, array(), array(), $proposed_new_terms );
 		$metadata_delta     = $this->editor_content_metadata_delta( $context, $query, $summary_layers, array(), array(), $proposed_new_terms, array(), array(), $handoff_preview );
-
-		return $this->editor_metadata_suggestion_section(
+		$section            = $this->editor_metadata_suggestion_section(
 			'summary_suggestions',
 			$context,
 			$summary_layers,
@@ -1336,6 +1348,14 @@ final class Rest_Controller {
 			$handoff_preview,
 			$metadata_delta
 		);
+		$section['summary_candidates']  = $summary_ai;
+		$section['provider_execution']  = 'hosted_ai';
+		$section['generation_mode']     = 'ai_summary';
+		$section['generation_variant']  = sanitize_text_field( (string) ( $context['generation_variant'] ?? '' ) );
+		$section['quality_contract']    = is_array( $summary_ai['quality_contract'] ?? null ) ? $summary_ai['quality_contract'] : array();
+		$section['review_checklist']    = is_array( $summary_ai['review_checklist'] ?? null ) ? $summary_ai['review_checklist'] : array();
+
+		return $section;
 	}
 
 	private function editor_fast_category_suggestions( array $context, string $query ): array {
@@ -1867,6 +1887,58 @@ final class Rest_Controller {
 					'evidence_refs' => $summary_evidence_refs,
 				),
 			),
+		);
+	}
+
+	private function editor_ai_summary_layer_candidates( array $summary_ai ): array {
+		$result      = is_array( $summary_ai['result'] ?? null ) ? $summary_ai['result'] : array();
+		$output_text = trim( sanitize_textarea_field( (string) ( $summary_ai['output_text'] ?? '' ) ) );
+		$recommended = trim( sanitize_textarea_field( (string) ( $result['recommended_excerpt'] ?? $result['short_summary'] ?? $result['excerpt'] ?? '' ) ) );
+		$alternate   = trim( sanitize_textarea_field( (string) ( $result['alternate_excerpt'] ?? $result['standard_summary'] ?? '' ) ) );
+		$reason      = trim( sanitize_textarea_field( (string) ( $result['why_this_works'] ?? $result['reason'] ?? '' ) ) );
+
+		if ( '' === $recommended && '' !== $output_text ) {
+			$decoded = json_decode( $output_text, true );
+			if ( is_array( $decoded ) ) {
+				$recommended = trim( sanitize_textarea_field( (string) ( $decoded['recommended_excerpt'] ?? $decoded['short_summary'] ?? $decoded['excerpt'] ?? '' ) ) );
+				$alternate   = trim( sanitize_textarea_field( (string) ( $decoded['alternate_excerpt'] ?? $decoded['standard_summary'] ?? '' ) ) );
+				$reason      = trim( sanitize_textarea_field( (string) ( $decoded['why_this_works'] ?? $decoded['reason'] ?? '' ) ) );
+			}
+		}
+		if ( '' === $recommended && '' !== $output_text ) {
+			$recommended = sanitize_text_field( wp_html_excerpt( preg_replace( '/^[#*\-\s:[:alnum:]_]+/u', '', $output_text ), 180, '' ) );
+		}
+
+		$items = array();
+		if ( '' !== $recommended ) {
+			$items[] = array(
+				'id'            => 'ai_recommended_excerpt',
+				'label'         => __( 'AI recommended excerpt', 'npcink-toolbox' ),
+				'limit'         => '80_160_zh_chars',
+				'value'         => sanitize_text_field( $recommended ),
+				'reason'        => '' !== $reason ? $reason : __( 'Generated by hosted AI from the current title, excerpt, and draft body. Review before applying.', 'npcink-toolbox' ),
+				'context_use'   => 'draft_grounded_ai_summary',
+				'evidence_refs' => array(),
+			);
+		}
+		if ( '' !== $alternate && $alternate !== $recommended ) {
+			$items[] = array(
+				'id'            => 'ai_alternate_excerpt',
+				'label'         => __( 'AI alternate excerpt', 'npcink-toolbox' ),
+				'limit'         => '80_160_zh_chars',
+				'value'         => sanitize_text_field( $alternate ),
+				'reason'        => __( 'Alternate AI wording with the same factual scope for editor comparison.', 'npcink-toolbox' ),
+				'context_use'   => 'draft_grounded_ai_summary',
+				'evidence_refs' => array(),
+			);
+		}
+
+		return array(
+			'candidate_type'         => 'ai_summary_layer_candidates',
+			'write_posture'          => 'suggestion_only',
+			'direct_wordpress_write' => false,
+			'related_context_summary' => array(),
+			'items'                  => $items,
 		);
 	}
 
