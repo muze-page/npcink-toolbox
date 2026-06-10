@@ -85,6 +85,19 @@ function toolbox_media_derivative_smoke_track_proposals( $data ): void {
 }
 
 function toolbox_media_derivative_smoke_rest( string $method, string $route, array $params = array() ): array {
+	$response = toolbox_media_derivative_smoke_rest_raw( $method, $route, $params );
+	$status   = (int) ( $response['status'] ?? 0 );
+	$data     = is_array( $response['data'] ?? null ) ? (array) $response['data'] : array();
+
+	toolbox_media_derivative_smoke_assert(
+		$status >= 200 && $status < 300,
+		$method . ' ' . $route . ' returned HTTP ' . $status
+	);
+
+	return $data;
+}
+
+function toolbox_media_derivative_smoke_rest_raw( string $method, string $route, array $params = array() ): array {
 	wp_set_current_user( toolbox_media_derivative_smoke_admin_user_id() );
 
 	$request = new WP_REST_Request( $method, $route );
@@ -97,12 +110,10 @@ function toolbox_media_derivative_smoke_rest( string $method, string $route, arr
 	$data     = $response->get_data();
 	toolbox_media_derivative_smoke_track_proposals( $data );
 
-	toolbox_media_derivative_smoke_assert(
-		$status >= 200 && $status < 300,
-		$method . ' ' . $route . ' returned HTTP ' . $status
+	return array(
+		'status' => $status,
+		'data'   => is_array( $data ) ? $data : array(),
 	);
-
-	return is_array( $data ) ? $data : array();
 }
 
 function toolbox_media_derivative_smoke_create_attachment(): int {
@@ -258,12 +269,19 @@ toolbox_media_derivative_smoke_assert( '' !== $run_id, 'Adapter returns a Cloud 
 $result = array();
 for ( $attempt = 0; $attempt < 40; $attempt++ ) {
 	usleep( 0 === $attempt ? 250000 : 750000 );
-	$result = toolbox_media_derivative_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/media-derivative-runs/' . rawurlencode( $run_id ) . '/result' );
+	$poll   = toolbox_media_derivative_smoke_rest_raw( 'GET', '/npcink-openclaw-adapter/v1/media-derivative-runs/' . rawurlencode( $run_id ) . '/result' );
+	$result = is_array( $poll['data'] ?? null ) ? (array) $poll['data'] : array();
 	$status = (string) ( $result['cloud_result']['status'] ?? $result['status'] ?? '' );
 	if ( in_array( $status, array( 'succeeded', 'completed' ), true ) ) {
 		break;
 	}
+
+	$http_status = (int) ( $poll['status'] ?? 0 );
+	if ( 409 !== $http_status && ( $http_status < 200 || $http_status >= 300 ) ) {
+		toolbox_media_derivative_smoke_fail( 'GET /npcink-openclaw-adapter/v1/media-derivative-runs/' . $run_id . '/result returned HTTP ' . $http_status );
+	}
 }
+toolbox_media_derivative_smoke_assert( in_array( (string) ( $result['cloud_result']['status'] ?? $result['status'] ?? '' ), array( 'succeeded', 'completed' ), true ), 'Adapter media derivative run result becomes available.' );
 
 $derivative = toolbox_media_derivative_smoke_derivative_from_result( $result );
 toolbox_media_derivative_smoke_assert( '' !== (string) ( $derivative['artifact_id'] ?? '' ), 'Cloud result includes a derivative artifact id.' );
