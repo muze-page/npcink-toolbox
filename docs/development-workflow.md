@@ -122,6 +122,10 @@ This starts at Toolbox `/media-derivative-handoff`, generates a Cloud derivative
 through Adapter, submits the returned optimization plan to Core, executes it
 through Adapter approve-and-execute, verifies the attachment file replacement,
 and restores the original backup.
+Before release, also follow
+[Media Optimization Release Checklist](media-optimization-release-checklist.md):
+preview, preflight, proposal creation, approve-and-execute, URL/MIME/ALT
+evidence, and rollback must all pass.
 
 ## Coding Rules
 
