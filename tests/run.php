@@ -49,6 +49,14 @@ foreach ( array( 'media_optimization_v1', 'fixed governed Optimize Existing Imag
 	toolbox_assert( false !== strpos( $positioning_doc, $required_media_positioning_doc ), 'Product positioning keeps media optimization as a fixed governed workflow: ' . $required_media_positioning_doc );
 }
 
+$content_support_readiness_doc = file_get_contents( $root . '/docs/content-support-product-readiness.md' );
+foreach ( array( 'Acceptance Matrix', 'Writing preparation', 'Summary, category, and tag recommendations', 'Internal-link candidates', 'Image candidates and media optimization', 'Publish preflight and SEO handoff', 'Article body generation' ) as $required_readiness_row ) {
+	toolbox_assert( false !== strpos( $content_support_readiness_doc, $required_readiness_row ), 'Content support readiness matrix preserves product focus: ' . $required_readiness_row );
+}
+foreach ( array( 'Human editors own the article text', 'Suggestion-only', 'pending proposal', 'Approval, preflight, audit', 'not the primary product', 'No Cloud article generation' ) as $required_readiness_boundary ) {
+	toolbox_assert( false !== strpos( $content_support_readiness_doc, $required_readiness_boundary ), 'Content support readiness matrix preserves write boundary: ' . $required_readiness_boundary );
+}
+
 $boundary_doc = file_get_contents( $root . '/docs/boundary.md' );
 foreach ( array( 'OpenClaw Button Surface Boundary', 'UX projection of the same local ability and Core proposal contracts', 'OpenClaw natural-language request', 'Toolbox fixed button', 'reviewed plan or candidate artifact', 'must not own OpenClaw projection truth', 'approval truth, prompt/model', 'media registry truth, or final WordPress write execution' ) as $required_boundary_doc ) {
 	toolbox_assert( false !== strpos( $boundary_doc, $required_boundary_doc ), 'Boundary doc preserves Toolbox/OpenClaw split: ' . $required_boundary_doc );
@@ -82,6 +90,7 @@ foreach ( array( 'Local Admin Consent is a classification and future execution c
 toolbox_assert( false !== strpos( $adr_local_admin_consent, 'Future Strong Local Confirmation Candidate' ) && false !== strpos( $adr_local_admin_consent, 'excerpt plus existing `category` and `post_tag` ids only' ) && false !== strpos( $adr_local_admin_consent, 'Until that UX and audit contract exists' ), 'ADR keeps post metadata direct apply as a future strong-local-confirmation proof.' );
 
 $readme = file_get_contents( $root . '/README.md' );
+toolbox_assert( false !== strpos( $readme, 'Content Support Product Readiness' ), 'README links the current content support readiness matrix.' );
 foreach ( array( 'Toolbox fixed buttons are the operator-click surface for repeatable OpenClaw', 'flows. They should reuse the same ability ids', 'same ability ids, plan artifact shapes, Adapter', 'Core proposal handoff', 'separate approval store, media', 'workflow runtime, prompt/model control plane', 'WordPress write' ) as $required_readme_text ) {
 	toolbox_assert( false !== strpos( $readme, $required_readme_text ), 'README preserves fixed-button positioning: ' . $required_readme_text );
 }
