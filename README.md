@@ -51,6 +51,7 @@ Project goals, ownership, and future-session instructions are documented in:
 - [Boundary](docs/boundary.md)
 - [Architecture](docs/architecture.md)
 - [Roadmap](docs/roadmap.md)
+- [Content Support Product Readiness](docs/content-support-product-readiness.md)
 - [AI Content Composition Abilities](docs/ai-content-composition-abilities.md)
 - [Connector Ability Exposure](docs/connector-ability-exposure.md)
 - [Content Discoverability Context](docs/content-discoverability-context.md)
