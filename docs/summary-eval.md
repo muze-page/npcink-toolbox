@@ -127,8 +127,8 @@ composer eval:summary:review
 ```
 
 Use the XLSX file when you want dropdowns. It includes dropdowns for
-`评分(1-5)`, `评价`, and `问题类型`. Use `评分(1-5)` as the primary quality
-signal:
+`评分(1-5)`, `采用决策`, and `问题类型`. Use `评分(1-5)` as the primary
+quality signal:
 
 - `1`: unusable; generation failed, factually wrong, generic, or unsuitable.
 - `2`: weak; related to the topic but needs major rewriting.
@@ -136,11 +136,11 @@ signal:
 - `4`: good; only minor edits are needed.
 - `5`: excellent; can be used as the current post excerpt.
 
-Use `direct_use`, `minor_edit`, or `reject` for the `评价` field as the adoption
-decision. Keep failure reasons coarse in `问题类型`: `generation_error`,
-`too_generic`, `missing_core_value`, `wrong_tone`, `instruction_like`,
-`insufficient_coverage`, `too_marketing`, `too_short`, `too_long`,
-`unsupported_claim`, or `other`.
+Use `direct_use`, `minor_edit`, or `reject` for the `采用决策` field as the
+adoption decision. Keep failure reasons coarse in `问题类型`:
+`generation_error`, `too_generic`, `missing_core_value`, `logic_confusing`,
+`misleading`, `wrong_tone`, `instruction_like`, `insufficient_coverage`,
+`too_marketing`, `too_short`, `too_long`, `unsupported_claim`, or `other`.
 
 ## Opening Diversity
 

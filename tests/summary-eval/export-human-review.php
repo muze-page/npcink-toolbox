@@ -65,7 +65,7 @@ function npcink_summary_review_rows( array $items ): array {
 			'字数',
 			'AI摘要',
 			'评分(1-5)',
-			'评价',
+			'采用决策',
 			'问题类型',
 			'人工修改版摘要',
 			'备注',
@@ -143,7 +143,7 @@ function npcink_summary_review_write_xlsx( string $output_xlsx, array $rows ): v
 		. '<dataValidations count="3">'
 		. '<dataValidation type="list" allowBlank="1" sqref="F2:F' . $last_row . '"><formula1>"1,2,3,4,5"</formula1></dataValidation>'
 		. '<dataValidation type="list" allowBlank="1" sqref="G2:G' . $last_row . '"><formula1>"直接可用,稍改可用,不可用"</formula1></dataValidation>'
-		. '<dataValidation type="list" allowBlank="1" sqref="H2:H' . $last_row . '"><formula1>"生成失败,太泛,核心价值缺失,语气不合适,像说明书,覆盖不足,太营销,太短,太长,无依据,其他"</formula1></dataValidation>'
+		. '<dataValidation type="list" allowBlank="1" sqref="H2:H' . $last_row . '"><formula1>"生成失败,太泛,核心价值缺失,逻辑混乱,误导,语气不合适,像说明书,覆盖不足,太营销,太短,太长,无依据,其他"</formula1></dataValidation>'
 		. '</dataValidations>'
 		. '<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>'
 		. '</worksheet>';
@@ -252,6 +252,8 @@ $worksheet = array(
 		'generation_error',
 		'too_generic',
 		'missing_core_value',
+		'logic_confusing',
+		'misleading',
 		'wrong_tone',
 		'instruction_like',
 		'insufficient_coverage',
@@ -314,10 +316,10 @@ $lines[] = '';
 $lines[] = '- Source: `' . $input . '`';
 $lines[] = '- Created: `' . $worksheet['created_at'] . '`';
 $lines[] = '- 评分: `1` 不可用, `2` 较差, `3` 可参考, `4` 较好, `5` 可直接使用';
-$lines[] = '- 评价选项: `direct_use` 直接可用, `minor_edit` 稍改可用, `reject` 不可用';
-$lines[] = '- 问题类型: `generation_error` 生成失败, `too_generic` 太泛, `missing_core_value` 核心价值缺失, `wrong_tone` 语气不合适, `instruction_like` 像说明书, `insufficient_coverage` 覆盖不足, `too_marketing` 太营销, `too_short` 太短, `too_long` 太长, `unsupported_claim` 无依据, `other` 其他';
+$lines[] = '- 采用决策: `direct_use` 直接可用, `minor_edit` 稍改可用, `reject` 不可用';
+$lines[] = '- 问题类型: `generation_error` 生成失败, `too_generic` 太泛, `missing_core_value` 核心价值缺失, `logic_confusing` 逻辑混乱, `misleading` 误导, `wrong_tone` 语气不合适, `instruction_like` 像说明书, `insufficient_coverage` 覆盖不足, `too_marketing` 太营销, `too_short` 太短, `too_long` 太长, `unsupported_claim` 无依据, `other` 其他';
 $lines[] = '';
-$lines[] = '| 样本ID | 标题 | 候选ID | 字数 | AI摘要 | 评分(1-5) | 评价 | 问题类型 | 人工修改版摘要 | 备注 |';
+$lines[] = '| 样本ID | 标题 | 候选ID | 字数 | AI摘要 | 评分(1-5) | 采用决策 | 问题类型 | 人工修改版摘要 | 备注 |';
 $lines[] = '| --- | --- | --- | ---: | --- | ---: | --- | --- | --- | --- |';
 
 foreach ( $items as $item ) {
