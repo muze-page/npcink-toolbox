@@ -138,6 +138,7 @@ toolbox_assert( false !== strpos( $composer, 'eval:summary:review' ) && false !=
 toolbox_assert( false !== strpos( $composer, 'eval:summary:openings' ) && false !== strpos( $composer, 'tests/summary-eval/analyze-openings.php' ), 'Composer exposes the AI summary opening diversity analysis.' );
 toolbox_assert( false !== strpos( $composer, 'eval:summary:promptfoo' ) && false !== strpos( $composer, 'tests/summary-eval/export-promptfoo-cases.php' ) && false !== strpos( $composer, 'promptfoo eval' ) && false !== strpos( $composer, 'Install promptfoo first' ), 'Composer exposes the AI summary Promptfoo offline evaluation.' );
 toolbox_assert( false !== strpos( $composer, 'eval:summary:judge' ) && false !== strpos( $composer, 'tests/summary-eval/export-promptfoo-judge-cases.php' ) && false !== strpos( $composer, 'promptfoo-judge.yaml' ) && false !== strpos( $composer, 'SUMMARY_JUDGE_GRADER' ), 'Composer exposes the AI summary LLM judge pre-scoring.' );
+toolbox_assert( false !== strpos( $composer, 'eval:summary:judge:cross' ) && false !== strpos( $composer, 'GPT55_API_KEY' ) && false !== strpos( $composer, 'DEEPSEEK_API_KEY' ) && false !== strpos( $composer, 'compare-ai-judge-results.php' ), 'Composer exposes cross-model AI summary judge scoring without hardcoded secrets.' );
 
 $summary_human_review = file_get_contents( $root . '/tests/summary-eval/export-human-review.php' );
 toolbox_assert( false !== $summary_human_review && false !== strpos( $summary_human_review, 'direct_use' ) && false !== strpos( $summary_human_review, 'minor_edit' ) && false !== strpos( $summary_human_review, 'reject' ), 'Summary human review export provides adoption decision labels.' );
@@ -157,6 +158,8 @@ $summary_judge_cases = file_get_contents( $root . '/tests/summary-eval/export-pr
 toolbox_assert( false !== $summary_judge_cases && false !== strpos( $summary_judge_cases, 'promptfoo-judge-cases.csv' ) && false !== strpos( $summary_judge_cases, 'article_content' ) && false !== strpos( $summary_judge_cases, 'existing_excerpt' ), 'Summary AI judge case export includes title, content, and candidate context.' );
 $summary_judge_config = file_get_contents( $root . '/tests/summary-eval/promptfoo-judge.yaml' );
 toolbox_assert( false !== $summary_judge_config && false !== strpos( $summary_judge_config, 'llm-rubric' ) && false !== strpos( $summary_judge_config, 'ai_summary_quality' ) && false !== strpos( $summary_judge_config, '逻辑混乱' ) && false !== strpos( $summary_judge_config, '误导' ), 'Summary AI judge config scores factual fit, clarity, and misleading candidates.' );
+$summary_judge_compare = file_get_contents( $root . '/tests/summary-eval/compare-ai-judge-results.php' );
+toolbox_assert( false !== $summary_judge_compare && false !== strpos( $summary_judge_compare, 'score_gap' ) && false !== strpos( $summary_judge_compare, 'needs_human_review' ) && false !== strpos( $summary_judge_compare, '误导' ), 'Summary AI judge comparison flags score gaps and risky reasons for human review.' );
 
 $rest_controller = file_get_contents( $root . '/includes/Rest_Controller.php' );
 toolbox_assert( false !== $rest_controller && false !== strpos( $rest_controller, 'REQUIRED_TEXT_MAX_CHARS = 500' ) && false !== strpos( $rest_controller, 'mb_substr( $value, 0, $max_chars )' ), 'REST controller bounds common text inputs before Cloud calls.' );

@@ -208,6 +208,36 @@ with `SUMMARY_JUDGE_GRADER` if needed. OpenAI graders require
 `OPENAI_API_KEY`. Keep this as pre-scoring only: calibrate it against
 human-filled review sheets before using it to reduce manual review.
 
+### Cross-Model Judge
+
+For stronger pre-scoring, run GPT-5.5 and DeepSeek independently and compare
+their decisions:
+
+```bash
+export GPT55_API_KEY=...
+export DEEPSEEK_API_KEY=...
+SUMMARY_JUDGE_INPUT=tests/summary-eval/generated/muze-candidates-offset25-limit30-newprompt.json \
+SUMMARY_JUDGE_LIMIT=20 \
+composer eval:summary:judge:cross
+```
+
+Defaults:
+
+- GPT-5.5: `openai:chat:gpt-5.5` with
+  `GPT55_BASE_URL=https://api.mqzj.top/v1`.
+- DeepSeek: `deepseek:deepseek-v4-pro`, using Promptfoo's DeepSeek provider.
+
+The cross-judge command writes:
+
+- `tests/summary-eval/generated/promptfoo-judge-gpt55.json`
+- `tests/summary-eval/generated/promptfoo-judge-deepseek.json`
+- `tests/summary-eval/generated/promptfoo-judge-cross.json`
+- `tests/summary-eval/generated/promptfoo-judge-cross.csv`
+
+Treat cross-judge results as triage, not final truth. Prioritize manual review
+when either model scores `1-2`, either model flags misleading or confusing
+logic, or the two model scores differ by 2 or more.
+
 ## Next Layer
 
 After the hard gate is stable, add a model-judged layer for faithfulness,

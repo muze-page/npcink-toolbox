@@ -24,6 +24,20 @@
       "@eval:summary:judge:cases",
       "command -v promptfoo >/dev/null || { echo \"Install promptfoo first: npm install -g promptfoo\"; exit 1; }; SUMMARY_JUDGE_GRADER=\"${SUMMARY_JUDGE_GRADER:-openai:gpt-4.1-mini}\"; case \"$SUMMARY_JUDGE_GRADER\" in openai:* ) test -n \"$OPENAI_API_KEY\" || { echo \"Set OPENAI_API_KEY or override SUMMARY_JUDGE_GRADER for AI judge scoring.\"; exit 1; } ;; esac; SUMMARY_JUDGE_OUTPUT=\"${SUMMARY_JUDGE_OUTPUT:-tests/summary-eval/generated/promptfoo-judge-results.json}\"; promptfoo eval -c tests/summary-eval/promptfoo-judge.yaml --grader \"$SUMMARY_JUDGE_GRADER\" --output \"$SUMMARY_JUDGE_OUTPUT\" --no-table"
     ],
+    "eval:summary:judge:gpt55": [
+      "@eval:summary:judge:cases",
+      "command -v promptfoo >/dev/null || { echo \"Install promptfoo first: npm install -g promptfoo\"; exit 1; }; test -n \"$GPT55_API_KEY\" || { echo \"Set GPT55_API_KEY for GPT-5.5 judge scoring.\"; exit 1; }; GPT55_BASE_URL=\"${GPT55_BASE_URL:-https://api.mqzj.top/v1}\"; case \"$GPT55_BASE_URL\" in */v1|*/v1/) ;; * ) GPT55_BASE_URL=\"${GPT55_BASE_URL%/}/v1\" ;; esac; SUMMARY_JUDGE_OUTPUT=\"${SUMMARY_JUDGE_OUTPUT:-tests/summary-eval/generated/promptfoo-judge-gpt55.json}\"; OPENAI_API_KEY=\"$GPT55_API_KEY\" OPENAI_API_BASE_URL=\"$GPT55_BASE_URL\" promptfoo eval -c tests/summary-eval/promptfoo-judge.yaml --grader \"openai:chat:${GPT55_MODEL:-gpt-5.5}\" --output \"$SUMMARY_JUDGE_OUTPUT\" --no-table"
+    ],
+    "eval:summary:judge:deepseek": [
+      "@eval:summary:judge:cases",
+      "command -v promptfoo >/dev/null || { echo \"Install promptfoo first: npm install -g promptfoo\"; exit 1; }; test -n \"$DEEPSEEK_API_KEY\" || { echo \"Set DEEPSEEK_API_KEY for DeepSeek judge scoring.\"; exit 1; }; SUMMARY_JUDGE_OUTPUT=\"${SUMMARY_JUDGE_OUTPUT:-tests/summary-eval/generated/promptfoo-judge-deepseek.json}\"; promptfoo eval -c tests/summary-eval/promptfoo-judge.yaml --grader \"deepseek:${DEEPSEEK_MODEL:-deepseek-v4-pro}\" --output \"$SUMMARY_JUDGE_OUTPUT\" --no-table"
+    ],
+    "eval:summary:judge:compare": "SUMMARY_JUDGE_PRIMARY=\"${SUMMARY_JUDGE_PRIMARY:-tests/summary-eval/generated/promptfoo-judge-gpt55.json}\"; SUMMARY_JUDGE_SECONDARY=\"${SUMMARY_JUDGE_SECONDARY:-tests/summary-eval/generated/promptfoo-judge-deepseek.json}\"; SUMMARY_JUDGE_CROSS_JSON=\"${SUMMARY_JUDGE_CROSS_JSON:-tests/summary-eval/generated/promptfoo-judge-cross.json}\"; SUMMARY_JUDGE_CROSS_CSV=\"${SUMMARY_JUDGE_CROSS_CSV:-tests/summary-eval/generated/promptfoo-judge-cross.csv}\"; php tests/summary-eval/compare-ai-judge-results.php \"primary=$SUMMARY_JUDGE_PRIMARY\" \"secondary=$SUMMARY_JUDGE_SECONDARY\" \"output_json=$SUMMARY_JUDGE_CROSS_JSON\" \"output_csv=$SUMMARY_JUDGE_CROSS_CSV\" \"primary_label=gpt55\" \"secondary_label=deepseek\"",
+    "eval:summary:judge:cross": [
+      "@eval:summary:judge:gpt55",
+      "@eval:summary:judge:deepseek",
+      "@eval:summary:judge:compare"
+    ],
     "check:wporg": "@php scripts/check-wordpress-org-review-rules.php",
     "package:release": "rm -rf build/npcink-toolbox build/npcink-toolbox.zip && mkdir -p build && rsync -a --delete --exclude-from=.distignore ./ build/npcink-toolbox/ && cd build && zip -qr npcink-toolbox.zip npcink-toolbox",
     "plugin-check:release": "WP_PATH=\"${WP_PATH:-/Users/muze/Local Sites/magick-ai/app/public}\"; WP_CLI_BIN=\"${WP_CLI_BIN:-/tmp/wp-cli.phar}\"; WP_CLI_PHP=\"${WP_CLI_PHP:-$HOME/Library/Application Support/Local/lightning-services/php-8.5.3+1/bin/darwin-arm64/bin/php}\"; SOCKET=\"${WP_DB_SOCKET:-$HOME/Library/Application Support/Local/run/NPb24Zg9g/mysql/mysqld.sock}\"; \"$WP_CLI_PHP\" -d display_errors=0 -d error_reporting=8191 -d mysqli.default_socket=\"$SOCKET\" \"$WP_CLI_BIN\" --path=\"$WP_PATH\" --no-color plugin check npcink-toolbox --format=table --exclude-directories=tests,.git,vendor,node_modules,build,docs,scripts --exclude-files=.gitignore,.distignore,AGENTS.md,README.md,composer.json,composer.lock,phpcs.xml,phpcs.xml.dist,phpstan.neon,phpstan.neon.dist",
