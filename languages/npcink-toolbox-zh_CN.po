@@ -560,14 +560,32 @@ msgstr "根据当前站点上下文检查来源覆盖、重复风险、缺失分
 msgid "Run preflight"
 msgstr "运行预检"
 
+msgid "Summary and Terms Optimization"
+msgstr "摘要和分类标签优化"
+
+msgid "Review Generate and apply summary, Recommend and apply tags, Recommend categories, and Create new tags and assign candidates as Core handoff actions without writing WordPress data."
+msgstr "审阅“生成并应用摘要”、“推荐并应用标签”、“推荐分类”和“创建新标签并分配”等 Core 交接候选操作，不直接写入 WordPress 数据。"
+
+msgid "Optimize metadata"
+msgstr "优化元数据"
+
 msgid "Taxonomy/Tag Candidates"
 msgstr "分类/标签候选"
 
 msgid "Suggest matching existing categories and tags from the supplied draft context."
 msgstr "根据提供的草稿上下文建议匹配的已有分类和标签。"
 
+msgid "Existing Taxonomy/Tag Candidates"
+msgstr "已有分类/标签候选"
+
+msgid "Suggest matching existing categories and tags from the supplied article, selected text, or topic context."
+msgstr "根据提供的文章、选中文本或主题上下文，建议匹配的已有分类和标签。"
+
 msgid "Find terms"
 msgstr "查找分类标签"
+
+msgid "Find existing terms"
+msgstr "查找已有分类标签"
 
 msgid "Use Cloud-managed Site Knowledge to find related public content for operator-reviewed links."
 msgstr "使用 Cloud 托管站点知识查找相关公开内容，供运营者审阅链接。"
@@ -585,28 +603,28 @@ msgid "Find images"
 msgstr "查找图片"
 
 msgid "Fallback Bundles"
-msgstr "降级包"
+msgstr "备用工具"
 
 msgid "Combined artifacts for reviewed local workbench cases."
-msgstr "为已审阅的本地工作台场景提供组合制品。"
+msgstr "低频使用的准备材料和交接包，不是日常写作入口。"
 
 msgid "Article Planning Bundle"
-msgstr "文章规划包"
+msgstr "文章准备包"
 
 msgid "Build one combined research, image, knowledge, outline, and handoff bundle when an operator needs a compact fallback package."
-msgstr "当运营者需要精简降级包时，生成一个包含研究、图片、知识、大纲和交接内容的组合包。"
+msgstr "输入一个文章主题，生成资料、配图、站内知识和后续交接建议，供编辑开始写作前参考。"
 
 msgid "Article topic"
-msgstr "文章主题"
+msgstr "要规划的文章主题"
 
 msgid "Build bundle"
-msgstr "生成包"
+msgstr "生成准备材料"
 
 msgid "Article Assistant Fallback"
-msgstr "文章助手降级"
+msgstr "文章助手备用工作台"
 
 msgid "Assemble one local workbench artifact from support abilities and an optional reviewed draft; it does not write the article body."
-msgstr "由支持能力和可选已审阅草稿组装一个本地工作台制品；它不会写入文章正文。"
+msgstr "把主题、参考资料和可选的已审阅草稿整理成一个本地工作台结果；不会自动写文章正文。"
 
 msgid "Governed Handoffs"
 msgstr "治理交接"
@@ -667,6 +685,24 @@ msgstr "固定支持流程"
 
 msgid "This runs one bounded suggestion flow from the supplied draft context. It does not write posts, assign terms, insert links, import media, or publish."
 msgstr "这会根据提供的草稿上下文运行一个有边界的建议流程。它不会写文章、分配分类标签、插入链接、导入媒体或发布。"
+
+msgid "This runs one bounded suggestion flow from the supplied article, selected text, topic, or brief. It does not write posts, assign terms, insert links, import media, or publish."
+msgstr "这会根据提供的文章、选中文本、主题或简报运行一个有边界的建议流程。它不会写文章、分配分类标签、插入链接、导入媒体或发布。"
+
+msgid "Input scope"
+msgstr "输入范围"
+
+msgid "Auto: selected text when present, otherwise full article"
+msgstr "自动：有选中文本时使用选中文本，否则使用全文"
+
+msgid "Full article context"
+msgstr "全文上下文"
+
+msgid "Selected text or supplied snippet"
+msgstr "选中文本或提供的片段"
+
+msgid "Topic or short brief only"
+msgstr "仅主题或简短简报"
 
 msgid "Post ID (optional)"
 msgstr "文章 ID（可选）"
