@@ -240,6 +240,10 @@ content snapshot suggestions. It accepts only narrow site-helper intents,
 samples recent public-site or media metadata locally, and returns a
 `hosted_ai_site_helper` artifact. It must not become a crawler, scoring
 engine, batch media updater, proposal creator, or local queue.
+When the post editor needs ALT suggestions, `/editor/content-support` passes a
+bounded `current_article_media_metadata_only` snapshot of images already used
+by the current draft into the same hosted helper runtime; it does not trigger
+the site-level media-library sample.
 
 `/ai/image-generation` is a candidate-only image-source extension. It accepts a
 reviewed prompt from an image-source handoff, calls Cloud Addon runtime, and
@@ -263,14 +267,19 @@ mutation, media upload/import, SEO mutation, indexing, or re-indexing.
 
 `/editor/content-support` is the post-editor entrypoint for fixed, bounded
 support flows. It accepts current draft context plus one intent:
-`writing_support`, `publish_preflight`, `summary_suggestions`,
+`writing_support`, `title_suggestions`, `article_outline`, `polish_notes`,
+`publish_preflight`, `discoverability`, `summary_suggestions`,
 `category_suggestions`, `tag_suggestions`, `summary_terms_optimization`,
-`taxonomy_tags`, `internal_links`, `image_candidates`, or `discoverability`.
+`taxonomy_tags`, `internal_links`, `image_candidates`, or
+`image_alt_suggestions`.
 The editor UI exposes primary buttons for writing preparation, publish
-preflight, summary suggestions, category suggestions, tag suggestions, internal
-links, and image candidates. `summary_terms_optimization` and `taxonomy_tags`
-remain lower-level/full support intents, not separate default buttons. The
-route returns an `editor_content_support_flow`
+preflight, discoverability, summary suggestions, category suggestions, tag
+suggestions, internal links, image candidates, and current-article image ALT
+suggestions. `summary_terms_optimization` and `taxonomy_tags` remain
+lower-level/full support intents, not separate default buttons. The image
+candidate modal also exposes the saved-post `/flows/media-brief` result as a
+secondary image-plan action; it is not a new primary sidebar button and it does
+not write media, metadata, or post content. The route returns an `editor_content_support_flow`
 artifact with suggestion-only sections and no direct WordPress write posture.
 The split metadata intents return the same
 `article_discoverability_optimization.v1` section shape through lighter
@@ -350,13 +359,13 @@ draft title, draft body, SEO hints, and risk level. Its result renderer shows
 not submit the plan to Core or approve execution.
 
 The admin **Content Support** tab groups fixed buttons by operator job. The
-default **Everyday Support** group uses the same fixed
-`/editor/content-support` intents as the post editor panel: discoverability,
-writing preparation, publish preflight, summary suggestions, category
-suggestions, tag suggestions,
-internal-link candidates, and image candidates. Media work and governed
-handoffs are separate groups. The combined `Article Planning Bundle` is kept as
-a fallback bundle, not the default support flow.
+default **Everyday Support** group keeps lower-frequency support utilities such
+as publish preflight, summary suggestions, category suggestions, tag
+suggestions, internal-link candidates, and image candidates. Single-article
+discoverability and draft-writing support stay in the post editor panel. Media
+work and governed handoffs are separate groups. The combined
+`Article Planning Bundle` is kept as a fallback bundle, not the default support
+flow.
 
 Toolbox also renders additive `operator_feedback` payloads from governed
 handoff failures, including reasons, revision fields, next steps, retry state,

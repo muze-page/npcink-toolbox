@@ -206,9 +206,11 @@ fallback panel that renders the plan artifacts, risk report, final
 
 The post editor also exposes **Npcink Content Support** as a plugin sidebar
 opened from the editor top toolbar. Its visible buttons run fixed flows for
-writing preparation, publish preflight, summary suggestions, category
-suggestions, tag suggestions, internal-link candidates, and image-source
-candidates from the current draft context. The three metadata buttons use
+writing preparation, title suggestions, outline support, polish notes, publish
+preflight, discoverability suggestions, summary suggestions, category
+suggestions, tag suggestions, internal-link candidates, image-source
+candidates, and current-article image ALT suggestions from the current draft
+context. The metadata buttons use
 lighter draft/taxonomy fast paths and merge their results into one
 `article_discoverability_optimization.v1` review surface. The full
 `summary_terms_optimization` intent remains available as a compatibility and
@@ -251,10 +253,13 @@ remain Core proposal handoffs.
 The image-source button opens a Cloud image recommendation modal: it
 automatically searches from the selected paragraph or selected block when
 available, combines that with the current draft context, and also lets the
-editor enter a manual query. Toolbox sends a bounded visual context request so
-Cloud may build a visual brief, use Cloud-managed site context vectors, rerank
-source candidates, and return media SEO suggestions; these are runtime details,
-not local vector/index or provider ownership. Returned images remain
+editor enter a manual query. The same modal includes a secondary image-plan
+action that runs the existing media brief flow from the saved current post, so
+the plan feeds later source search, AI generation, and media SEO review without
+becoming a separate sidebar entry. Toolbox sends a bounded visual context
+request so Cloud may build a visual brief, use site context vectors managed by
+Cloud for reranking, and return media SEO suggestions; these are runtime
+details, not local vector/index or provider ownership. Returned images remain
 `image_candidate.v1` suggestions with provider, attribution, source,
 license-review, and Unsplash download tracking metadata preserved; media import
 still flows through a governed adoption plan. When the selected candidate is an
@@ -309,8 +314,8 @@ history.
 
 The post editor **Npcink Content Support** sidebar owns high-frequency writing
 preparation, title suggestions, outline support, polish notes, summary,
-taxonomy/tag, internal-link, image, and publish-readiness support because those
-actions need the current article context. The admin
+discoverability, taxonomy/tag, internal-link, image, current-article image ALT,
+and publish-readiness support because those actions need the current article context. The admin
 **Content Support** tab stays focused on cross-article checks, fallback
 bundles, governed handoffs, and media planning rather than draft-side writing
 buttons.
@@ -319,12 +324,12 @@ ALT suggestions and bounded content snapshot opportunities. Toolbox samples a
 small amount of public-site or media metadata, Cloud produces reviewable
 suggestions, and no media library, post, SEO, proposal, crawler, or queue state
 is changed locally.
-Everyday Support remains available for the same bounded jobs:
-discoverability brief, writing preparation, publish preflight,
-summary suggestions, category suggestions, tag suggestions, internal-link
-candidates, or image candidates. Media work, governed handoffs, and the combined Article Planning
-Bundle are visually separate groups; the bundle is a fallback package, not the
-primary support workflow.
+Everyday Support remains available for lower-frequency bounded jobs such as
+publish preflight, summary suggestions, category suggestions, tag suggestions,
+internal-link candidates, or image candidates. Single-article discoverability
+and draft-writing support belong in the editor sidebar. Media work, governed
+handoffs, and the combined Article Planning Bundle are visually separate
+groups; the bundle is a fallback package, not the primary support workflow.
 
 `media_optimization_v1` names the existing **Optimize Existing Image** surface
 as a fixed governed workflow, not a new workflow runtime or persistent run

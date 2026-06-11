@@ -22,16 +22,26 @@ runtime, provider billing, or provider credentials.
 
 ## Main Entrypoints
 
-Use these abilities for third-party AI consumption:
+Human operators use the WordPress post editor sidebar:
+
+```text
+Npcink Content Support -> Discoverability suggestions
+```
+
+Third-party AI callers and OpenClaw use the machine contracts below. The
+Adapter shortcuts are not wp-admin product entry points.
 
 | Intent | Adapter shortcut | Toolbox ability | Role |
 | --- | --- | --- | --- |
 | Validate filled site context | `GET /content-discoverability-validation` | `npcink-toolbox/validate-content-discoverability-context` | Context readiness check |
 | Read site context | `GET /content-discoverability-context` | `npcink-toolbox/get-content-discoverability-context` | Read-only site rule source |
-| SEO/GEO/AEO suggestions | `GET /content-discoverability-brief?post_id=POST_ID` | `npcink-toolbox/build-content-discoverability-brief` | Primary contract |
+| SEO/GEO/AEO suggestions | `GET /content-discoverability-brief?post_id=POST_ID` | `npcink-toolbox/build-content-discoverability-brief` | Machine contract for editor-facing Discoverability suggestions |
 | Broad article request | `GET /article-writing-pack?topic=AI_TOPIC` | `npcink-toolbox/build-ai-article-writing-pack` | Fallback article pack |
 
-The primary SEO/GEO/AEO entrypoint is `content-discoverability-brief`.
+The primary human-facing SEO/GEO/AEO entrypoint is the editor sidebar
+**Discoverability suggestions** button. The underlying machine contract remains
+`npcink-toolbox/build-content-discoverability-brief`; Adapter may expose the
+`content-discoverability-brief` shortcut for OpenClaw.
 `article-writing-pack` is only for broad natural-language article requests such
 as:
 
@@ -45,8 +55,8 @@ For explicit content governance requests such as:
 给这篇文章做 SEO/GEO/AEO 建议
 ```
 
-OpenClaw should use `content-discoverability-brief`, not
-`article-writing-pack`.
+OpenClaw should use `npcink-toolbox/build-content-discoverability-brief`
+or the Adapter shortcut behind it, not `article-writing-pack`.
 
 ## Required OpenClaw Flow
 
@@ -56,8 +66,8 @@ For SEO/GEO/AEO suggestions:
 2. If required fields are missing, stop and ask the operator to complete the
    Toolbox content context.
 3. Call `content-discoverability-context`.
-4. Call `content-discoverability-brief` for exactly one `post_id` or supplied
-   topic/content input.
+4. Call `npcink-toolbox/build-content-discoverability-brief` or its Adapter
+   shortcut for exactly one `post_id` or supplied topic/content input.
 5. Return suggestions only. Do not write SEO meta, slug, excerpt, FAQ, schema,
    media, terms, posts, or settings.
 6. If the operator accepts a write-like suggestion, create or route through a
@@ -191,7 +201,9 @@ Expected route: `article-writing-pack`.
 给这篇文章做 SEO/GEO/AEO 建议
 ```
 
-Expected route: `content-discoverability-brief`.
+Expected machine contract: `npcink-toolbox/build-content-discoverability-brief`
+or the Adapter read shortcut behind it.
 
-The pass condition is that OpenClaw selects the right entrypoint, returns
-suggestions only, and does not attempt direct WordPress writes.
+The pass condition is that OpenClaw selects the machine contract behind
+Discoverability suggestions, returns suggestions only, and does not attempt
+direct WordPress writes.

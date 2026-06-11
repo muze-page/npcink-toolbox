@@ -44,9 +44,11 @@ through host-governed WordPress abilities and Npcink Governance Core approval.
 * Added a high-level AI article writing pack ability for OpenClaw-style natural
   language article requests.
 * Kept lightweight writing preparation, title suggestions, outline support,
-  polish notes, summary, taxonomy/tag, internal-link, image, and
-  publish-readiness support in the post editor Content Support sidebar where
-  current article context is available.
+  polish notes, discoverability, summary, taxonomy/tag, internal-link, image,
+  current-article image ALT, and publish-readiness support in the post editor
+  Content Support sidebar where current article context is available. The
+  image candidate modal can also run the saved-post media brief as a secondary
+  image-plan action without writing media or article data.
 * Added a summary/category/tag optimization fixed flow that returns
   layered summary candidates, existing-term-first category/tag candidates,
   ranking reasons, dedupe guidance, review metrics, and a

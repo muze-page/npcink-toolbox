@@ -7,6 +7,15 @@ GEO suggestion flow for Toolbox content context. It is prompt guidance and
 channel handoff documentation only. It does not create OpenClaw projection
 truth, Core governance records, or final WordPress writes.
 
+Human operators use the post editor sidebar entry:
+
+```text
+Npcink Content Support -> Discoverability suggestions
+```
+
+The `build-content-discoverability-brief` ability and Adapter shortcuts below
+are machine contracts for OpenClaw/Adapter, not wp-admin product entry points.
+
 ## Boundary
 
 Layer ownership stays fixed:
@@ -52,7 +61,7 @@ Then run the suggestion flow:
 6. Send final write-like changes through Core proposals and preflight.
 
 Adapter callers may use either `POST /run-read-ability` with the real
-`ability_id`, or Adapter read shortcuts when available:
+`ability_id`, or machine-only Adapter read shortcuts when available:
 
 ```text
 GET /content-discoverability-validation

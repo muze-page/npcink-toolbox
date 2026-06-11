@@ -155,6 +155,11 @@
 			description: __('Check missing terms, excerpt, image, duplicate risk, and discoverability hints.', 'npcink-toolbox'),
 		},
 		{
+			intent: 'discoverability',
+			label: __('Discoverability suggestions', 'npcink-toolbox'),
+			description: __('Review SEO, AEO, GEO, and proposal-field suggestions for the current draft.', 'npcink-toolbox'),
+		},
+		{
 			intent: 'summary_suggestions',
 			label: __('AI generate summary', 'npcink-toolbox'),
 			description: __('Generate a reviewed excerpt candidate from the current draft with hosted AI.', 'npcink-toolbox'),
@@ -178,6 +183,11 @@
 			intent: 'image_candidates',
 			label: __('Find image candidates', 'npcink-toolbox'),
 			description: __('Search configured image-source providers for featured or inline candidates.', 'npcink-toolbox'),
+		},
+		{
+			intent: 'image_alt_suggestions',
+			label: __('Image ALT suggestions', 'npcink-toolbox'),
+			description: __('Suggest ALT and caption notes for images already used by this draft.', 'npcink-toolbox'),
 		},
 	];
 
@@ -215,6 +225,57 @@
 			attributes.heading,
 		].filter(Boolean);
 		return truncateText(plainTextFromHtml(parts.join(' ')), 700);
+	}
+
+	function currentArticleMediaItems(blocks) {
+		const items = [];
+		const seen = {};
+
+		function addItem(source, attrs) {
+			const attributes = attrs && typeof attrs === 'object' ? attrs : {};
+			const url = String(attributes.url || attributes.src || attributes.poster || '').trim();
+			const id = parseInt(attributes.id || attributes.mediaId || attributes.media_id || '0', 10) || 0;
+			if (!id && !url) {
+				return;
+			}
+			const key = id ? 'id:' + String(id) : 'url:' + url;
+			if (seen[key]) {
+				return;
+			}
+			seen[key] = true;
+			items.push({
+				source,
+				attachment_id: id,
+				url,
+				title: truncateText(plainTextFromHtml(attributes.title || attributes.name || ''), 120),
+				alt: truncateText(plainTextFromHtml(attributes.alt || attributes.altText || ''), 160),
+				caption: truncateText(plainTextFromHtml(attributes.caption || attributes.figcaption || ''), 220),
+				description: truncateText(plainTextFromHtml(attributes.description || ''), 220),
+			});
+		}
+
+		function visit(block) {
+			if (!block || typeof block !== 'object') {
+				return;
+			}
+			const name = String(block.name || '');
+			const attrs = block.attributes || {};
+			if (name === 'core/image') {
+				addItem('content_image', attrs);
+			}
+			if (name === 'core/cover') {
+				addItem('content_cover', attrs);
+			}
+			if (name === 'core/gallery' && Array.isArray(attrs.images)) {
+				attrs.images.forEach((image) => addItem('content_gallery', image));
+			}
+			if (Array.isArray(block.innerBlocks)) {
+				block.innerBlocks.forEach(visit);
+			}
+		}
+
+		(Array.isArray(blocks) ? blocks : []).forEach(visit);
+		return items.slice(0, 12);
 	}
 
 	function browserSelectedText() {
@@ -435,6 +496,7 @@
 				return {};
 			}
 			const selectedBlock = blockEditor && blockEditor.getSelectedBlock ? blockEditor.getSelectedBlock() : null;
+			const blocks = blockEditor && blockEditor.getBlocks ? blockEditor.getBlocks() : [];
 
 			return {
 				post_id: editor.getCurrentPostId ? editor.getCurrentPostId() : 0,
@@ -446,6 +508,7 @@
 				category_ids: (editor.getEditedPostAttribute ? editor.getEditedPostAttribute('categories') : []) || [],
 				tag_ids: (editor.getEditedPostAttribute ? editor.getEditedPostAttribute('tags') : []) || [],
 				featured_media: editor.getEditedPostAttribute ? editor.getEditedPostAttribute('featured_media') : 0,
+				media_items: currentArticleMediaItems(blocks),
 				selected_block_name: selectedBlock && selectedBlock.name ? String(selectedBlock.name) : '',
 				selected_block_text: selectedBlockText(selectedBlock),
 			};
@@ -734,6 +797,8 @@
 			title_suggestions: __('Title suggestions', 'npcink-toolbox'),
 			article_outline: __('Outline suggestions', 'npcink-toolbox'),
 			polish_notes: __('Polish notes', 'npcink-toolbox'),
+			discoverability: __('Discoverability suggestions', 'npcink-toolbox'),
+			image_alt_suggestions: __('Image ALT suggestions', 'npcink-toolbox'),
 			internal_link_candidates: __('Internal link candidates', 'npcink-toolbox'),
 			internal_links: __('Internal links', 'npcink-toolbox'),
 			pre_publish_review: __('Pre-publish review', 'npcink-toolbox'),
@@ -839,6 +904,12 @@
 		if (value === 'polish_notes') {
 			return __('Polish selected text', 'npcink-toolbox');
 		}
+		if (value === 'discoverability') {
+			return __('Discoverability suggestions', 'npcink-toolbox');
+		}
+		if (value === 'image_alt_suggestions') {
+			return __('Image ALT suggestions', 'npcink-toolbox');
+		}
 		if (value === 'summary_terms_optimization') {
 			return __('Metadata optimization', 'npcink-toolbox');
 		}
@@ -863,6 +934,12 @@
 		}
 		if (value === 'polish_notes') {
 			return __('Review polished wording against the original before using it.', 'npcink-toolbox');
+		}
+		if (value === 'discoverability') {
+			return __('Use SEO, AEO, GEO, and proposal-field suggestions as review notes only.', 'npcink-toolbox');
+		}
+		if (value === 'image_alt_suggestions') {
+			return __('Review ALT and caption suggestions against the actual image before any media edit.', 'npcink-toolbox');
 		}
 		if (value === 'summary_suggestions') {
 			return __('AI reads the current draft and returns an editor-ready excerpt candidate.', 'npcink-toolbox');
@@ -2267,6 +2344,11 @@
 			blocks.push(renderItems(hostedWritingSupportItems(sections.polish_notes), __('No polish suggestions returned.', 'npcink-toolbox')));
 		}
 
+		if (sections.image_alt_suggestions) {
+			blocks.push(createElement('h4', { key: 'image-alt-suggestions-title' }, __('Image ALT suggestions', 'npcink-toolbox')));
+			blocks.push(renderItems(hostedWritingSupportItems(sections.image_alt_suggestions), __('No image ALT suggestions returned.', 'npcink-toolbox')));
+		}
+
 		if (sections.pre_publish_review) {
 			blocks.push(createElement('h4', { key: 'pre-publish-review-title' }, __('Pre-publish review', 'npcink-toolbox')));
 			blocks.push(renderItems(prePublishReviewItems(sections.pre_publish_review), __('No pre-publish review returned.', 'npcink-toolbox')));
@@ -2484,6 +2566,7 @@
 					intent,
 					category_ids: Array.isArray(postContext.category_ids) ? postContext.category_ids.join(',') : '',
 					tag_ids: Array.isArray(postContext.tag_ids) ? postContext.tag_ids.join(',') : '',
+					media_items: Array.isArray(postContext.media_items) ? postContext.media_items : [],
 					generation_variant: ['title_suggestions', 'article_outline', 'polish_notes', 'summary_suggestions'].indexOf(intent) >= 0 ? String(Date.now()) : '',
 				});
 				const flowResult = await postJson('editor/content-support', payload);
@@ -2600,6 +2683,34 @@
 				setImageResult(result);
 			} catch (requestError) {
 				setImageError(formatImageErrorMessage(requestError, __('Cloud image search failed.', 'npcink-toolbox')));
+			} finally {
+				setImageRunning('');
+			}
+		}
+
+		async function runMediaBrief() {
+			const postId = parseInt(postContext.post_id || '0', 10) || 0;
+			if (!postId) {
+				setImageError(__('Save the draft before generating an image plan.', 'npcink-toolbox'));
+				return;
+			}
+			setImageRunning('brief');
+			setImageError('');
+			setImageGuidance('');
+			setImageResult(null);
+			setSelectedImage(null);
+			setSelectedImageSeo(null);
+			setImageAdoptionResult(null);
+			setImageAdoptionError('');
+			resetImageFeedbackState();
+			try {
+				const result = await postJson('flows/media-brief', { post_id: postId });
+				setImageResult(result);
+				setImageSearchMode('source');
+				setImageQuery(result && result.query ? String(result.query) : '');
+				setImageGuidance(__('Generated an article image plan from the saved post context. Review candidates before search, generation, import, or featured-image adoption.', 'npcink-toolbox'));
+			} catch (requestError) {
+				setImageError(requestError && requestError.message ? requestError.message : __('Image plan generation failed.', 'npcink-toolbox'));
 			} finally {
 				setImageRunning('');
 			}
@@ -3051,6 +3162,9 @@
 				: (activeInputContext.selected_text || activeInputContext.selected_block_text || '');
 			const inspectorSeoContext = imageRequestContext(postContext, activePicker.context);
 			const inspectorSeo = selectedImage ? Object.assign({}, buildImageSeoFields(selectedImage, inspectorSeoContext), selectedImageSeo || {}) : null;
+			const imageRunningLabel = imageRunning === 'generate'
+				? __('Generating AI image candidate...', 'npcink-toolbox')
+				: (imageRunning === 'brief' ? __('Generating image plan...', 'npcink-toolbox') : __('Loading cloud image candidates...', 'npcink-toolbox'));
 			return createElement(
 				Modal,
 				{
@@ -3125,6 +3239,18 @@
 								onClick: runAutoImageRecommendations,
 							},
 							__('Search from article', 'npcink-toolbox')
+						),
+						createElement(
+							Button,
+							{
+								type: 'button',
+								variant: 'secondary',
+								className: 'npcink-toolbox-editor-support__article-search-button',
+								isBusy: imageRunning === 'brief',
+								disabled: Boolean(imageRunning),
+								onClick: runMediaBrief,
+							},
+							imageRunning === 'brief' ? __('Planning', 'npcink-toolbox') : __('Generate image plan', 'npcink-toolbox')
 						)
 					),
 					imageSearchMode === 'generate' ? createElement(
@@ -3180,7 +3306,7 @@
 							) : null,
 							renderImageResultSummary(imageResult, images, queryLabel, selectedImage),
 							renderImageCloudDetails(imageResult, useAiPromptCandidate),
-								imageRunning ? createElement('div', { className: 'npcink-toolbox-editor-support__running' }, createElement(Spinner, null), createElement('span', null, imageRunning === 'generate' ? __('Generating AI image candidate...', 'npcink-toolbox') : __('Loading cloud image candidates...', 'npcink-toolbox'))) : null,
+								imageRunning ? createElement('div', { className: 'npcink-toolbox-editor-support__running' }, createElement(Spinner, null), createElement('span', null, imageRunningLabel)) : null,
 								imageResult && !imageRunning ? renderImageCandidateCards(images, imageResult, selectedImage, selectImageCandidate, useSuggestedImageQuery, activePicker) : null
 						),
 						createElement(

@@ -63,9 +63,10 @@ It may also report Agent Gateway direct tool-map status when the host projection
 matrix is present. Missing `wp_*` Agent Gateway exposure is a host-side
 admission task, not a Toolbox route or registry task.
 
-For SEO, AEO, and GEO usage, external AI callers should treat
-`npcink-toolbox/build-content-discoverability-brief` as the primary
-lightweight contract. It exposes `seo`, `aeo`, `geo`, `exceptions`,
+For SEO, AEO, and GEO usage, human operators use the editor sidebar
+**Discoverability suggestions** button. External AI callers should treat
+`npcink-toolbox/build-content-discoverability-brief` as the machine contract
+behind that editor-facing flow. It exposes `seo`, `aeo`, `geo`, `exceptions`,
 `special_cases`, and proposal fields. `build-ai-article-writing-pack` is only a
 convenience fallback for broad natural-language article requests.
 

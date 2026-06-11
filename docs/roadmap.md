@@ -39,8 +39,11 @@ Target features:
 - Media brief button.
 - Content Context form for SEO, AEO, and GEO guidance.
 - Post editor Content Support panel for fixed flows: writing preparation,
-  publish preflight, summary suggestions, category suggestions, tag
-  suggestions, internal-link candidates, and image candidates.
+  title suggestions, outline support, polish notes, discoverability
+  suggestions, publish preflight, summary suggestions, category suggestions,
+  tag suggestions, internal-link candidates, image candidates, and current
+  article image ALT suggestions. Image candidates may include a secondary
+  saved-post media brief action for image planning.
 - Clear empty/error/loading states.
 - Reusable image-source picker with short-lived local result caching,
   empty-state query rewrites, concise candidate cards, and selected-image
@@ -118,7 +121,7 @@ Candidate buttons:
 - run publish/readiness preflight for source coverage, duplicate risk, and
   missing media metadata;
 - optimize old article;
-- complete media alt and caption suggestions;
+- complete media alt and caption suggestions for site-level media review;
 - build FAQ suggestions;
 - check source coverage.
 - generate article outline with references only as an Article Assistant

@@ -220,6 +220,10 @@ the result is suggestion-only. This route must not claim full-site crawling,
 site-health scoring, analytics/indexing coverage, image-pixel inspection,
 media-library batch updates, local queues, proposal creation, approval, or
 WordPress writes.
+When the editor sidebar needs image ALT support, it may pass only the current
+article's featured image and image-block metadata through `/editor/content-support`;
+that narrow snapshot must not become a media-library scan, batch update path,
+or direct media metadata write.
 
 `/ai/image-generation` sends one reviewed-prompt image generation request
 through Cloud Addon runtime and returns candidate-only `image_candidate.v1`
@@ -335,7 +339,11 @@ providers. Toolbox must preserve photographer attribution and source URLs.
 Unsplash responses must also preserve `download_location` for future import
 flows. Toolbox must not describe this as image generation, import media, set
 featured images, or turn image-source search into a provider routing control
-plane.
+plane. In the post editor, the image-candidate modal may expose a secondary
+saved-post media brief action as image planning context for source search, AI
+generation, and media SEO review. That action remains suggestion-only and must
+not become a separate write surface, media import path, or featured-image
+setter.
 
 AI-generated images are a separate explicit candidate mode, not a relabeling of
 Unsplash, Pixabay, or Pexels. Toolbox may normalize a caller-supplied generated

@@ -1089,17 +1089,6 @@ final class Admin_Page {
 			array(
 				'group'       => __( 'Everyday Support', 'npcink-toolbox' ),
 				'group_id'    => 'everyday-support',
-				'id'          => 'discoverability-brief',
-				'endpoint'    => 'editor/content-support',
-				'title'       => __( 'Discoverability Brief', 'npcink-toolbox' ),
-				'description' => __( 'Build SEO, AEO, GEO, taxonomy, and proposal-field suggestions with saved context and Site Knowledge when available.', 'npcink-toolbox' ),
-				'intent'      => 'discoverability',
-				'button'      => __( 'Build suggestions', 'npcink-toolbox' ),
-				'custom'      => 'content_support_flow',
-			),
-			array(
-				'group'       => __( 'Everyday Support', 'npcink-toolbox' ),
-				'group_id'    => 'everyday-support',
 				'id'          => 'publish-preflight',
 				'endpoint'    => 'editor/content-support',
 				'title'       => __( 'Publish Preflight', 'npcink-toolbox' ),

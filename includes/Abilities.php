@@ -410,8 +410,8 @@ final class Abilities {
 				)
 			),
 			'npcink-toolbox/build-content-discoverability-brief' => $this->definition(
-				__( 'Build Content Discoverability Brief', 'npcink-toolbox' ),
-				__( 'Build a suggestion-only SEO, AEO, and GEO brief from operator context and supplied post or topic input without writing WordPress content.', 'npcink-toolbox' ),
+				__( 'Build Discoverability Suggestions', 'npcink-toolbox' ),
+				__( 'Build suggestion-only SEO, AEO, and GEO guidance from operator context and supplied post or topic input without writing WordPress content.', 'npcink-toolbox' ),
 				array(),
 				array( $this, 'build_content_discoverability_brief' ),
 				'cap.toolbox.workflow_suggest',

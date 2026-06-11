@@ -2632,11 +2632,14 @@ final class Provider_Client {
 		$focus            = sanitize_textarea_field( (string) ( $input['focus'] ?? '' ) );
 		$quality_contract = $this->hosted_ai_site_helper_quality_contract( $intent );
 		$context          = $this->settings->get_content_context_for_ability();
+		$media_snapshot   = is_array( $input['media_snapshot'] ?? null )
+			? $this->sanitize_payload( $input['media_snapshot'] )
+			: $this->collect_hosted_ai_media_alt_snapshot( 10 );
 		$source           = array(
 			'focus'          => wp_trim_words( $focus, 80, '' ),
 			'site_snapshot'  => 'content_snapshot_suggestions' === $intent ? $this->collect_hosted_ai_site_snapshot() : array(),
-			'media_snapshot' => 'media_alt_suggestions' === $intent ? $this->collect_hosted_ai_media_alt_snapshot( 10 ) : array(),
-			'source_policy'  => 'bounded_public_or_media_metadata_sample_only',
+			'media_snapshot' => 'media_alt_suggestions' === $intent ? $media_snapshot : array(),
+			'source_policy'  => sanitize_key( (string) ( $input['source_policy'] ?? 'bounded_public_or_media_metadata_sample_only' ) ),
 		);
 		$prompt           = $this->hosted_ai_site_helper_prompt( $intent, $source, $context );
 

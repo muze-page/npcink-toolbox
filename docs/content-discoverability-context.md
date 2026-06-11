@@ -181,6 +181,16 @@ AI sessions can see exactly what third-party callers will receive.
 
 ## Third-Party AI Usage
 
+Human operators should run single-article SEO/AEO/GEO review from the post
+editor sidebar:
+
+```text
+Npcink Content Support -> Discoverability suggestions
+```
+
+The abilities below are the read-only machine contracts used by OpenClaw,
+Adapter, and other third-party AI callers.
+
 Third-party AI should:
 
 1. read `npcink-toolbox/get-content-discoverability-context`;

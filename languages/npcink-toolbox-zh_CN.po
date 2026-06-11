@@ -506,6 +506,12 @@ msgstr "把大纲作为规划笔记使用；它不会写入文章正文。"
 msgid "Review polished wording against the original before using it."
 msgstr "使用润色文本前先与原文对照审阅。"
 
+msgid "Use SEO, AEO, GEO, and proposal-field suggestions as review notes only."
+msgstr "仅把 SEO、AEO、GEO 和提案字段建议作为审阅笔记使用。"
+
+msgid "Review ALT and caption suggestions against the actual image before any media edit."
+msgstr "编辑任何媒体字段前，先对照实际图片审阅 ALT 和说明文字建议。"
+
 msgid "Hosted AI suggestion"
 msgstr "托管 AI 建议"
 
@@ -1667,11 +1673,11 @@ msgstr "验证内容可发现性上下文"
 msgid "Check whether the operator-maintained SEO, AEO, and GEO context has enough fields for third-party AI suggestion workflows."
 msgstr "检查运营者维护的 SEO、AEO 和 GEO 上下文是否具备第三方 AI 建议工作流所需字段。"
 
-msgid "Build Content Discoverability Brief"
-msgstr "生成内容可发现性简报"
+msgid "Build Discoverability Suggestions"
+msgstr "生成可发现性建议"
 
-msgid "Build a suggestion-only SEO, AEO, and GEO brief from operator context and supplied post or topic input without writing WordPress content."
-msgstr "根据运营者上下文和提供的文章或主题输入，生成仅建议型 SEO、AEO 和 GEO 简报，不写入 WordPress 内容。"
+msgid "Build suggestion-only SEO, AEO, and GEO guidance from operator context and supplied post or topic input without writing WordPress content."
+msgstr "根据运营者上下文和提供的文章或主题输入，生成仅建议型 SEO、AEO 和 GEO 指导，不写入 WordPress 内容。"
 
 msgid "Build AI Article Writing Pack"
 msgstr "生成 AI 文章写作包"
@@ -2072,6 +2078,12 @@ msgstr "发布预检"
 msgid "Check missing terms, excerpt, image, duplicate risk, and discoverability hints."
 msgstr "检查缺失的分类/标签、摘要、图片、重复风险和可发现性提示。"
 
+msgid "Discoverability suggestions"
+msgstr "可发现性建议"
+
+msgid "Review SEO, AEO, GEO, and proposal-field suggestions for the current draft."
+msgstr "审阅当前草稿的 SEO、AEO、GEO 和提案字段建议。"
+
 msgid "Metadata optimization"
 msgstr "元数据优化"
 
@@ -2107,6 +2119,12 @@ msgstr "查找图片候选"
 
 msgid "Search configured image-source providers for featured or inline candidates."
 msgstr "搜索已配置的图片来源提供方，生成特色图或正文图片候选。"
+
+msgid "Image ALT suggestions"
+msgstr "图片 ALT 建议"
+
+msgid "Suggest ALT and caption notes for images already used by this draft."
+msgstr "为当前草稿已经使用的图片建议 ALT 和说明文字。"
 
 msgid "Close"
 msgstr "关闭"
@@ -2369,6 +2387,15 @@ msgstr "可发现性"
 msgid "No discoverability candidates returned."
 msgstr "没有返回可发现性候选。"
 
+msgid "No image ALT suggestions returned."
+msgstr "没有返回图片 ALT 建议。"
+
+msgid "No current article images were found. Add a featured image or image block before requesting ALT suggestions."
+msgstr "未找到当前文章图片。请求 ALT 建议前，请先添加特色图或图片区块。"
+
+msgid "Suggest ALT and caption notes only for images already used by the current article."
+msgstr "仅为当前文章已经使用的图片建议 ALT 和说明文字。"
+
 msgid "Cloud image recommendation failed."
 msgstr "云端图片推荐失败。"
 
@@ -2377,6 +2404,24 @@ msgstr "请输入云端图片候选搜索词。"
 
 msgid "Cloud image search failed."
 msgstr "云端图片搜索失败。"
+
+msgid "Save the draft before generating an image plan."
+msgstr "生成图片计划前请先保存草稿。"
+
+msgid "Generated an article image plan from the saved post context. Review candidates before search, generation, import, or featured-image adoption."
+msgstr "已根据已保存的文章上下文生成图片计划。搜索、生成、导入或设为特色图前，请先审阅候选项。"
+
+msgid "Image plan generation failed."
+msgstr "图片计划生成失败。"
+
+msgid "Generating image plan..."
+msgstr "正在生成图片计划..."
+
+msgid "Planning"
+msgstr "计划中"
+
+msgid "Generate image plan"
+msgstr "生成图片计划"
 
 msgid "Image source suggestions"
 msgstr "图片来源建议"
