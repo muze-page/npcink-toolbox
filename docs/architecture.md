@@ -358,14 +358,22 @@ draft title, draft body, SEO hints, and risk level. Its result renderer shows
 `npcink-abilities-toolkit/create-draft` action, and the Core from-plan handoff route. It does
 not submit the plan to Core or approve execution.
 
-The admin **Content Support** tab groups fixed buttons by operator job. The
-default **Everyday Support** group keeps lower-frequency support utilities such
-as publish preflight, summary suggestions, category suggestions, tag
-suggestions, internal-link candidates, and image candidates. Single-article
-discoverability and draft-writing support stay in the post editor panel. Media
-work and governed handoffs are separate groups. The combined
-`Article Planning Bundle` is kept as a fallback bundle, not the default support
-flow.
+The admin page defaults to a **Start** surface with a readiness strip for Cloud
+runtime, Site Context, Site Knowledge, and final-write posture. Its primary
+article path points operators back to the post editor sidebar because
+high-frequency article-specific work belongs there. Admin tabs after Start are
+setup, operations, and diagnostics: **Site Context**, **Site Knowledge**,
+**Workflows**, and **Advanced Checks**.
+
+The admin **Workflows** tab groups lower-frequency buttons by operator job and
+defaults to **Media**, with **Optimize Existing Image** as the first visible
+tool. **Site Helpers** remain a secondary low-frequency group. **Governed
+Handoffs** and **Fallback Bundles** are folded into an advanced/fallback area
+because they require reviewed inputs or backup-package intent. Publish
+preflight, summary suggestions, category suggestions, tag suggestions,
+internal-link candidates, and image candidates stay in the post editor panel,
+not as backend buttons. The combined `Article Planning Bundle` remains a
+fallback bundle, not the default support flow.
 
 Toolbox also renders additive `operator_feedback` payloads from governed
 handoff failures, including reasons, revision fields, next steps, retry state,
@@ -440,8 +448,9 @@ Cloud Addon transport, Core proposal handoff, and Abilities media contracts. It
 does not introduce a Toolbox custom table, a /workflow-runs route, queue,
 scheduler, retry lease, artifact registry, or direct media writer.
 
-Cloud Checks use compact tabs for Cloud-managed search, image-source,
-preview-only media derivative, and Site Knowledge checks. Each panel opens
+Cloud Checks use compact tabs under the visible **Advanced Checks** label for
+Cloud-managed search, image-source, preview-only media derivative, and
+Site Knowledge checks. Each panel opens
 directly into the relevant Toolbox ability reachability check instead of
 repeating provider ownership detail. Search checks use Cloud auto execution
 only; provider selection, Jina Reader toggles, routing diagnostics, Cloud API
@@ -451,8 +460,10 @@ short-lived Cloud previews only, including bounded aspect-ratio crop overrides
 and one-run text or image/logo watermark overrides that match the
 Adapter/OpenClaw media derivative request shape; Core
 proposal submission, batch proposal submission, and URL repair handoffs stay in
-Content Support. The surface is not a billing, quota, request-log, marketplace,
-provider-routing, key-rotation, vector-provider, or vector-lifecycle surface.
+Workflows. The Site Knowledge check is read-only search verification and links
+back to the Site Knowledge tab for index status and refresh operations. The
+surface is not a billing, quota, request-log, marketplace, provider-routing,
+key-rotation, vector-provider, or vector-lifecycle surface.
 
 ## Dependency Direction
 

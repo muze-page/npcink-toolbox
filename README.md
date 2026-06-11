@@ -52,6 +52,7 @@ Project goals, ownership, and future-session instructions are documented in:
 - [Boundary](docs/boundary.md)
 - [Architecture](docs/architecture.md)
 - [Roadmap](docs/roadmap.md)
+- [Admin Surface Consolidation Summary](docs/admin-surface-consolidation-summary.md)
 - [Content Support Product Readiness](docs/content-support-product-readiness.md)
 - [Content Support Release And Trial Closeout](docs/content-support-release-trial-closeout.md)
 - [AI Content Composition Abilities](docs/ai-content-composition-abilities.md)
@@ -158,7 +159,9 @@ integration hooks are `npcink_toolbox_rest_permission` and
 
 ## Content Discoverability Context
 
-The admin page includes a Content Context form for operator-maintained SEO, AEO,
+The admin page defaults to a Start surface that summarizes Cloud runtime,
+Site Context, Site Knowledge, and final-write posture before sending operators
+to the right work surface. Its Site Context form stores operator-maintained SEO, AEO,
 and GEO guidance: site positioning, target audience, brand voice, keywords,
 allowed and forbidden claims, exception rules, SEO/AEO/GEO rules, and proposal
 fields AI may suggest. It is stored in `npcink_toolbox_content_context`,
@@ -200,7 +203,7 @@ executor.
 The article plan flow and `npcink-toolbox/build-article-write-plan` ability
 assemble a Core-ready `article_write_plan` for a reviewed draft. They do not
 call Core, approve proposals, publish content, or write WordPress data.
-The admin **Content Support** surface includes a **Reviewed Draft Handoff**
+The admin **Workflows** surface includes a **Reviewed Draft Handoff**
 fallback panel that renders the plan artifacts, risk report, final
 `npcink-abilities-toolkit/create-draft` action, and Core handoff route for operator review.
 
@@ -316,7 +319,7 @@ The post editor **Npcink Content Support** sidebar owns high-frequency writing
 preparation, title suggestions, outline support, polish notes, summary,
 discoverability, taxonomy/tag, internal-link, image, current-article image ALT,
 and publish-readiness support because those actions need the current article context. The admin
-**Content Support** tab stays focused on cross-article checks, fallback
+**Workflows** tab stays focused on site helpers, fallback
 bundles, governed handoffs, and media planning rather than draft-side writing
 buttons.
 The separate AI Site Helpers group uses the same hosted AI posture for media
@@ -324,12 +327,13 @@ ALT suggestions and bounded content snapshot opportunities. Toolbox samples a
 small amount of public-site or media metadata, Cloud produces reviewable
 suggestions, and no media library, post, SEO, proposal, crawler, or queue state
 is changed locally.
-Everyday Support remains available for lower-frequency bounded jobs such as
-publish preflight, summary suggestions, category suggestions, tag suggestions,
-internal-link candidates, or image candidates. Single-article discoverability
-and draft-writing support belong in the editor sidebar. Media work, governed
-handoffs, and the combined Article Planning Bundle are visually separate
-groups; the bundle is a fallback package, not the primary support workflow.
+Publish preflight, summary suggestions, category suggestions, tag suggestions,
+internal-link candidates, and image candidates belong in the editor sidebar.
+The admin Workflows tab defaults to media work, with **Optimize Existing Image**
+as the first visible tool. Site helpers remain a secondary low-frequency group.
+Governed handoffs and the combined Article Planning Bundle live under the
+folded advanced/fallback area so they read as reviewed-input handoffs or backup
+packages, not as the primary support workflow.
 
 `media_optimization_v1` names the existing **Optimize Existing Image** surface
 as a fixed governed workflow, not a new workflow runtime or persistent run
@@ -458,27 +462,28 @@ allow-listed post/page so Cloud can add or drop comment chunks. A low-frequency
 daily reconciliation queues the latest public allow-listed entries as a
 missed-event safety net. These jobs only call the existing Cloud sync contract;
 they do not store provider credentials, run embeddings locally, or write
-WordPress content. The Site Knowledge status panel also shows the local
-auto-sync queue, next WP-Cron runs, and a server cron command suggestion for
-low-traffic production sites.
+WordPress content. The Site Knowledge status panel also separates the ready
+Cloud index from the local auto-sync queue: debounced queued changes are shown
+as ordinary pending background work, while due or delayed WP-Cron work points to
+the server cron command suggestion for low-traffic production sites.
 
 The admin **Site Knowledge** tab lets operators start or refresh the
 Cloud-managed index and inspect coverage without configuring vector provider
 keys in Toolbox. Cloud owns embedding, vector storage, and detailed run health;
 Toolbox only starts sync from local public content and displays returned status.
-The **Cloud Checks -> Site Knowledge** panel is a read-only verification surface
-for the same Cloud-managed site knowledge status and search check; it does not
-expose provider keys, embedding settings, collection names, or vector database
-configuration.
-The **Cloud Checks -> Search** panel uses Cloud auto execution for a bounded
+The **Advanced Checks -> Site Knowledge** panel is a read-only verification surface
+for Cloud-managed site knowledge search; status and refresh operations stay in
+Site Knowledge. It does not expose provider keys, embedding settings,
+collection names, or vector database configuration.
+The **Advanced Checks -> Search** panel uses Cloud auto execution for a bounded
 Toolbox reachability check; provider selection, Jina Reader toggles, routing
 diagnostics, entitlement, quota, billing, and request logs belong in Cloud
 Addon or Cloud service-plane surfaces.
-The **Cloud Checks -> Image** panel checks Cloud image-source candidates and can
+The **Advanced Checks -> Image** panel checks Cloud image-source candidates and can
 generate a short-lived derivative preview for one existing media-library image,
 including text or image/logo watermark overrides for that run. Core proposal
 submission, batch proposal submission, and URL repair handoffs remain in
-**Content Support -> Optimize Existing Image**.
+**Workflows -> Optimize Existing Image**.
 
 Provider responses return normalized fields by default. Set **Include provider
 raw responses** to include raw provider payloads for debugging.

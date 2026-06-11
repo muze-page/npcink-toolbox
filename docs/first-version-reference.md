@@ -70,33 +70,35 @@ Provider raw payloads are excluded by default. Enable
 The first version is single-site global configuration. Do not add multisite or
 per-user isolation without a new decision.
 
-Cloud Checks now open directly into verification tools for Cloud-managed
-search, image-source candidates, preview-only media derivatives, and Site
-Knowledge. The tabs may show compact Cloud readiness labels, but each panel
-should prioritize the Toolbox ability reachability check instead of repeating
-provider ownership detail. Search checks use Cloud auto execution only; provider
+Advanced Checks keep the stable Cloud Checks deep-link id while opening
+directly into verification tools for Cloud-managed search, image-source
+candidates, preview-only media derivatives, and Site Knowledge search. The tabs
+may show compact readiness labels, but each panel should prioritize the Toolbox
+ability reachability check instead of repeating provider ownership detail.
+Search checks use Cloud auto execution only; provider
 selection, Jina Reader toggles, routing diagnostics, Cloud API key verification,
 entitlement, billing, quota, and request logs belong in Cloud Addon or Cloud
 service-plane surfaces. Image derivative checks may generate short-lived Cloud
 preview artifacts only, with one-run text or image/logo watermark overrides
 that stay compatible with OpenClaw media derivative handoffs; Core proposal,
-batch proposal, and URL repair handoffs stay in Content Support. Marketplace,
+batch proposal, and URL repair handoffs stay in Workflows. Marketplace,
 provider routing, vector provider settings, and vector lifecycle controls do
 not belong in Toolbox.
 
-The admin Content Support tab should default to fixed, single-job support
-buttons before fallback bundles. Everyday buttons use the existing
-`/editor/content-support` intents for visible jobs: writing preparation,
-publish preflight, summary suggestions, category suggestions, tag suggestions,
-internal links, and image candidates. Media tools, governed handoffs, and the
-combined Article Planning Bundle are visually separate groups so the bundle
-does not look like the primary workflow. The lower-level `taxonomy_tags` intent
-remains available to the route but is not a separate default button in the
-editor UI.
+The admin page should default to Start: readiness, current article entry, and
+next actions. Article-specific jobs use the editor Content Support sidebar:
+writing preparation, publish preflight, summary suggestions, category
+suggestions, tag suggestions, internal links, and image candidates. The admin
+Workflows tab defaults to Media, with Optimize Existing Image as the first
+visible tool, and keeps Site Helpers as a secondary low-frequency group.
+Governed Handoffs and Fallback Bundles sit under the folded advanced/fallback
+area so the combined Article Planning Bundle remains a backup package, not the
+primary workflow. The lower-level `taxonomy_tags` intent remains available to
+the route but is not a separate default button in the editor UI.
 
 ## Content Discoverability Context
 
-The admin page also includes an operator-filled Content Context form for SEO,
+The admin page also includes an operator-filled Site Context form for SEO,
 AEO, and GEO guidance. It is stored separately from connector settings:
 
 ```text
@@ -334,13 +336,25 @@ Verified plugin symlink:
 /Users/muze/Local Sites/magick-ai/app/public/wp-content/plugins/npcink-toolbox -> /Users/muze/gitee/magick-ai-toolbox
 ```
 
-Global `wp` may not be installed. The verified fallback is a temporary WP-CLI
-phar plus Local PHP and the active Local MySQL socket:
+Global WP-CLI is installed on this workstation and should be preferred for
+WordPress plugin development, smoke tests, Plugin Check, activation, and status
+checks. Confirm it before use:
 
 ```bash
-WP_CLI=/tmp/wp-cli.phar
-WP_CLI_PHP="/Users/muze/Library/Application Support/Local/lightning-services/php-8.0.30+0/bin/darwin-arm64/bin/php"
-WP_CLI_MYSQL_SOCKET="/Users/muze/Library/Application Support/Local/run/NPb24Zg9g/mysql/mysqld.sock"
+command -v wp
+wp --info
+```
+
+The verified current global binary is:
+
+```bash
+/opt/homebrew/bin/wp
+```
+
+Always set `WP_PATH` or pass `--path`; do not assume the current repository is
+the WordPress root. For the local Toolbox site:
+
+```bash
 WP_PATH="/Users/muze/Local Sites/magick-ai/app/public"
 ```
 
@@ -349,11 +363,34 @@ Do not write local admin passwords into repository files.
 Useful smoke commands:
 
 ```bash
-"$WP_CLI_PHP" -d mysqli.default_socket="$WP_CLI_MYSQL_SOCKET" -d pdo_mysql.default_socket="$WP_CLI_MYSQL_SOCKET" "$WP_CLI" --path="$WP_PATH" plugin activate npcink-toolbox
+wp --path="$WP_PATH" plugin activate npcink-toolbox
 
-"$WP_CLI_PHP" -d mysqli.default_socket="$WP_CLI_MYSQL_SOCKET" -d pdo_mysql.default_socket="$WP_CLI_MYSQL_SOCKET" "$WP_CLI" --path="$WP_PATH" plugin status npcink-toolbox
+wp --path="$WP_PATH" plugin status npcink-toolbox
 
-"$WP_CLI_PHP" -d mysqli.default_socket="$WP_CLI_MYSQL_SOCKET" -d pdo_mysql.default_socket="$WP_CLI_MYSQL_SOCKET" "$WP_CLI" --path="$WP_PATH" eval 'wp_set_current_user( 1 ); do_action( "rest_api_init" ); $request = new WP_REST_Request( "GET", "/npcink-toolbox/v1/status" ); $response = rest_do_request( $request ); echo "status=" . $response->get_status() . "\n";'
+wp --path="$WP_PATH" eval 'wp_set_current_user( 1 ); do_action( "rest_api_init" ); $request = new WP_REST_Request( "GET", "/npcink-toolbox/v1/status" ); $response = rest_do_request( $request ); echo "status=" . $response->get_status() . "\n";'
+```
+
+If a Local.app site has `DB_HOST=localhost` and WP-CLI cannot connect to the
+database, find the active Local MySQL socket and inject it through
+`WP_CLI_MYSQL_SOCKET`:
+
+```bash
+find "$HOME/Library/Application Support/Local/run" -path '*/mysql/mysqld.sock' -print
+
+WP_CLI_MYSQL_SOCKET="/path/to/Local/run/site-id/mysql/mysqld.sock"
+php -d mysqli.default_socket="$WP_CLI_MYSQL_SOCKET" \
+    -d pdo_mysql.default_socket="$WP_CLI_MYSQL_SOCKET" \
+    "$(command -v wp)" --path="$WP_PATH" plugin status npcink-toolbox
+```
+
+If the global `wp` becomes unavailable, the fallback is a temporary WP-CLI phar
+plus Local PHP and the active Local MySQL socket:
+
+```bash
+WP_CLI=/tmp/wp-cli.phar
+WP_CLI_PHP="/Users/muze/Library/Application Support/Local/lightning-services/php-8.0.30+0/bin/darwin-arm64/bin/php"
+WP_CLI_MYSQL_SOCKET="/Users/muze/Library/Application Support/Local/run/NPb24Zg9g/mysql/mysqld.sock"
+WP_PATH="/Users/muze/Local Sites/magick-ai/app/public"
 ```
 
 Adapter and Abilities smoke commands can use the same variables:

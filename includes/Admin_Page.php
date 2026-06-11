@@ -365,13 +365,18 @@ final class Admin_Page {
 			?>
 
 			<nav class="npcink-toolbox__tabs" data-toolbox-tabs aria-label="<?php esc_attr_e( 'Toolbox sections', 'npcink-toolbox' ); ?>">
-				<button type="button" class="npcink-toolbox__tab is-active" data-toolbox-tab-target="context" aria-selected="true"><?php esc_html_e( 'Content Context', 'npcink-toolbox' ); ?></button>
+				<button type="button" class="npcink-toolbox__tab is-active" data-toolbox-tab-target="start" aria-selected="true"><?php esc_html_e( 'Start', 'npcink-toolbox' ); ?></button>
+				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="context" aria-selected="false"><?php esc_html_e( 'Site Context', 'npcink-toolbox' ); ?></button>
 				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="site-knowledge" aria-selected="false"><?php esc_html_e( 'Site Knowledge', 'npcink-toolbox' ); ?></button>
-				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="tools" aria-selected="false"><?php esc_html_e( 'Content Support', 'npcink-toolbox' ); ?></button>
-				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="cloud-checks" aria-selected="false"><?php esc_html_e( 'Cloud Checks', 'npcink-toolbox' ); ?></button>
+				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="tools" aria-selected="false"><?php esc_html_e( 'Workflows', 'npcink-toolbox' ); ?></button>
+				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="cloud-checks" aria-selected="false"><?php esc_html_e( 'Advanced Checks', 'npcink-toolbox' ); ?></button>
 			</nav>
 
-			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="context" aria-label="<?php esc_attr_e( 'Content context', 'npcink-toolbox' ); ?>">
+			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="start" aria-label="<?php esc_attr_e( 'Toolbox start', 'npcink-toolbox' ); ?>">
+				<?php $this->render_start_panel( $content_context, $cloud_ready ); ?>
+			</section>
+
+			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="context" aria-label="<?php esc_attr_e( 'Site context', 'npcink-toolbox' ); ?>" hidden>
 				<?php $this->render_content_context_form( $content_context ); ?>
 			</section>
 
@@ -390,12 +395,127 @@ final class Admin_Page {
 		<?php
 	}
 
+	private function render_start_panel( array $content_context, bool $cloud_ready ): void {
+		$context_ready = $this->content_context_ready( $content_context );
+		?>
+		<div class="npcink-toolbox__panel-header">
+			<h2><?php esc_html_e( 'Start', 'npcink-toolbox' ); ?></h2>
+			<p><?php esc_html_e( 'Check readiness, then open the right operator surface for the current task.', 'npcink-toolbox' ); ?></p>
+		</div>
+
+		<div class="npcink-toolbox__start" data-toolbox-start>
+			<section class="npcink-toolbox__readiness-strip" aria-label="<?php esc_attr_e( 'Toolbox readiness', 'npcink-toolbox' ); ?>">
+				<?php
+				$this->render_start_status_item(
+					__( 'Cloud runtime', 'npcink-toolbox' ),
+					$cloud_ready ? 'ok' : 'warning',
+					$cloud_ready ? __( 'Connected', 'npcink-toolbox' ) : __( 'Needs Cloud Addon', 'npcink-toolbox' ),
+					$cloud_ready ? __( 'Hosted checks and suggestions are available.', 'npcink-toolbox' ) : __( 'Hosted checks stay disabled until Cloud transport is verified.', 'npcink-toolbox' )
+				);
+				$this->render_start_status_item(
+					__( 'Site context', 'npcink-toolbox' ),
+					$context_ready ? 'ok' : 'neutral',
+					$context_ready ? __( 'Ready', 'npcink-toolbox' ) : __( 'Needs brief', 'npcink-toolbox' ),
+					$context_ready ? __( 'Site positioning, audience, voice, and keywords are present.', 'npcink-toolbox' ) : __( 'Add the compact site brief before relying on repeatable suggestions.', 'npcink-toolbox' )
+				);
+				$this->render_start_status_item(
+					__( 'Site Knowledge', 'npcink-toolbox' ),
+					'neutral',
+					__( 'Cloud managed', 'npcink-toolbox' ),
+					__( 'Toolbox starts or refreshes the manifest; Cloud owns embeddings and index state.', 'npcink-toolbox' )
+				);
+				$this->render_start_status_item(
+					__( 'Final writes', 'npcink-toolbox' ),
+					'neutral',
+					__( 'Core governed', 'npcink-toolbox' ),
+					__( 'Suggestions and plans do not publish, mutate media, or write SEO fields directly.', 'npcink-toolbox' )
+				);
+				?>
+			</section>
+
+			<section class="npcink-toolbox__start-main">
+				<div class="npcink-toolbox__section-heading">
+					<div>
+						<h3><?php esc_html_e( 'Current article work', 'npcink-toolbox' ); ?></h3>
+						<p><?php esc_html_e( 'High-frequency writing preparation, metadata suggestions, links, image candidates, and publish checks live in the post editor sidebar.', 'npcink-toolbox' ); ?></p>
+					</div>
+					<div class="npcink-toolbox__inline-actions">
+						<a class="button button-primary" href="<?php echo esc_url( admin_url( 'post-new.php' ) ); ?>"><?php esc_html_e( 'New post', 'npcink-toolbox' ); ?></a>
+						<a class="button" href="<?php echo esc_url( admin_url( 'edit.php' ) ); ?>"><?php esc_html_e( 'Open posts', 'npcink-toolbox' ); ?></a>
+					</div>
+				</div>
+				<ul class="npcink-toolbox__usage-list">
+					<li>
+						<strong><?php esc_html_e( 'Use editor support for article-specific decisions.', 'npcink-toolbox' ); ?></strong>
+						<span><?php esc_html_e( 'The admin surface stays focused on setup, reusable site operations, fallback bundles, governed handoffs, and diagnostics.', 'npcink-toolbox' ); ?></span>
+					</li>
+					<li>
+						<strong><?php esc_html_e( 'Review before handoff.', 'npcink-toolbox' ); ?></strong>
+						<span><?php esc_html_e( 'Toolbox may prepare a plan, but final WordPress writes stay in Core approval or a separately defined local-consent proof.', 'npcink-toolbox' ); ?></span>
+					</li>
+				</ul>
+			</section>
+
+			<section class="npcink-toolbox__start-actions" aria-label="<?php esc_attr_e( 'Next actions', 'npcink-toolbox' ); ?>">
+				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=site-knowledge' ) ); ?>">
+					<strong><?php esc_html_e( 'Manage Site Knowledge', 'npcink-toolbox' ); ?></strong>
+					<span><?php esc_html_e( 'Start or refresh the Cloud-managed public content index.', 'npcink-toolbox' ); ?></span>
+				</a>
+				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=tools&toolbox_tool=media-derivative' ) ); ?>">
+					<strong><?php esc_html_e( 'Optimize Existing Image', 'npcink-toolbox' ); ?></strong>
+					<span><?php esc_html_e( 'Review a media-library image preview before creating one Core proposal.', 'npcink-toolbox' ); ?></span>
+				</a>
+				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=context' ) ); ?>">
+					<strong><?php esc_html_e( 'Edit Site Context', 'npcink-toolbox' ); ?></strong>
+					<span><?php esc_html_e( 'Maintain the site brief used as suggestion-only guidance.', 'npcink-toolbox' ); ?></span>
+				</a>
+				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=cloud-checks' ) ); ?>">
+					<strong><?php esc_html_e( 'Open Advanced Checks', 'npcink-toolbox' ); ?></strong>
+					<span><?php esc_html_e( 'Use search, image-source, and workflow checks only when troubleshooting.', 'npcink-toolbox' ); ?></span>
+				</a>
+			</section>
+		</div>
+		<?php
+	}
+
+	private function render_start_status_item( string $title, string $status, string $label, string $description ): void {
+		?>
+		<div class="npcink-toolbox__readiness-item is-<?php echo esc_attr( $status ); ?>">
+			<span><?php echo esc_html( $title ); ?></span>
+			<strong><?php echo esc_html( $label ); ?></strong>
+			<small><?php echo esc_html( $description ); ?></small>
+		</div>
+		<?php
+	}
+
+	private function content_context_ready( array $content_context ): bool {
+		$required_fields = array( 'site_positioning', 'target_audience', 'brand_voice', 'primary_keywords' );
+
+		foreach ( $required_fields as $field ) {
+			$value = $content_context[ $field ] ?? '';
+			if ( is_array( $value ) ) {
+				$parts = array();
+				foreach ( $value as $item ) {
+					if ( is_scalar( $item ) ) {
+						$parts[] = trim( (string) $item );
+					}
+				}
+				$value = implode( ' ', array_filter( $parts ) );
+			}
+			if ( '' === trim( (string) $value ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	private function render_cloud_runtime_notice(): void {
 		?>
 		<div class="npcink-toolbox__result-notice is-warning">
 			<strong><?php esc_html_e( 'Cloud runtime is not connected.', 'npcink-toolbox' ); ?></strong>
 			<span>
-				<?php esc_html_e( 'Cloud-managed search, image-source, Site Knowledge, and hosted AI actions stay unavailable until the Cloud Addon is installed and verified. Content Context and governed handoff planning remain available.', 'npcink-toolbox' ); ?>
+				<?php esc_html_e( 'Cloud-managed search, image-source, Site Knowledge, and hosted AI actions stay unavailable until the Cloud Addon is installed and verified. Site Context and governed handoff planning remain available.', 'npcink-toolbox' ); ?>
 				<?php echo esc_html( $this->cloud_runtime_unavailable_reason_label() ); ?>
 			</span>
 		</div>
@@ -489,10 +609,10 @@ final class Admin_Page {
 			<section class="npcink-toolbox__card">
 				<div class="npcink-toolbox__section-heading">
 					<div>
-						<h3><?php esc_html_e( 'Used by Content Support', 'npcink-toolbox' ); ?></h3>
-						<p><?php esc_html_e( 'After the index is ready, these Toolbox actions can use Cloud Site Knowledge automatically.', 'npcink-toolbox' ); ?></p>
+						<h3><?php esc_html_e( 'Used by editor support and Workflows', 'npcink-toolbox' ); ?></h3>
+						<p><?php esc_html_e( 'After the index is ready, article-specific suggestions use the editor sidebar and lower-frequency planning stays in Workflows.', 'npcink-toolbox' ); ?></p>
 					</div>
-					<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=tools&toolbox_tool=internal-links' ) ); ?>"><?php esc_html_e( 'Open Content Support', 'npcink-toolbox' ); ?></a>
+					<a class="button" href="<?php echo esc_url( admin_url( 'post-new.php' ) ); ?>"><?php esc_html_e( 'Open editor support', 'npcink-toolbox' ); ?></a>
 				</div>
 				<ul class="npcink-toolbox__usage-list">
 					<li>
@@ -508,7 +628,7 @@ final class Admin_Page {
 						<span><?php esc_html_e( 'Ground SEO, AEO, and GEO suggestions in existing site context.', 'npcink-toolbox' ); ?></span>
 					</li>
 					<li>
-						<strong><?php esc_html_e( 'Article Planning Bundle and OpenClaw', 'npcink-toolbox' ); ?></strong>
+						<strong><?php esc_html_e( 'Article Planning Bundle and Workflows', 'npcink-toolbox' ); ?></strong>
 						<span><?php esc_html_e( 'Use the same Cloud-managed knowledge ability for planning bundles and natural-language requests.', 'npcink-toolbox' ); ?></span>
 					</li>
 				</ul>
@@ -573,8 +693,8 @@ final class Admin_Page {
 		$image_ready = $this->settings->has_image_source_provider();
 		?>
 		<div class="npcink-toolbox__panel-header">
-			<h2><?php esc_html_e( 'Cloud Checks', 'npcink-toolbox' ); ?></h2>
-			<p><?php esc_html_e( 'Run Cloud-managed search, image-source, and site-knowledge checks from Toolbox.', 'npcink-toolbox' ); ?></p>
+			<h2><?php esc_html_e( 'Advanced Checks', 'npcink-toolbox' ); ?></h2>
+			<p><?php esc_html_e( 'Verify Cloud-managed search, image-source, Site Knowledge, and workflow evidence when an operator flow needs troubleshooting.', 'npcink-toolbox' ); ?></p>
 		</div>
 		<?php
 		if ( ! $cloud_ready ) {
@@ -586,19 +706,19 @@ final class Admin_Page {
 			<nav class="npcink-toolbox__cloud-check-tabs" aria-label="<?php esc_attr_e( 'Cloud check groups', 'npcink-toolbox' ); ?>">
 				<button type="button" class="npcink-toolbox__cloud-check-tab is-active" data-toolbox-cloud-check-target="search" aria-selected="true">
 					<span><?php esc_html_e( 'Search', 'npcink-toolbox' ); ?></span>
-					<small><?php echo esc_html( $cloud_ready ? __( 'Cloud managed', 'npcink-toolbox' ) : __( 'Cloud connection needed', 'npcink-toolbox' ) ); ?></small>
+					<small><?php echo esc_html( $cloud_ready ? __( 'Connected', 'npcink-toolbox' ) : __( 'Cloud connection needed', 'npcink-toolbox' ) ); ?></small>
 				</button>
 				<button type="button" class="npcink-toolbox__cloud-check-tab" data-toolbox-cloud-check-target="image" aria-selected="false">
 					<span><?php esc_html_e( 'Image', 'npcink-toolbox' ); ?></span>
-					<small><?php echo esc_html( $image_ready ? __( 'Cloud managed', 'npcink-toolbox' ) : __( 'Cloud connection needed', 'npcink-toolbox' ) ); ?></small>
+					<small><?php echo esc_html( $image_ready ? __( 'Connected', 'npcink-toolbox' ) : __( 'Cloud connection needed', 'npcink-toolbox' ) ); ?></small>
 				</button>
 				<button type="button" class="npcink-toolbox__cloud-check-tab" data-toolbox-cloud-check-target="site-knowledge" aria-selected="false">
 					<span><?php esc_html_e( 'Site Knowledge', 'npcink-toolbox' ); ?></span>
-					<small><?php echo esc_html( $cloud_ready ? __( 'Cloud managed', 'npcink-toolbox' ) : __( 'Cloud connection needed', 'npcink-toolbox' ) ); ?></small>
+					<small><?php echo esc_html( $cloud_ready ? __( 'Connected', 'npcink-toolbox' ) : __( 'Cloud connection needed', 'npcink-toolbox' ) ); ?></small>
 				</button>
 				<button type="button" class="npcink-toolbox__cloud-check-tab" data-toolbox-cloud-check-target="agent-quality" aria-selected="false">
 					<span><?php esc_html_e( 'Agent Quality', 'npcink-toolbox' ); ?></span>
-					<small><?php esc_html_e( 'Feedback summary', 'npcink-toolbox' ); ?></small>
+					<small><?php esc_html_e( 'Quality summary', 'npcink-toolbox' ); ?></small>
 				</button>
 			</nav>
 
@@ -607,18 +727,18 @@ final class Admin_Page {
 					<div class="npcink-toolbox__cloud-check-group-workspace" data-toolbox-cloud-check-groups>
 							<nav class="npcink-toolbox__cloud-check-group-list" aria-label="<?php esc_attr_e( 'Search checks', 'npcink-toolbox' ); ?>">
 								<button type="button" class="npcink-toolbox__cloud-check-group-button is-active" data-toolbox-cloud-check-group-target="search-test" aria-selected="true">
-									<span><?php esc_html_e( 'Search test', 'npcink-toolbox' ); ?></span>
+									<span><?php esc_html_e( 'Search reachability', 'npcink-toolbox' ); ?></span>
 									<small><?php esc_html_e( 'Read-only query', 'npcink-toolbox' ); ?></small>
 								</button>
 								<button type="button" class="npcink-toolbox__cloud-check-group-button" data-toolbox-cloud-check-group-target="search-diagnostic" aria-selected="false">
-									<span><?php esc_html_e( 'Diagnostic', 'npcink-toolbox' ); ?></span>
+									<span><?php esc_html_e( 'Evidence check', 'npcink-toolbox' ); ?></span>
 									<small><?php esc_html_e( 'Workflow evidence', 'npcink-toolbox' ); ?></small>
 								</button>
 							</nav>
 							<div>
 								<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="search-test">
 									<form class="npcink-toolbox__inline-form" data-toolbox-endpoint="web-search/test">
-										<h3><?php esc_html_e( 'Cloud search test', 'npcink-toolbox' ); ?></h3>
+										<h3><?php esc_html_e( 'Cloud search reachability', 'npcink-toolbox' ); ?></h3>
 										<?php if ( ! $cloud_ready ) : ?>
 											<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before running Cloud search checks.', 'npcink-toolbox' ); ?></div>
 										<?php endif; ?>
@@ -652,13 +772,13 @@ final class Admin_Page {
 												<input type="number" name="recency_days" min="0" max="30" value="7" />
 											</label>
 										</div>
-										<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run search test', 'npcink-toolbox' ); ?></button>
+										<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run search check', 'npcink-toolbox' ); ?></button>
 										<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
 									</form>
 								</div>
 								<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="search-diagnostic" hidden>
 									<form class="npcink-toolbox__inline-form" data-toolbox-endpoint="web-search/diagnostics">
-										<h3><?php esc_html_e( 'Workflow diagnostic', 'npcink-toolbox' ); ?></h3>
+										<h3><?php esc_html_e( 'Workflow evidence check', 'npcink-toolbox' ); ?></h3>
 										<p><?php esc_html_e( 'Run a Toolbox content workflow and verify whether it attached Cloud web search evidence.', 'npcink-toolbox' ); ?></p>
 										<?php if ( ! $cloud_ready ) : ?>
 											<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before running Cloud workflow diagnostics.', 'npcink-toolbox' ); ?></div>
@@ -681,7 +801,7 @@ final class Admin_Page {
 											<span><?php esc_html_e( 'Working title', 'npcink-toolbox' ); ?></span>
 											<input type="text" name="title" placeholder="<?php esc_attr_e( 'Optional title override', 'npcink-toolbox' ); ?>" />
 										</label>
-										<button type="submit" class="button" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run workflow diagnostic', 'npcink-toolbox' ); ?></button>
+										<button type="submit" class="button" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run evidence check', 'npcink-toolbox' ); ?></button>
 										<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
 									</form>
 								</div>
@@ -693,7 +813,7 @@ final class Admin_Page {
 					<div class="npcink-toolbox__cloud-check-group-workspace" data-toolbox-cloud-check-groups>
 							<nav class="npcink-toolbox__cloud-check-group-list" aria-label="<?php esc_attr_e( 'Image checks', 'npcink-toolbox' ); ?>">
 								<button type="button" class="npcink-toolbox__cloud-check-group-button is-active" data-toolbox-cloud-check-group-target="image-smoke" aria-selected="true">
-									<span><?php esc_html_e( 'Smoke test', 'npcink-toolbox' ); ?></span>
+									<span><?php esc_html_e( 'Candidate check', 'npcink-toolbox' ); ?></span>
 									<small><?php esc_html_e( 'Candidates', 'npcink-toolbox' ); ?></small>
 								</button>
 								<button type="button" class="npcink-toolbox__cloud-check-group-button" data-toolbox-cloud-check-group-target="image-derivative-preview" aria-selected="false">
@@ -715,7 +835,7 @@ final class Admin_Page {
 							</div>
 							<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="image-handoff" hidden>
 								<div class="npcink-toolbox__example">
-									<strong><?php esc_html_e( 'Core handoff stays in Content Support', 'npcink-toolbox' ); ?></strong>
+									<strong><?php esc_html_e( 'Core handoff stays in Workflows', 'npcink-toolbox' ); ?></strong>
 									<span><?php esc_html_e( 'Use the full Optimize Existing Image flow when a reviewed preview should become one Core proposal, or when batch and URL repair actions are needed.', 'npcink-toolbox' ); ?></span>
 								</div>
 								<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=tools&toolbox_tool=media-derivative' ) ); ?>"><?php esc_html_e( 'Open Optimize Existing Image', 'npcink-toolbox' ); ?></a>
@@ -725,44 +845,14 @@ final class Admin_Page {
 				</section>
 
 				<section class="npcink-toolbox__card" data-toolbox-cloud-check-panel="site-knowledge" hidden>
-					<div class="npcink-toolbox__cloud-check-group-workspace" data-toolbox-cloud-check-groups>
-							<nav class="npcink-toolbox__cloud-check-group-list" aria-label="<?php esc_attr_e( 'Site Knowledge checks', 'npcink-toolbox' ); ?>">
-								<button type="button" class="npcink-toolbox__cloud-check-group-button is-active" data-toolbox-cloud-check-group-target="site-knowledge-status" aria-selected="true">
-									<span><?php esc_html_e( 'Status', 'npcink-toolbox' ); ?></span>
-									<small><?php esc_html_e( 'Coverage', 'npcink-toolbox' ); ?></small>
-								</button>
-								<button type="button" class="npcink-toolbox__cloud-check-group-button" data-toolbox-cloud-check-group-target="site-knowledge-search" aria-selected="false">
-									<span><?php esc_html_e( 'Search check', 'npcink-toolbox' ); ?></span>
-									<small><?php esc_html_e( 'Read-only query', 'npcink-toolbox' ); ?></small>
-								</button>
-							</nav>
-							<div data-toolbox-site-knowledge>
-								<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="site-knowledge-status">
-									<div class="npcink-toolbox__section-heading">
-										<div>
-											<h3><?php esc_html_e( 'Status', 'npcink-toolbox' ); ?></h3>
-											<p><?php esc_html_e( 'Cloud coverage summary for this WordPress site.', 'npcink-toolbox' ); ?></p>
-										</div>
-										<div class="npcink-toolbox__inline-actions">
-											<button type="button" class="button" data-toolbox-site-knowledge-status <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Refresh', 'npcink-toolbox' ); ?></button>
-											<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=site-knowledge' ) ); ?>"><?php esc_html_e( 'Manage index', 'npcink-toolbox' ); ?></a>
-										</div>
-									</div>
-									<?php if ( ! $cloud_ready ) : ?>
-										<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before loading Site Knowledge status.', 'npcink-toolbox' ); ?></div>
-									<?php endif; ?>
-									<div class="npcink-toolbox__knowledge-summary" data-toolbox-site-knowledge-summary>
-										<div class="npcink-toolbox__result-notice is-pending"><?php esc_html_e( 'Status has not been loaded yet.', 'npcink-toolbox' ); ?></div>
-									</div>
-									<div class="npcink-toolbox__knowledge-summary" data-toolbox-agent-feedback-summary>
-										<div class="npcink-toolbox__result-notice is-pending"><?php esc_html_e( 'Agent feedback summary has not been loaded yet.', 'npcink-toolbox' ); ?></div>
-									</div>
-								</div>
-								<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="site-knowledge-search" hidden>
-									<?php $this->render_site_knowledge_search_check( false, $cloud_ready ); ?>
-								</div>
-							</div>
+					<div class="npcink-toolbox__section-heading">
+						<div>
+							<h3><?php esc_html_e( 'Site Knowledge search check', 'npcink-toolbox' ); ?></h3>
+							<p><?php esc_html_e( 'Use this only to verify read-only Cloud index retrieval. Index status and refresh controls stay in Site Knowledge.', 'npcink-toolbox' ); ?></p>
+						</div>
+						<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=site-knowledge' ) ); ?>"><?php esc_html_e( 'Manage index', 'npcink-toolbox' ); ?></a>
 					</div>
+					<?php $this->render_site_knowledge_search_check( false, $cloud_ready ); ?>
 				</section>
 
 				<section class="npcink-toolbox__card" data-toolbox-cloud-check-panel="agent-quality" hidden>
@@ -799,8 +889,8 @@ final class Admin_Page {
 		$preview = wp_json_encode( $this->settings->get_content_context_for_ability(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 		?>
 		<div class="npcink-toolbox__panel-header">
-			<h2><?php esc_html_e( 'Content Context', 'npcink-toolbox' ); ?></h2>
-			<p><?php esc_html_e( 'Fill a compact site brief, then tune SEO, AEO, and GEO guidance. Draft buttons only prefill this form; nothing is saved until you click Save content context. After saving, use Content Support to test briefs, site knowledge, and image candidates.', 'npcink-toolbox' ); ?></p>
+			<h2><?php esc_html_e( 'Site Context', 'npcink-toolbox' ); ?></h2>
+			<p><?php esc_html_e( 'Fill a compact site brief, then tune SEO, AEO, and GEO guidance. Draft buttons only prefill this form; nothing is saved until you click Save content context. Article-specific checks belong in the editor sidebar.', 'npcink-toolbox' ); ?></p>
 		</div>
 
 		<form class="npcink-toolbox__settings-form" method="post" action="options.php" data-toolbox-context-form>
@@ -1087,59 +1177,24 @@ final class Admin_Page {
 	private function render_tool_cards( bool $cloud_ready ): void {
 		$tools = array(
 			array(
-				'group'       => __( 'Everyday Support', 'npcink-toolbox' ),
-				'group_id'    => 'everyday-support',
-				'id'          => 'publish-preflight',
-				'endpoint'    => 'editor/content-support',
-				'title'       => __( 'Publish Preflight', 'npcink-toolbox' ),
-				'description' => __( 'Check source coverage, duplicate risk, missing terms, excerpt, and media readiness against current site context.', 'npcink-toolbox' ),
-				'intent'      => 'publish_preflight',
-				'button'      => __( 'Run preflight', 'npcink-toolbox' ),
-				'custom'      => 'content_support_flow',
+				'group'       => __( 'Media', 'npcink-toolbox' ),
+				'group_id'    => 'media',
+				'id'          => 'media-derivative',
+				'endpoint'    => 'media-derivative-handoff',
+				'title'       => __( 'Optimize Existing Image', 'npcink-toolbox' ),
+				'description' => __( 'Choose a media-library image, review metadata, generate a preview, then submit one Core optimization proposal.', 'npcink-toolbox' ),
+				'custom'      => 'media_derivative',
 			),
 			array(
-				'group'       => __( 'Everyday Support', 'npcink-toolbox' ),
-				'group_id'    => 'everyday-support',
-				'id'          => 'summary-terms-optimization',
-				'endpoint'    => 'editor/content-support',
-				'title'       => __( 'Summary and Terms Optimization', 'npcink-toolbox' ),
-				'description' => __( 'Review Generate and apply summary, Recommend and apply tags, Recommend categories, and Create new tags and assign candidates as Core handoff actions without writing WordPress data.', 'npcink-toolbox' ),
-				'intent'      => 'summary_terms_optimization',
-				'button'      => __( 'Optimize metadata', 'npcink-toolbox' ),
-				'custom'      => 'content_support_flow',
-			),
-			array(
-				'group'       => __( 'Everyday Support', 'npcink-toolbox' ),
-				'group_id'    => 'everyday-support',
-				'id'          => 'taxonomy-tags',
-				'endpoint'    => 'editor/content-support',
-				'title'       => __( 'Existing Taxonomy/Tag Candidates', 'npcink-toolbox' ),
-				'description' => __( 'Suggest matching existing categories and tags from the supplied article, selected text, or topic context.', 'npcink-toolbox' ),
-				'intent'      => 'taxonomy_tags',
-				'button'      => __( 'Find existing terms', 'npcink-toolbox' ),
-				'custom'      => 'content_support_flow',
-			),
-			array(
-				'group'       => __( 'Everyday Support', 'npcink-toolbox' ),
-				'group_id'    => 'everyday-support',
-				'id'          => 'internal-links',
-				'endpoint'    => 'editor/content-support',
-				'title'       => __( 'Internal Link Candidates', 'npcink-toolbox' ),
-				'description' => __( 'Use Cloud-managed Site Knowledge to find related public content for operator-reviewed links.', 'npcink-toolbox' ),
-				'intent'      => 'internal_links',
-				'button'      => __( 'Find links', 'npcink-toolbox' ),
-				'custom'      => 'content_support_flow',
-			),
-			array(
-				'group'       => __( 'Everyday Support', 'npcink-toolbox' ),
-				'group_id'    => 'everyday-support',
-				'id'          => 'image-candidates',
-				'endpoint'    => 'editor/content-support',
-				'title'       => __( 'Image Candidates', 'npcink-toolbox' ),
-				'description' => __( 'Find image-source candidates for featured or inline use. Import still requires a governed handoff.', 'npcink-toolbox' ),
-				'intent'      => 'image_candidates',
-				'button'      => __( 'Find images', 'npcink-toolbox' ),
-				'custom'      => 'content_support_flow',
+				'group'       => __( 'Media', 'npcink-toolbox' ),
+				'group_id'    => 'media',
+				'id'          => 'media-brief',
+				'endpoint'    => 'flows/media-brief',
+				'title'       => __( 'Media Brief', 'npcink-toolbox' ),
+				'description' => __( 'Use an existing post id to plan image prompts and media SEO actions.', 'npcink-toolbox' ),
+				'field'       => 'post_id',
+				'placeholder' => __( 'Post ID', 'npcink-toolbox' ),
+				'button'      => __( 'Plan media', 'npcink-toolbox' ),
 			),
 			array(
 				'group'       => __( 'AI Site Helpers', 'npcink-toolbox' ),
@@ -1164,12 +1219,30 @@ final class Admin_Page {
 				'custom'      => 'hosted_ai_site_helper',
 			),
 			array(
+				'group'       => __( 'Governed Handoffs', 'npcink-toolbox' ),
+				'group_id'    => 'governed-handoffs',
+				'id'          => 'article-plan',
+				'endpoint'    => 'flows/article-plan',
+				'title'       => __( 'Reviewed Draft Handoff', 'npcink-toolbox' ),
+				'description' => __( 'Use only after a human-reviewed draft exists; prepare a Core-ready article_write_plan without submitting or approving it.', 'npcink-toolbox' ),
+				'custom'      => 'article_plan',
+			),
+			array(
+				'group'       => __( 'Governed Handoffs', 'npcink-toolbox' ),
+				'group_id'    => 'governed-handoffs',
+				'id'          => 'image-candidate-adoption',
+				'endpoint'    => 'flows/image-candidate-adoption-plan',
+				'title'       => __( 'Adopt New Image', 'npcink-toolbox' ),
+				'description' => __( 'Use only after a reviewed stock, generated, owned, or external image candidate exists.', 'npcink-toolbox' ),
+				'custom'      => 'image_candidate_adoption',
+			),
+			array(
 				'group'       => __( 'Fallback Bundles', 'npcink-toolbox' ),
 				'group_id'    => 'fallback-bundles',
 				'id'          => 'article-brief',
 				'endpoint'    => 'flows/article-brief',
 				'title'       => __( 'Article Planning Bundle', 'npcink-toolbox' ),
-				'description' => __( 'Build one combined research, image, knowledge, outline, and handoff bundle when an operator needs a compact fallback package.', 'npcink-toolbox' ),
+				'description' => __( 'Advanced fallback package for combined research, image, knowledge, outline, and handoff context when the editor path is not enough.', 'npcink-toolbox' ),
 				'field'       => 'topic',
 				'placeholder' => __( 'Article topic', 'npcink-toolbox' ),
 				'button'      => __( 'Build bundle', 'npcink-toolbox' ),
@@ -1180,75 +1253,42 @@ final class Admin_Page {
 				'id'          => 'article-assistant',
 				'endpoint'    => 'flows/article-assistant',
 				'title'       => __( 'Article Assistant Fallback', 'npcink-toolbox' ),
-				'description' => __( 'Assemble one local workbench artifact from support abilities and an optional reviewed draft; it does not write the article body.', 'npcink-toolbox' ),
+				'description' => __( 'Advanced fallback workbench for existing support artifacts and an optional reviewed draft; it does not write the article body.', 'npcink-toolbox' ),
 				'custom'      => 'article_assistant',
-			),
-			array(
-				'group'       => __( 'Governed Handoffs', 'npcink-toolbox' ),
-				'group_id'    => 'governed-handoffs',
-				'id'          => 'article-plan',
-				'endpoint'    => 'flows/article-plan',
-				'title'       => __( 'Reviewed Draft Handoff', 'npcink-toolbox' ),
-				'description' => __( 'Prepare a Core-ready article_write_plan only after a human-reviewed draft exists. Toolbox does not submit or approve the proposal.', 'npcink-toolbox' ),
-				'custom'      => 'article_plan',
-			),
-			array(
-				'group'       => __( 'Governed Handoffs', 'npcink-toolbox' ),
-				'group_id'    => 'governed-handoffs',
-				'id'          => 'image-candidate-adoption',
-				'endpoint'    => 'flows/image-candidate-adoption-plan',
-				'title'       => __( 'Adopt New Image', 'npcink-toolbox' ),
-				'description' => __( 'Use a reviewed stock, generated, owned, or external image as a media import proposal.', 'npcink-toolbox' ),
-				'custom'      => 'image_candidate_adoption',
-			),
-			array(
-				'group'       => __( 'Media', 'npcink-toolbox' ),
-				'group_id'    => 'media',
-				'id'          => 'media-brief',
-				'endpoint'    => 'flows/media-brief',
-				'title'       => __( 'Media Brief', 'npcink-toolbox' ),
-				'description' => __( 'Use an existing post id to plan image prompts and media SEO actions.', 'npcink-toolbox' ),
-				'field'       => 'post_id',
-				'placeholder' => __( 'Post ID', 'npcink-toolbox' ),
-				'button'      => __( 'Plan media', 'npcink-toolbox' ),
-			),
-			array(
-				'group'       => __( 'Media', 'npcink-toolbox' ),
-				'group_id'    => 'media',
-				'id'          => 'media-derivative',
-				'endpoint'    => 'media-derivative-handoff',
-				'title'       => __( 'Optimize Existing Image', 'npcink-toolbox' ),
-				'description' => __( 'Choose a media-library image, review metadata, generate a preview, then submit one Core optimization proposal.', 'npcink-toolbox' ),
-				'custom'      => 'media_derivative',
 			),
 		);
 		$tool_groups = array(
-			'everyday-support'  => array(
-				'title'       => __( 'Everyday Support', 'npcink-toolbox' ),
-				'description' => __( 'SEO/AEO/GEO, metadata, links, image candidates, and publish readiness.', 'npcink-toolbox' ),
+			'media'             => array(
+				'title'       => __( 'Media', 'npcink-toolbox' ),
+				'description' => __( 'Start here for existing-image optimization and bounded media planning.', 'npcink-toolbox' ),
 			),
 			'site-helpers'      => array(
 				'title'       => __( 'Site Helpers', 'npcink-toolbox' ),
 				'description' => __( 'Small hosted checks for media ALT and public content opportunities.', 'npcink-toolbox' ),
 			),
-			'fallback-bundles'  => array(
-				'title'       => __( 'Fallback Bundles', 'npcink-toolbox' ),
-				'description' => __( 'Combined artifacts for reviewed local workbench cases.', 'npcink-toolbox' ),
-			),
 			'governed-handoffs' => array(
 				'title'       => __( 'Governed Handoffs', 'npcink-toolbox' ),
-				'description' => __( 'Core-ready plans after reviewed editor choices exist.', 'npcink-toolbox' ),
+				'description' => __( 'Use after reviewed draft, selected image, or editor choices exist.', 'npcink-toolbox' ),
 			),
-			'media'             => array(
-				'title'       => __( 'Media', 'npcink-toolbox' ),
-				'description' => __( 'Media briefs, image adoption plans, and existing-image optimization.', 'npcink-toolbox' ),
+			'fallback-bundles'  => array(
+				'title'       => __( 'Fallback Bundles', 'npcink-toolbox' ),
+				'description' => __( 'Advanced fallback packages; not the daily writing path.', 'npcink-toolbox' ),
 			),
+		);
+		$advanced_tool_groups = array(
+			'governed-handoffs' => true,
+			'fallback-bundles'  => true,
 		);
 		?>
 		<div class="npcink-toolbox__tool-workspace" data-toolbox-tools>
-			<div class="npcink-toolbox__tool-group-tabs" aria-label="<?php esc_attr_e( 'Content Support groups', 'npcink-toolbox' ); ?>">
+			<div class="npcink-toolbox__workflow-scope">
+				<strong><?php esc_html_e( 'Workflow scope', 'npcink-toolbox' ); ?></strong>
+				<span><?php esc_html_e( 'Use this workbench for media operations, small site helpers, reviewed handoffs, and advanced fallback packages. Article-specific writing support stays in the editor sidebar.', 'npcink-toolbox' ); ?></span>
+			</div>
+			<div class="npcink-toolbox__tool-group-tabs" aria-label="<?php esc_attr_e( 'Workflow groups', 'npcink-toolbox' ); ?>">
 				<?php
 				$rendered_groups = array();
+				$advanced_groups = array();
 				foreach ( $tools as $index => $tool ) :
 					$group_id = (string) ( $tool['group_id'] ?? '' );
 					if ( '' === $group_id || isset( $rendered_groups[ $group_id ] ) ) {
@@ -1259,12 +1299,36 @@ final class Admin_Page {
 						'title'       => (string) ( $tool['group'] ?? '' ),
 						'description' => '',
 					);
+					if ( isset( $advanced_tool_groups[ $group_id ] ) ) {
+						$advanced_groups[] = array(
+							'group_id'    => $group_id,
+							'group_meta'  => $group_meta,
+							'active'      => 0 === $index,
+						);
+						continue;
+					}
 					?>
 					<button type="button" class="npcink-toolbox__tool-group-tab <?php echo 0 === $index ? 'is-active' : ''; ?>" data-toolbox-tool-group-target="<?php echo esc_attr( $group_id ); ?>" aria-selected="<?php echo 0 === $index ? 'true' : 'false'; ?>">
 						<span><?php echo esc_html( (string) $group_meta['title'] ); ?></span>
 						<small><?php echo esc_html( (string) $group_meta['description'] ); ?></small>
 					</button>
 				<?php endforeach; ?>
+				<?php if ( ! empty( $advanced_groups ) ) : ?>
+					<details class="npcink-toolbox__advanced-workflow-groups" data-toolbox-advanced-workflows>
+						<summary>
+							<span><?php esc_html_e( 'Advanced and fallback', 'npcink-toolbox' ); ?></span>
+							<small><?php esc_html_e( 'Use only after reviewed inputs exist or the editor path is not enough.', 'npcink-toolbox' ); ?></small>
+						</summary>
+						<div class="npcink-toolbox__advanced-workflow-buttons">
+							<?php foreach ( $advanced_groups as $advanced_group ) : ?>
+								<button type="button" class="npcink-toolbox__tool-group-tab is-secondary <?php echo $advanced_group['active'] ? 'is-active' : ''; ?>" data-toolbox-tool-group-target="<?php echo esc_attr( (string) $advanced_group['group_id'] ); ?>" aria-selected="<?php echo $advanced_group['active'] ? 'true' : 'false'; ?>">
+									<span><?php echo esc_html( (string) $advanced_group['group_meta']['title'] ); ?></span>
+									<small><?php echo esc_html( (string) $advanced_group['group_meta']['description'] ); ?></small>
+								</button>
+							<?php endforeach; ?>
+						</div>
+					</details>
+				<?php endif; ?>
 			</div>
 
 			<div class="npcink-toolbox__tool-list" aria-label="<?php esc_attr_e( 'Tool actions', 'npcink-toolbox' ); ?>">
@@ -1468,7 +1532,7 @@ final class Admin_Page {
 	private function render_image_source_candidates_smoke_form( bool $cloud_ready = true ): void {
 		?>
 		<form class="npcink-toolbox__inline-form" data-toolbox-endpoint="image-candidates">
-			<h3><?php esc_html_e( 'Image source smoke test', 'npcink-toolbox' ); ?></h3>
+			<h3><?php esc_html_e( 'Image source check', 'npcink-toolbox' ); ?></h3>
 			<p><?php esc_html_e( 'Test Cloud-managed Unsplash/Pixabay/Pexels image-source candidates and preserve attribution metadata.', 'npcink-toolbox' ); ?></p>
 			<?php if ( ! $cloud_ready ) : ?>
 				<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before testing Cloud image-source candidates.', 'npcink-toolbox' ); ?></div>
@@ -1511,7 +1575,7 @@ final class Admin_Page {
 					<input type="text" name="color" placeholder="<?php esc_attr_e( 'Optional Unsplash color filter', 'npcink-toolbox' ); ?>" />
 				</label>
 			</div>
-			<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Test Cloud image source', 'npcink-toolbox' ); ?></button>
+			<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run image source check', 'npcink-toolbox' ); ?></button>
 			<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
 		</form>
 		<?php
@@ -1520,7 +1584,7 @@ final class Admin_Page {
 	private function render_ai_image_generation_smoke_form( bool $cloud_ready = true ): void {
 		?>
 		<form class="npcink-toolbox__inline-form" data-toolbox-endpoint="ai/image-generation">
-			<h3><?php esc_html_e( 'AI image generation smoke test', 'npcink-toolbox' ); ?></h3>
+			<h3><?php esc_html_e( 'AI image generation check', 'npcink-toolbox' ); ?></h3>
 			<p><?php esc_html_e( 'Generate one reviewed-prompt AI image candidate through hosted Cloud runtime. The result stays candidate-only and does not import media or write WordPress.', 'npcink-toolbox' ); ?></p>
 			<?php if ( ! $cloud_ready ) : ?>
 				<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before testing hosted AI image generation.', 'npcink-toolbox' ); ?></div>
@@ -1552,7 +1616,7 @@ final class Admin_Page {
 			<input type="hidden" name="media_title" value="<?php esc_attr_e( 'AI image generation governance', 'npcink-toolbox' ); ?>" />
 			<input type="hidden" name="media_alt" value="<?php esc_attr_e( 'Original editorial image for AI image generation governance.', 'npcink-toolbox' ); ?>" />
 			<input type="hidden" name="media_description" value="<?php esc_attr_e( 'AI-generated image candidate for the hosted image generation smoke test. Review it before importing or setting it as featured media.', 'npcink-toolbox' ); ?>" />
-			<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Test AI image generation', 'npcink-toolbox' ); ?></button>
+			<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run AI image check', 'npcink-toolbox' ); ?></button>
 			<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
 		</form>
 		<?php
@@ -2055,9 +2119,6 @@ final class Admin_Page {
 	private function render_media_derivative_tool( string $endpoint, string $title, string $description, string $tool_id, bool $active = false ): void {
 		$toolbox_policy = $this->get_media_derivative_toolbox_policy();
 		?>
-		<div data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" <?php echo $active ? '' : 'hidden'; ?>>
-			<?php $this->render_media_derivative_policy_settings( $toolbox_policy ); ?>
-		</div>
 		<form class="npcink-toolbox__card" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" data-toolbox-media-derivative <?php echo $active ? '' : 'hidden'; ?>>
 			<h2><?php echo esc_html( $title ); ?></h2>
 			<p><?php echo esc_html( $description ); ?></p>
@@ -2207,6 +2268,9 @@ final class Admin_Page {
 			</details>
 			<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
 		</form>
+		<div data-toolbox-tool-panel-extra="<?php echo esc_attr( $tool_id ); ?>" <?php echo $active ? '' : 'hidden'; ?>>
+			<?php $this->render_media_derivative_policy_settings( $toolbox_policy ); ?>
+		</div>
 		<?php
 	}
 

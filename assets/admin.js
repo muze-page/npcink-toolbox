@@ -94,6 +94,11 @@
 			.replace(/\b\w/g, (letter) => letter.toUpperCase());
 	}
 
+	function localizedLabel(value) {
+		const label = formatLabel(value);
+		return label ? t(label) : '';
+	}
+
 	function truncate(value, limit) {
 		const text = String(value || '').trim();
 		if (!text || text.length <= limit) {
@@ -1277,16 +1282,16 @@
 
 		const status = String(payload && payload.status ? payload.status : 'unknown');
 		const noticeKind = status === 'ready' ? 'ok' : (status === 'failed' ? 'error' : 'pending');
-		container.appendChild(el('div', 'npcink-toolbox__result-notice is-' + noticeKind, t('Status: ') + formatLabel(status)));
+		container.appendChild(el('div', 'npcink-toolbox__result-notice is-' + noticeKind, t('Status: ') + localizedLabel(status)));
 		if (siteKnowledgeStatusStillActive(payload)) {
 			container.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', siteKnowledgeActiveStatusMessage(payload)));
 		}
 		if (progress.message) {
-			container.appendChild(el('div', 'npcink-toolbox__result-notice is-' + noticeKind, progress.message));
+			container.appendChild(el('div', 'npcink-toolbox__result-notice is-' + noticeKind, siteKnowledgeProgressMessage(progress.message)));
 		}
 
 		const meta = el('div', 'npcink-toolbox__result-meta');
-		appendMeta(meta, 'Stage', progress.stage ? formatLabel(progress.stage) : '');
+		appendMeta(meta, 'Stage', progress.stage ? localizedLabel(progress.stage) : '');
 		appendMeta(meta, 'Progress', typeof progress.percent === 'number' ? progress.percent + '%' : '');
 		appendMeta(
 			meta,
@@ -1304,7 +1309,7 @@
 		appendMeta(meta, 'Last sync', formatDateTime(coverage.last_sync_at));
 		appendMeta(meta, 'Active run', activeRun.run_id);
 		appendMeta(meta, 'Comments', coverage.comments_enabled === true ? 'Enabled in Cloud' : 'Disabled in Cloud');
-		appendMeta(meta, 'Cloud quota', quota.status ? formatLabel(quota.status) : '');
+		appendMeta(meta, 'Cloud quota', quota.status ? localizedLabel(quota.status) : '');
 		appendMeta(
 			meta,
 			'Indexed documents quota',
@@ -1323,7 +1328,7 @@
 			meta,
 			'Run batch cap',
 			quota.max_sync_documents_per_run
-				? String(quota.max_sync_documents_per_run) + ' documents / ' + String(quota.max_sync_chunks_per_run || 0) + ' chunks'
+				? String(quota.max_sync_documents_per_run) + ' ' + t('documents') + ' / ' + String(quota.max_sync_chunks_per_run || 0) + ' ' + t('chunks')
 				: ''
 		);
 		if (meta.childNodes.length) {
@@ -1344,6 +1349,11 @@
 		}
 
 		renderSiteKnowledgeAutoSync(container, payload && payload.auto_sync && typeof payload.auto_sync === 'object' ? payload.auto_sync : {});
+	}
+
+	function siteKnowledgeProgressMessage(message) {
+		const text = String(message || '').trim();
+		return text ? t(text) : '';
 	}
 
 	function formatRate(value) {
@@ -1441,11 +1451,13 @@
 
 	function renderSiteKnowledgeAutoSync(container, health) {
 		const status = String(health.status || 'idle');
-		const noticeKind = status === 'delayed' ? 'warning' : 'pending';
-		container.appendChild(el('div', 'npcink-toolbox__result-notice is-' + noticeKind, health.message || 'Site Knowledge auto-sync uses WP-Cron for background refreshes.'));
+		const queueCount = Number(health.queue_count || 0);
+		const notice = siteKnowledgeAutoSyncNotice(health, status, queueCount);
+		container.appendChild(el('div', notice.kind ? 'npcink-toolbox__result-notice is-' + notice.kind : 'npcink-toolbox__result-notice', notice.message));
 
 		const meta = el('div', 'npcink-toolbox__result-meta');
-		appendMeta(meta, 'Auto-sync', formatLabel(status));
+		appendMeta(meta, 'Auto-sync', localizedLabel(status));
+		appendMeta(meta, 'Queue meaning', siteKnowledgeAutoSyncQueueMeaning(health, status, queueCount));
 		appendMeta(meta, 'Queued changes', health.queue_count);
 		appendMeta(meta, 'Next queue run', formatDateTime(health.next_queue_run_at));
 		appendMeta(meta, 'Daily check', formatDateTime(health.next_reconcile_at));
@@ -1458,7 +1470,7 @@
 
 		if (health.cron_command || health.wp_cli_command) {
 			const details = el('details', 'npcink-toolbox__result-details');
-			details.appendChild(el('summary', '', 'Server cron suggestion'));
+			details.appendChild(el('summary', '', siteKnowledgeAutoSyncCronSummary(health, status, queueCount)));
 			if (health.cron_command) {
 				details.appendChild(el('p', 'description', 'Use this when your host supports URL-based scheduled tasks.'));
 				const curl = el('pre', 'npcink-toolbox__result-raw');
@@ -1473,6 +1485,59 @@
 			}
 			container.appendChild(details);
 		}
+	}
+
+	function siteKnowledgeAutoSyncNotice(health, status, queueCount) {
+		if (status === 'disabled') {
+			return {
+				kind: 'warning',
+				message: health.message || 'Auto-sync is disabled until Cloud transport is available.',
+			};
+		}
+		if (status === 'delayed' || health.wp_cron_disabled === true || siteKnowledgeAutoSyncDue(health, queueCount)) {
+			return {
+				kind: 'warning',
+				message: 'Auto-sync has queued changes that are due for WP-Cron. If this stays queued, run WP-Cron or configure the server cron command below.',
+			};
+		}
+		if (queueCount > 0) {
+			return {
+				kind: '',
+				message: 'Auto-sync is waiting for the debounce window. The current index remains usable; queued changes will refresh on the next WP-Cron run.',
+			};
+		}
+		return {
+			kind: 'ok',
+			message: 'Auto-sync is idle. No queued public-content changes are waiting.',
+		};
+	}
+
+	function siteKnowledgeAutoSyncQueueMeaning(health, status, queueCount) {
+		if (status === 'disabled') {
+			return 'Disabled until Cloud transport is available';
+		}
+		if (queueCount <= 0) {
+			return 'No queued changes';
+		}
+		if (status === 'delayed' || health.wp_cron_disabled === true || siteKnowledgeAutoSyncDue(health, queueCount)) {
+			return 'Queued changes are due for WP-Cron';
+		}
+		return 'Debounced changes waiting for the next WP-Cron run';
+	}
+
+	function siteKnowledgeAutoSyncCronSummary(health, status, queueCount) {
+		if (status === 'delayed' || health.wp_cron_disabled === true || siteKnowledgeAutoSyncDue(health, queueCount)) {
+			return 'Server cron action';
+		}
+		return 'Server cron suggestion';
+	}
+
+	function siteKnowledgeAutoSyncDue(health, queueCount) {
+		if (queueCount <= 0 || !health.next_queue_run_at) {
+			return false;
+		}
+		const nextRun = Date.parse(String(health.next_queue_run_at));
+		return Number.isFinite(nextRun) && nextRun <= Date.now();
 	}
 
 	function renderSiteKnowledgeStatus(form, payload) {
@@ -1738,12 +1803,12 @@
 					toolbox_cloud_check_group: 'search-test',
 					toolbox_tool: null,
 				}),
-				'Open Cloud Search test'
+				'Open advanced search check'
 			));
 			result.appendChild(notice);
 		} else if (payload.research) {
 			const section = createSection('External search');
-			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Live Cloud web search verification belongs in Cloud Checks. Use this bundle for combined fallback planning and handoff context.'));
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Live Cloud web search verification belongs in Advanced Checks. Use this bundle for combined fallback planning and handoff context.'));
 			section.appendChild(createLink(
 				toolboxAdminUrl({
 					toolbox_tab: 'cloud-checks',
@@ -1751,7 +1816,7 @@
 					toolbox_cloud_check_group: 'search-test',
 					toolbox_tool: null,
 				}),
-				'Open Cloud Search test'
+				'Open advanced search check'
 			));
 			result.appendChild(section);
 		}
@@ -3933,6 +3998,15 @@
 			'data-toolbox-tool-group-panel',
 			group
 		);
+
+		workspace.querySelectorAll('[data-toolbox-advanced-workflows]').forEach((details) => {
+			if (!(details instanceof HTMLDetailsElement)) {
+				return;
+			}
+			details.open = Array.from(details.querySelectorAll('[data-toolbox-tool-group-target]')).some((button) => {
+				return button.getAttribute('data-toolbox-tool-group-target') === group;
+			});
+		});
 		return true;
 	}
 
@@ -4000,16 +4074,20 @@
 			activateToolGroupPanel(workspace, group);
 		}
 
-		activateTarget(
-			workspace,
-			'[data-toolbox-tool-target]',
-			'[data-toolbox-tool-panel]',
-			'data-toolbox-tool-target',
-			'data-toolbox-tool-panel',
-			target
-		);
+			activateTarget(
+				workspace,
+				'[data-toolbox-tool-target]',
+				'[data-toolbox-tool-panel]',
+				'data-toolbox-tool-target',
+				'data-toolbox-tool-panel',
+				target
+			);
 
-		if (updateUrl) {
+			workspace.querySelectorAll('[data-toolbox-tool-panel-extra]').forEach((panel) => {
+				panel.hidden = panel.getAttribute('data-toolbox-tool-panel-extra') !== target;
+			});
+
+			if (updateUrl) {
 			updateToolboxUrl({
 				toolbox_tab: 'tools',
 				toolbox_tool: target,
