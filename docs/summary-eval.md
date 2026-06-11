@@ -98,6 +98,28 @@ Evaluate the generated candidates:
 php tests/summary-eval/run.php tests/summary-eval/generated/muze-candidates.json
 ```
 
+## Coverage Quality
+
+Summary generation must cover the article's core subject before polishing the
+wording. The hosted prompt asks the model to identify the core subject, content
+type, title positioning, primary reader value, must-cover points, and
+relationship rules before writing the excerpt. This is especially important for:
+
+- product introductions, where the excerpt must cover product type or
+  positioning plus the highest-value capability groups instead of only
+  secondary details such as license, UI framework, or implementation notes;
+- tutorials, where the excerpt must cover the main workflow, scenarios, or
+  decision path instead of only the first step or one local section;
+- tool/process articles, where the excerpt must not confuse which tool,
+  method, or step applies to which scenario.
+
+When the article has more detail than the excerpt length allows, compress
+details into capability or scenario groups. Title-level differentiators are
+must-cover when the supplied draft supports them. Treat `核心对象缺失`,
+`只覆盖局部小节`, unrepresented must-cover point groups, dropped title-level
+positioning, and object/tool relationship confusion as quality failures even
+when the excerpt is fluent and within the length band.
+
 ## Human Review Worksheet
 
 After candidates pass the hard gate, export a lightweight worksheet for manual
