@@ -2005,6 +2005,45 @@
 		}));
 	}
 
+	function imageAltSuggestionItems(section) {
+		if (!section || typeof section !== 'object') {
+			return [];
+		}
+		const output = hostedOutputObject(section);
+		const source = Array.isArray(output.suggestions) && output.suggestions.length
+			? output.suggestions
+			: (Array.isArray(output.items) && output.items.length ? output.items : (Array.isArray(output.alt_suggestions) && output.alt_suggestions.length ? output.alt_suggestions : []));
+		if (source.length) {
+			return source.map((item, index) => {
+				const attachmentId = item && (item.attachment_id || item.media_id || item.id);
+				const altCandidates = []
+					.concat(Array.isArray(item && item.alt_candidates) ? item.alt_candidates : [])
+					.concat(item && item.alt_candidate ? [item.alt_candidate] : [])
+					.concat(item && item.suggested_alt ? [item.suggested_alt] : [])
+					.concat(item && item.alt ? [item.alt] : []);
+				const altText = altCandidates.map((value) => readableItemText(value, '')).filter(Boolean).slice(0, 3).join(' / ');
+				const captionText = readableItemText(item && (item.caption_candidate || item.suggested_caption || item.caption), '');
+				const title = readableItemText(item && (item.title || item.name || item.filename), '')
+					|| (attachmentId ? __('Attachment ', 'npcink-toolbox') + String(attachmentId) : '')
+					|| __('Image ALT suggestion', 'npcink-toolbox') + ' ' + String(index + 1);
+				return {
+					name: title,
+					detail: [
+						altText ? __('ALT: ', 'npcink-toolbox') + altText : '',
+						captionText ? __('Caption: ', 'npcink-toolbox') + captionText : '',
+						item && item.current_alt_status ? formatMetaLabel(item.current_alt_status) : '',
+						item && item.needs_human_visual_check ? __('Human visual check required', 'npcink-toolbox') : '',
+					].filter(Boolean).join(' · '),
+				};
+			}).filter((item) => item.name || item.detail);
+		}
+		const outputText = String(section.output_text || section.text || '').trim();
+		if (outputText && Object.keys(parseHostedJsonObject(outputText)).length) {
+			return [];
+		}
+		return hostedWritingSupportItems(section);
+	}
+
 	function prePublishReviewItems(section) {
 		const items = section && Array.isArray(section.items) ? section.items : [];
 		return items.map((item) => ({
@@ -2123,12 +2162,13 @@
 		return items;
 	}
 
-	function renderCompactMetadataSection(title, items, emptyLabel) {
+	function renderCompactMetadataSection(title, items, emptyLabel, options) {
 		const candidates = Array.isArray(items) ? items : [];
+		const showHeading = !(options && options.hideHeading);
 		return createElement(
 			'section',
 			{ className: 'npcink-toolbox-editor-support__metadata-compact-section' },
-			createElement('h4', null, title),
+			showHeading ? createElement('h4', null, title) : null,
 			candidates.length
 				? createElement(
 					'ul',
@@ -2442,14 +2482,16 @@
 			blocks.push(renderCompactMetadataSection(
 				__('Category suggestions', 'npcink-toolbox'),
 				categoryItems,
-				__('No matching existing categories found.', 'npcink-toolbox')
+				__('No matching existing categories found.', 'npcink-toolbox'),
+				{ hideHeading: activeIntent === 'category_suggestions' }
 			));
 		}
 		if (tagItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
 			blocks.push(renderCompactMetadataSection(
 				__('Tag suggestions', 'npcink-toolbox'),
 				tagItems,
-				__('No matching existing tags found.', 'npcink-toolbox')
+				__('No matching existing tags found.', 'npcink-toolbox'),
+				{ hideHeading: activeIntent === 'tag_suggestions' }
 			));
 		}
 		if (newTermItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
@@ -2530,8 +2572,10 @@
 		}
 
 		if (sections.image_alt_suggestions) {
-			blocks.push(createElement('h4', { key: 'image-alt-suggestions-title' }, __('Image ALT suggestions', 'npcink-toolbox')));
-			blocks.push(renderItems(hostedWritingSupportItems(sections.image_alt_suggestions), __('No image ALT suggestions returned.', 'npcink-toolbox')));
+			if (metadataHandoffControls && metadataHandoffControls.intent !== 'image_alt_suggestions') {
+				blocks.push(createElement('h4', { key: 'image-alt-suggestions-title' }, __('Image ALT suggestions', 'npcink-toolbox')));
+			}
+			blocks.push(renderItems(imageAltSuggestionItems(sections.image_alt_suggestions), __('No image ALT suggestions returned.', 'npcink-toolbox')));
 		}
 
 		if (sections.pre_publish_review) {
