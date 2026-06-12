@@ -46,7 +46,30 @@ When a local WordPress site and WP-CLI are available, mount or install the
 plugin and activate it:
 
 ```bash
-wp --path="/path/to/wordpress" plugin activate npcink-toolbox
+command -v wp
+wp --info
+
+WP_PATH="/path/to/wordpress"
+wp --path="$WP_PATH" plugin activate npcink-toolbox
+```
+
+On this workstation the preferred global WP-CLI is `/opt/homebrew/bin/wp`.
+Always confirm it with `command -v wp` and `wp --info` before plugin smoke
+tests, Plugin Check, activation, or status checks. Do not assume the current
+directory is a WordPress root; set `WP_PATH` explicitly or pass `--path` on
+every `wp` command.
+
+For Local.app sites, if `DB_HOST=localhost` and WP-CLI cannot connect to the
+database, find the active Local MySQL socket and inject it through
+`WP_CLI_MYSQL_SOCKET`:
+
+```bash
+find "$HOME/Library/Application Support/Local/run" -path '*/mysql/mysqld.sock' -print
+
+WP_CLI_MYSQL_SOCKET="/path/to/Local/run/site-id/mysql/mysqld.sock"
+php -d mysqli.default_socket="$WP_CLI_MYSQL_SOCKET" \
+    -d pdo_mysql.default_socket="$WP_CLI_MYSQL_SOCKET" \
+    "$(command -v wp)" --path="$WP_PATH" plugin status npcink-toolbox
 ```
 
 Then verify:

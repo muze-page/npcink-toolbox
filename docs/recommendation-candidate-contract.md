@@ -12,6 +12,13 @@ and `internal_link_candidates` may remain during migration, but new
 recommendation surfaces should also expose `recommendation_candidates` or mark
 their items with `contract=recommendation_candidate.v1`.
 
+The shared shape must not replace richer domain contracts. Image candidates
+remain `image_candidate.v1` for media review and adoption. Internal-link
+candidates remain `internal_link_candidates.v1` for related-content evidence and
+manual insertion review. Those surfaces may expose `recommendation_candidate.v1`
+as a projection for consistent editor rendering, batch dry-runs, exports, and
+review queues, but the original candidate object remains the source of truth.
+
 ## Required Fields
 
 - `contract`: `recommendation_candidate.v1`.
@@ -57,6 +64,14 @@ their items with `contract=recommendation_candidate.v1`.
 - Category and tag shortcuts return `article_taxonomy_suggestions.v1` focused
   artifacts. They rank existing WordPress terms and may expose review-only new
   tag gaps without creating terms or preparing a metadata handoff.
+- Internal-link recommendations expose `recommendation_candidates` with
+  `kind=internal_link`, but `internal_link_candidates.v1` remains authoritative
+  for target post id, target URL, suggested anchor text, placement hints, Site
+  Knowledge evidence, and the no-insert review policy.
+- Image recommendations expose `recommendation_candidates` with `kind=image`,
+  but `image_candidate.v1` remains authoritative for provider identity, source
+  URL, thumbnail/download URLs, license review, attribution, download tracking,
+  AI-generated image metadata, media SEO suggestions, and adoption planning.
 
 ## Boundary
 

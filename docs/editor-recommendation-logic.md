@@ -42,6 +42,29 @@ must still behave like a single-action tool.
 6. Cloud vectors and historical article learning are useful, but they are
    evidence and ranking inputs. They do not become a second taxonomy registry,
    write authority, prompt registry, or audit store.
+7. Image and internal-link recommendations may expose a
+   `recommendation_candidate.v1` review projection, but their domain contracts
+   remain authoritative. Image adoption uses `image_candidate.v1`; internal-link
+   review uses `internal_link_candidates.v1`.
+
+## First-Stage Closed Loops
+
+The first editor stage is six focused tools plus a publish preflight package:
+
+- title and summary suggestions accept one operator instruction, regenerate
+  candidates, and may fill the current unsaved editor title or excerpt field;
+- category and tag suggestions accept one operator instruction, regenerate
+  existing-term-first candidates, and expose selected existing terms as a Core
+  review handoff through `content_metadata_apply_plan`;
+- image recommendations use the current article or selected paragraph plus the
+  operator image preference text, then continue through `image_candidate.v1`
+  review and the existing media adoption path;
+- internal-link recommendations use Cloud Site Knowledge evidence and remain
+  review-only: they show target, anchor, and placement hints, but do not insert
+  links or create post-content patches;
+- publish preflight aggregates readiness issues and routes operators back to
+  the focused tools. It is a closing checklist, not a replacement editing
+  workspace.
 
 ## Focused Intents
 
@@ -67,6 +90,19 @@ must still behave like a single-action tool.
 Focused intents should expose `recommendation_candidate.v1` where practical.
 The contract lets batch dry-runs, spreadsheets, and later review queues consume
 one common candidate shape while each intent remains independently runnable.
+
+For image and internal-link recommendations, the shared contract is only a
+review, export, and batch dry-run projection:
+
+- image recommendations keep the full `image_candidate.v1` object as the
+  adoption source of truth, including provider, source URL, license review,
+  attribution, download tracking, media SEO, and generated-image metadata;
+- internal-link recommendations keep `internal_link_candidates.v1` as the
+  source of truth, including target post, URL, suggested anchor, placement hint,
+  Site Knowledge evidence, and the no-insert review policy;
+- projection fields such as `label`, `value`, `reason`, `quality_status`, and
+  `action_policy` should point back to the source candidate rather than replace
+  it.
 
 ## Ranking Inputs
 

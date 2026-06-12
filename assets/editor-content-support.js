@@ -388,7 +388,13 @@
 
 	function metadataDeltaTermItems(section, key) {
 		const delta = section && section.content_metadata_delta && section.content_metadata_delta.delta ? section.content_metadata_delta.delta : {};
-		const items = Array.isArray(delta[key]) ? delta[key] : [];
+		let items = Array.isArray(delta[key]) ? delta[key] : [];
+		if (!items.length && key === 'categories' && section && Array.isArray(section.category_candidates)) {
+			items = section.category_candidates;
+		}
+		if (!items.length && key === 'tags' && section && Array.isArray(section.tag_candidates)) {
+			items = section.tag_candidates;
+		}
 		return items.filter((item) => metadataTermId(item) > 0);
 	}
 
@@ -2008,6 +2014,23 @@
 	}
 
 	function internalLinkCandidateItems(section) {
+		if (section && Array.isArray(section.recommendation_candidates) && section.recommendation_candidates.length) {
+			return section.recommendation_candidates.map((item) => ({
+				name: readableItemText(item.label || item.name || item.id, __('Internal link candidate', 'npcink-toolbox')),
+				value: item.value ? __('Anchor: ', 'npcink-toolbox') + readableItemText(item.value, '') : '',
+				detail: [
+					item.quality_status ? formatMetaLabel(item.quality_status) : __('Review only, no insert', 'npcink-toolbox'),
+					readableItemText(item.reason || item.detail, ''),
+					item.quality_score ? __('Quality score: ', 'npcink-toolbox') + String(item.quality_score) : '',
+					item.source_candidate_ref || '',
+				].filter(Boolean).join(' · '),
+				quality_status: item.quality_status,
+				quality_score: item.quality_score,
+				quality_issues: item.quality_issues,
+				action_policy: item.action_policy,
+				target_field: item.target_field,
+			}));
+		}
 		const items = section && Array.isArray(section.items) ? section.items : [];
 		return items.map((item) => ({
 			name: item.title || item.target_url || __('Internal link candidate', 'npcink-toolbox'),
@@ -2527,6 +2550,9 @@
 				__('No matching existing categories found.', 'npcink-toolbox'),
 				{ hideHeading: true }
 			));
+			if (metadataHandoffControls && metadataHandoffControls.showHandoff && metadataHandoffHasChoices(section)) {
+				blocks.push(renderMetadataHandoffControl(section, metadataHandoffControls));
+			}
 			return createElement('div', { className: 'npcink-toolbox-editor-support__optimization' }, blocks);
 		}
 		if (tagOnlyRun) {
@@ -2541,6 +2567,9 @@
 				newTermItems,
 				(section.proposed_new_terms && section.proposed_new_terms.empty_message) || __('No new tag candidates returned.', 'npcink-toolbox')
 			));
+			if (metadataHandoffControls && metadataHandoffControls.showHandoff && metadataHandoffHasChoices(section)) {
+				blocks.push(renderMetadataHandoffControl(section, metadataHandoffControls));
+			}
 			return createElement('div', { className: 'npcink-toolbox-editor-support__optimization' }, blocks);
 		}
 
@@ -2904,7 +2933,8 @@
 			const activePicker = normalizeImagePickerOptions(pickerOverride || imagePicker || { mode: imageMode });
 			const activeImageMode = modeOverride || activePicker.mode;
 			const imageContext = imageRequestContext(postContext, contextOverride || activePicker.context);
-			const cacheKey = imageSearchCacheKey('auto', activePicker, '', imageContext);
+			const operatorInstruction = String(imageQuery || '').trim();
+			const cacheKey = imageSearchCacheKey('auto', activePicker, operatorInstruction, imageContext);
 			const cachedResult = readCachedImageResult(cacheKey);
 			if (!hasDraftImageContext(imageContext)) {
 				setImageRunning('');
@@ -2938,7 +2968,8 @@
 				const payload = Object.assign({}, imageContext, {
 					intent: 'image_candidates',
 					image_mode: activePicker.imageUse,
-					visual_context: buildImageVisualContext(postContext, activeImageMode, '', activePicker.context, activePicker.imageUse),
+					user_instruction: operatorInstruction,
+					visual_context: buildImageVisualContext(postContext, activeImageMode, operatorInstruction, activePicker.context, activePicker.imageUse),
 					category_ids: Array.isArray(imageContext.category_ids) ? imageContext.category_ids.join(',') : '',
 					tag_ids: Array.isArray(imageContext.tag_ids) ? imageContext.tag_ids.join(',') : '',
 				});
@@ -3692,7 +3723,7 @@
 		const resultTitle = rerunIntent ? formatIntentLabel(rerunIntent) : __('Content support', 'npcink-toolbox');
 		const resultControls = {
 			intent: activeFlowIntent || (result && result.intent) || '',
-			showHandoff: activeFlowIntent === 'summary_terms_optimization',
+			showHandoff: ['summary_terms_optimization', 'category_suggestions', 'tag_suggestions'].indexOf(activeFlowIntent) >= 0,
 			selection: metadataHandoffSelection,
 			setSelection: setMetadataHandoffSelection,
 			toggleTerm: toggleMetadataTermSelection,

@@ -310,6 +310,7 @@ $base_params = array(
 $internal_links_result = toolbox_editor_review_smoke_rest( array( 'intent' => 'internal_links' ) + $base_params );
 $internal_links        = is_array( $internal_links_result['sections']['internal_links'] ?? null ) ? $internal_links_result['sections']['internal_links'] : array();
 $internal_items        = is_array( $internal_links['items'] ?? null ) ? $internal_links['items'] : array();
+$internal_projection   = is_array( $internal_links['recommendation_candidates'] ?? null ) ? $internal_links['recommendation_candidates'] : array();
 $internal_handoff      = is_array( $internal_links['handoff'] ?? null ) ? $internal_links['handoff'] : array();
 
 toolbox_editor_review_smoke_assert( 'editor_content_support_flow' === (string) ( $internal_links_result['artifact_type'] ?? '' ), 'Internal-links result declares editor_content_support_flow.' );
@@ -321,6 +322,11 @@ toolbox_editor_review_smoke_assert( false === (bool) ( $internal_links['direct_w
 toolbox_editor_review_smoke_assert( ! empty( $internal_items ), 'Internal-link section returns at least one candidate from mocked Site Knowledge.' );
 toolbox_editor_review_smoke_assert( $target_post_id === absint( $internal_items[0]['target_post_id'] ?? 0 ), 'Internal-link candidate points to the public target post.' );
 toolbox_editor_review_smoke_assert( 'review_only_candidate' === (string) ( $internal_items[0]['status'] ?? '' ), 'Internal-link candidate is review-only.' );
+toolbox_editor_review_smoke_assert( 'recommendation_candidate.v1' === (string) ( $internal_links['candidate_contract'] ?? '' ), 'Internal-link section declares the shared recommendation candidate projection.' );
+toolbox_editor_review_smoke_assert( ! empty( $internal_projection ), 'Internal-link section returns recommendation candidate projections.' );
+toolbox_editor_review_smoke_assert( 'recommendation_candidate.v1' === (string) ( $internal_projection[0]['contract'] ?? '' ), 'Internal-link projection uses recommendation_candidate.v1.' );
+toolbox_editor_review_smoke_assert( 'internal_link' === (string) ( $internal_projection[0]['kind'] ?? '' ), 'Internal-link projection keeps the internal_link candidate kind.' );
+toolbox_editor_review_smoke_assert( 'operator_review_only_no_insert' === (string) ( $internal_projection[0]['action_policy'] ?? '' ), 'Internal-link projection keeps the no-insert action policy.' );
 toolbox_editor_review_smoke_assert( in_array( 'no_link_insertion_in_toolbox', (array) ( $internal_handoff['blocked_actions'] ?? array() ), true ), 'Internal-link handoff blocks Toolbox link insertion.' );
 
 $publish_result  = toolbox_editor_review_smoke_rest( array( 'intent' => 'publish_preflight' ) + $base_params );

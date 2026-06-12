@@ -583,14 +583,16 @@ final class Rest_Controller {
 		}
 
 		if ( 'image_candidates' === $intent ) {
-			$result['sections']['image_candidates'] = $this->editor_support_section(
-				$this->client->image_candidates(
-					$query,
-					array(
-						'provider'       => 'auto',
-						'per_page'       => 6,
-						'image_mode'     => 'paragraph' === sanitize_key( (string) ( $context['image_mode'] ?? '' ) ) ? 'paragraph_image' : 'featured_image',
-						'visual_context' => $this->editor_image_visual_context( $context, $query ),
+			$result['sections']['image_candidates'] = $this->editor_image_recommendation_section(
+				$this->editor_support_section(
+					$this->client->image_candidates(
+						$query,
+						array(
+							'provider'       => 'auto',
+							'per_page'       => 6,
+							'image_mode'     => 'paragraph' === sanitize_key( (string) ( $context['image_mode'] ?? '' ) ) ? 'paragraph_image' : 'featured_image',
+							'visual_context' => $this->editor_image_visual_context( $context, $query ),
+						)
 					)
 				)
 			);
@@ -1103,6 +1105,7 @@ final class Rest_Controller {
 	}
 
 	private function editor_image_support_query( array $context ): string {
+		$instruction = trim( sanitize_textarea_field( (string) ( $context['user_instruction'] ?? '' ) ) );
 		$selection = trim(
 			implode(
 				' ',
@@ -1120,6 +1123,7 @@ final class Rest_Controller {
 				array_filter(
 					array(
 						$selection,
+						$instruction,
 						(string) ( $context['title'] ?? '' ),
 						(string) ( $context['excerpt'] ?? '' ),
 						'' === $selection ? (string) ( $context['content_text'] ?? '' ) : '',
@@ -1189,6 +1193,105 @@ final class Rest_Controller {
 		}
 
 		return is_array( $value ) ? $value : array();
+	}
+
+	private function editor_image_recommendation_section( array $section ): array {
+		$section['candidate_contract']        = 'recommendation_candidate.v1';
+		$section['recommendation_candidates'] = $this->editor_image_recommendation_candidates( $section );
+
+		return $section;
+	}
+
+	private function editor_image_recommendation_candidates( array $section ): array {
+		$candidates = array();
+		foreach ( array_slice( $this->editor_image_candidate_items( $section ), 0, 8 ) as $index => $item ) {
+			$title = sanitize_text_field(
+				(string) (
+					$item['title']
+					?? $item['alt_description']
+					?? $item['description']
+					?? $item['prompt']
+					?? ''
+				)
+			);
+			$url = esc_url_raw(
+				(string) (
+					$item['download_url']
+					?? $item['regular_url']
+					?? $item['small_url']
+					?? $item['url']
+					?? ''
+				)
+			);
+			if ( '' === $title && '' === $url ) {
+				continue;
+			}
+
+			$warnings = array();
+			foreach ( array( 'warnings', 'risk_flags', 'quality_tags' ) as $key ) {
+				if ( is_array( $item[ $key ] ?? null ) ) {
+					$warnings = array_merge( $warnings, array_map( 'sanitize_text_field', $item[ $key ] ) );
+				}
+			}
+			$license_status = sanitize_key( (string) ( $item['license_review_status'] ?? '' ) );
+			if ( '' !== $license_status && 'not_required' !== $license_status && 'clear' !== $license_status ) {
+				$warnings[] = __( '图片授权或来源需要人工确认。', 'npcink-toolbox' );
+			}
+
+			$match_score = is_numeric( $item['match_score'] ?? null ) ? (float) $item['match_score'] : 0.0;
+			$quality_score = $match_score > 0
+				? ( $match_score <= 1 ? 55 + (int) round( max( 0, min( 1, $match_score ) ) * 35 ) : max( 0, min( 90, (int) round( $match_score ) ) ) )
+				: 65;
+			if ( ! empty( $warnings ) ) {
+				$quality_score = min( $quality_score, 65 );
+			}
+			if ( '' === $url ) {
+				$quality_score = min( $quality_score, 45 );
+				$warnings[]    = __( '缺少可采用的图片 URL。', 'npcink-toolbox' );
+			}
+			if ( empty( $warnings ) ) {
+				$warnings[] = __( '保留完整图片候选用于授权、归因和采用计划审查。', 'npcink-toolbox' );
+			}
+			$source_ref = sanitize_text_field( (string) ( $item['id'] ?? '' ) );
+			if ( '' === $source_ref ) {
+				$source_ref = '' !== $url ? $url : 'image_candidate_' . ( $index + 1 );
+			}
+
+			$candidates[] = $this->editor_recommendation_candidate(
+				array(
+					'id'                   => 'image_candidate_' . ( $index + 1 ),
+					'kind'                 => 'image',
+					'label'                => '' !== $title ? $title : __( 'Image candidate', 'npcink-toolbox' ),
+					'value'                => '' !== $url ? $url : $title,
+					'reason'               => sanitize_text_field( (string) ( $item['match_reason'] ?? $item['reason'] ?? '' ) ),
+					'confidence'           => $match_score > 0 && $match_score <= 1 ? $match_score : null,
+					'target_field'         => 'featured_image',
+					'action_policy'        => 'core_proposal_required',
+					'quality_status'       => $quality_score >= 70 ? 'review' : ( $quality_score >= 50 ? 'review' : 'weak' ),
+					'quality_score'        => $quality_score,
+					'quality_issues'       => array_values( array_unique( $warnings ) ),
+					'evidence_refs'        => array_filter(
+						array(
+							'' !== (string) ( $item['provider'] ?? '' ) ? 'image_provider:' . sanitize_key( (string) $item['provider'] ) : '',
+							'' !== (string) ( $item['source_type'] ?? '' ) ? 'image_source_type:' . sanitize_key( (string) $item['source_type'] ) : '',
+						)
+					),
+					'source_candidate_ref' => $source_ref,
+				)
+			);
+		}
+
+		return $candidates;
+	}
+
+	private function editor_image_candidate_items( array $section ): array {
+		foreach ( array( 'image_candidates', 'images', 'candidates' ) as $key ) {
+			if ( is_array( $section[ $key ] ?? null ) ) {
+				return array_values( array_filter( $section[ $key ], 'is_array' ) );
+			}
+		}
+
+		return array();
 	}
 
 	private function editor_summary_terms_optimization( array $context, string $query ): array {
@@ -1500,15 +1603,18 @@ final class Rest_Controller {
 				)
 			)
 		);
+		$items     = $this->editor_internal_link_candidate_items( $context, $knowledge );
 
 		return array(
 			'artifact_type'          => 'internal_link_candidates.v1',
 			'candidate_type'         => 'internal_link_candidates',
+			'candidate_contract'     => 'recommendation_candidate.v1',
 			'write_posture'          => 'suggestion_only',
 			'final_write_path'       => 'operator_review_only_no_insert',
 			'direct_wordpress_write' => false,
 			'input_scope'            => $this->editor_input_scope( $context ),
-			'items'                  => $this->editor_internal_link_candidate_items( $context, $knowledge ),
+			'items'                  => $items,
+			'recommendation_candidates' => $this->editor_internal_link_recommendation_candidates( $items ),
 			'source_knowledge'       => $knowledge,
 			'review_policy'          => array(
 				'link_insertion_owner'      => 'human_editor',
@@ -1562,6 +1668,53 @@ final class Rest_Controller {
 		}
 
 		return $items;
+	}
+
+	private function editor_internal_link_recommendation_candidates( array $items ): array {
+		$candidates = array();
+		foreach ( array_slice( $items, 0, 8 ) as $index => $item ) {
+			$title  = sanitize_text_field( (string) ( $item['title'] ?? '' ) );
+			$anchor = sanitize_text_field( (string) ( $item['suggested_anchor_text'] ?? '' ) );
+			$url    = esc_url_raw( (string) ( $item['target_url'] ?? '' ) );
+			if ( '' === $title && '' === $anchor && '' === $url ) {
+				continue;
+			}
+
+			$has_score = is_numeric( $item['score'] ?? null );
+			$score     = $has_score ? (float) $item['score'] : 0.0;
+			if ( ! $has_score ) {
+				$quality_score = 65;
+			} elseif ( $score <= 1 ) {
+				$quality_score = 55 + (int) round( max( 0, min( 1, $score ) ) * 35 );
+			} else {
+				$quality_score = max( 0, min( 90, (int) round( $score ) ) );
+			}
+			$quality_issues = array( __( '人工确认目标文章与当前段落或全文语义相关后再插入。', 'npcink-toolbox' ) );
+			if ( '' === $url ) {
+				$quality_score   = min( $quality_score, 55 );
+				$quality_issues[] = __( '缺少目标 URL，插入前需要人工补充或确认。', 'npcink-toolbox' );
+			}
+
+			$candidates[] = $this->editor_recommendation_candidate(
+				array(
+					'id'                   => 'internal_link_' . ( $index + 1 ),
+					'kind'                 => 'internal_link',
+					'label'                => '' !== $title ? $title : __( 'Internal link candidate', 'npcink-toolbox' ),
+					'value'                => '' !== $anchor ? $anchor : $url,
+					'reason'               => sanitize_text_field( (string) ( $item['reason'] ?? '' ) ),
+					'confidence'           => $has_score && $score > 0 && $score <= 1 ? $score : null,
+					'target_field'         => 'post_content',
+					'action_policy'        => 'operator_review_only_no_insert',
+					'quality_status'       => $quality_score >= 60 && '' !== $url ? 'review' : 'weak',
+					'quality_score'        => $quality_score,
+					'quality_issues'       => $quality_issues,
+					'evidence_refs'        => is_array( $item['evidence_refs'] ?? null ) ? $item['evidence_refs'] : array(),
+					'source_candidate_ref' => '' !== $url ? $url : 'internal_link_item_' . ( $index + 1 ),
+				)
+			);
+		}
+
+		return $candidates;
 	}
 
 	private function editor_internal_link_target_url( array $item, int $target_post_id ): string {
@@ -1880,7 +2033,7 @@ final class Rest_Controller {
 	}
 
 	private function editor_recommendation_candidate( array $args ): array {
-		return array(
+		$candidate = array(
 			'contract'               => 'recommendation_candidate.v1',
 			'id'                     => sanitize_key( (string) ( $args['id'] ?? 'candidate' ) ),
 			'kind'                   => sanitize_key( (string) ( $args['kind'] ?? 'generic' ) ),
@@ -1897,6 +2050,12 @@ final class Rest_Controller {
 			'direct_wordpress_write' => false,
 			'evidence_refs'          => is_array( $args['evidence_refs'] ?? null ) ? array_values( array_map( 'sanitize_text_field', $args['evidence_refs'] ) ) : array(),
 		);
+
+		if ( '' !== (string) ( $args['source_candidate_ref'] ?? '' ) ) {
+			$candidate['source_candidate_ref'] = sanitize_text_field( (string) $args['source_candidate_ref'] );
+		}
+
+		return $candidate;
 	}
 
 	private function editor_recommendation_quality_notes( array $items ): array {
