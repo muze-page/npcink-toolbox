@@ -120,6 +120,33 @@ must-cover when the supplied draft supports them. Treat `核心对象缺失`,
 positioning, and object/tool relationship confusion as quality failures even
 when the excerpt is fluent and within the length band.
 
+The editor runtime also applies a lightweight candidate gate after hosted AI
+returns. The hosted prompt now sends the full normalized draft body for summary
+generation, with a high runtime-safety character cap only for extreme outliers.
+It also sends segment-level coverage hints for the lead, middle, and end of
+the draft so the model can notice later-section tools, scenarios, or workflow
+branches instead of overfitting to the opening section.
+The runtime quality gate also checks whether named tools or methods appear in
+multiple draft segments; candidates that only cover one segment are downgraded
+for review instead of being treated as clean passes.
+Because full-draft summaries can take longer than title, outline, or polish
+support, `summary_suggestions` uses a longer hosted-runtime timeout while the
+other lightweight draft-support intents keep the shorter synchronous budget.
+The heading map, extracted key terms, and lead/middle/end hints remain as
+coverage aids, not as a replacement for the draft. The runtime gate does not
+call a second model. It cleans meta lead-ins, checks the 50-160 character review band, reads
+`coverage_check`, scores each candidate for core-subject, title-positioning,
+and must-cover-point coverage, then sorts the candidates by quality score
+before showing the top three. Weak coverage candidates are flagged for review
+instead of being hidden, so the editor does not see an empty result when the
+model response is usable but imperfect. Detailed quality notes stay in the
+on-demand evidence modal so the narrow editor panel remains focused on the
+recommended excerpt, apply action, and regeneration.
+
+Offline model judges remain a batch and release-quality tool, not the default
+editor-click path. Use GPT/DeepSeek cross review when calibrating prompts,
+reviewing regressions, or generating summaries for many posts.
+
 ## Human Review Worksheet
 
 After candidates pass the hard gate, export a lightweight worksheet for manual

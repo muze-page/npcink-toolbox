@@ -2002,7 +2002,7 @@
 				item.placement_hint || '',
 				item.target_url || '',
 			].filter(Boolean).join(' · '),
-		}));
+			}));
 	}
 
 	function imageAltSuggestionItems(section) {
@@ -2128,7 +2128,7 @@
 	function metadataSummaryItems(section, summaryText) {
 		const items = [];
 		const seen = {};
-		function addSummaryItem(name, detail, reason) {
+		function addSummaryItem(name, detail, reason, sourceItem) {
 			const value = readableItemText(detail, '');
 			const key = value.trim().toLowerCase();
 			if (!value || seen[key]) {
@@ -2139,27 +2139,51 @@
 				name,
 				detail: value,
 				reason: reason || '',
+				quality_status: sourceItem && sourceItem.quality_status,
+				quality_score: sourceItem && sourceItem.quality_score,
+				quality_issues: sourceItem && sourceItem.quality_issues,
 			});
 		}
 
 		const excerpt = metadataRecommendedExcerpt(section);
 		const hasLayerItems = Boolean(section && section.summary_layers && Array.isArray(section.summary_layers.items) && section.summary_layers.items.length);
 		if (excerpt) {
-			addSummaryItem(__('Recommended excerpt', 'npcink-toolbox'), excerpt, '');
+			addSummaryItem(__('Recommended excerpt', 'npcink-toolbox'), excerpt, '', null);
 		}
 		if (summaryText && !excerpt && !hasLayerItems) {
-			addSummaryItem(__('Hosted summary', 'npcink-toolbox'), summaryText, '');
+			addSummaryItem(__('Hosted summary', 'npcink-toolbox'), summaryText, '', null);
 		}
 		if (section && section.summary_layers && Array.isArray(section.summary_layers.items)) {
 			section.summary_layers.items.forEach((item) => {
 				addSummaryItem(
 					readableItemText(item && (item.label || item.name || item.id), __('Summary candidate', 'npcink-toolbox')),
 					item && item.value,
-					item && item.reason
+					item && item.reason,
+					item
 				);
 			});
 		}
 		return items;
+	}
+
+	function summaryQualityItems(section) {
+		if (!section || !section.summary_layers || typeof section.summary_layers !== 'object') {
+			return [];
+		}
+		if (Array.isArray(section.summary_layers.quality_notes) && section.summary_layers.quality_notes.length) {
+			return section.summary_layers.quality_notes;
+		}
+		const items = Array.isArray(section.summary_layers.items) ? section.summary_layers.items : [];
+		return items
+			.filter((item) => item && (item.quality_status || item.quality_score || (Array.isArray(item.quality_issues) && item.quality_issues.length)))
+			.map((item) => ({
+				name: readableItemText(item.label || item.name || item.id, __('Summary candidate', 'npcink-toolbox')),
+				status: item.quality_status ? formatMetaLabel(item.quality_status) : '',
+				detail: [
+					item.quality_score ? __('Quality score: ', 'npcink-toolbox') + String(item.quality_score) : '',
+					Array.isArray(item.quality_issues) ? item.quality_issues.join(' ') : '',
+				].filter(Boolean).join(' · '),
+			}));
 	}
 
 	function renderCompactMetadataSection(title, items, emptyLabel, options) {
@@ -2474,26 +2498,32 @@
 			blocks.push(renderSummarySuggestionSection(summaryItems, metadataHandoffControls));
 		}
 
-		if (section.content_metadata_delta) {
-			evidenceBlocks.push(renderContentMetadataDelta(section.content_metadata_delta));
+		const summaryQuality = summaryQualityItems(section);
+		if (summaryQuality.length) {
+			evidenceBlocks.push(createElement('h4', { key: 'summary-quality-title' }, __('Summary quality', 'npcink-toolbox')));
+			evidenceBlocks.push(renderItems(summaryQuality, __('No summary quality notes returned.', 'npcink-toolbox')));
 		}
 
-		if (categoryItems.length || metadataSectionHasSource(section, 'category_suggestions') || fullMetadataRun) {
-			blocks.push(renderCompactMetadataSection(
-				__('Category suggestions', 'npcink-toolbox'),
-				categoryItems,
-				__('No matching existing categories found.', 'npcink-toolbox'),
-				{ hideHeading: activeIntent === 'category_suggestions' }
-			));
-		}
-		if (tagItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
-			blocks.push(renderCompactMetadataSection(
-				__('Tag suggestions', 'npcink-toolbox'),
-				tagItems,
-				__('No matching existing tags found.', 'npcink-toolbox'),
-				{ hideHeading: activeIntent === 'tag_suggestions' }
-			));
-		}
+			if (section.content_metadata_delta) {
+				evidenceBlocks.push(renderContentMetadataDelta(section.content_metadata_delta));
+			}
+
+			if (categoryItems.length || metadataSectionHasSource(section, 'category_suggestions') || fullMetadataRun) {
+				blocks.push(renderCompactMetadataSection(
+					__('Category suggestions', 'npcink-toolbox'),
+					categoryItems,
+					__('No matching existing categories found.', 'npcink-toolbox'),
+					{ hideHeading: activeIntent === 'category_suggestions' }
+				));
+			}
+			if (tagItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
+				blocks.push(renderCompactMetadataSection(
+					__('Tag suggestions', 'npcink-toolbox'),
+					tagItems,
+					__('No matching existing tags found.', 'npcink-toolbox'),
+					{ hideHeading: activeIntent === 'tag_suggestions' }
+				));
+			}
 		if (newTermItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
 			blocks.push(renderCompactMetadataSection(
 				__('New tag candidates', 'npcink-toolbox'),
@@ -2571,12 +2601,12 @@
 			blocks.push(renderItems(hostedWritingSupportItems(sections.polish_notes), __('No polish suggestions returned.', 'npcink-toolbox')));
 		}
 
-		if (sections.image_alt_suggestions) {
-			if (metadataHandoffControls && metadataHandoffControls.intent !== 'image_alt_suggestions') {
-				blocks.push(createElement('h4', { key: 'image-alt-suggestions-title' }, __('Image ALT suggestions', 'npcink-toolbox')));
+			if (sections.image_alt_suggestions) {
+				if (metadataHandoffControls && metadataHandoffControls.intent !== 'image_alt_suggestions') {
+					blocks.push(createElement('h4', { key: 'image-alt-suggestions-title' }, __('Image ALT suggestions', 'npcink-toolbox')));
+				}
+				blocks.push(renderItems(imageAltSuggestionItems(sections.image_alt_suggestions), __('No image ALT suggestions returned.', 'npcink-toolbox')));
 			}
-			blocks.push(renderItems(imageAltSuggestionItems(sections.image_alt_suggestions), __('No image ALT suggestions returned.', 'npcink-toolbox')));
-		}
 
 		if (sections.pre_publish_review) {
 			blocks.push(createElement('h4', { key: 'pre-publish-review-title' }, __('Pre-publish review', 'npcink-toolbox')));
@@ -2693,23 +2723,23 @@
 		});
 	}
 
-	function mergeContentSupportResult(currentResult, incomingResult, intent) {
-		if (!isMetadataIntent(intent)) {
-			return incomingResult;
+		function mergeContentSupportResult(currentResult, incomingResult, intent) {
+			if (!isMetadataIntent(intent)) {
+				return incomingResult;
+			}
+			const incomingSection = incomingResult && incomingResult.sections ? incomingResult.sections.summary_terms_optimization : null;
+			if (!incomingSection) {
+				return incomingResult;
+			}
+			const currentSections = currentResult && currentResult.sections ? currentResult.sections : {};
+			const currentSection = currentSections.summary_terms_optimization || {};
+			return Object.assign({}, incomingResult, {
+				intent: 'summary_terms_optimization',
+				sections: Object.assign({}, incomingResult.sections || {}, {
+					summary_terms_optimization: mergeMetadataSection(currentSection, incomingSection),
+				}),
+			});
 		}
-		const incomingSection = incomingResult && incomingResult.sections ? incomingResult.sections.summary_terms_optimization : null;
-		if (!incomingSection) {
-			return incomingResult;
-		}
-		const currentSections = currentResult && currentResult.sections ? currentResult.sections : {};
-		const currentSection = currentSections.summary_terms_optimization || {};
-		return Object.assign({}, currentResult || incomingResult, incomingResult, {
-			intent: 'summary_terms_optimization',
-			sections: Object.assign({}, currentSections, incomingResult.sections || {}, {
-				summary_terms_optimization: mergeMetadataSection(currentSection, incomingSection),
-			}),
-		});
-	}
 
 	function ContentSupportControls() {
 		const postContext = usePostContext();

@@ -75,10 +75,13 @@ function npcink_summary_generate_excerpt_items( array $data ): array {
 			continue;
 		}
 		$candidates[] = array(
-			'id'      => sanitize_key( (string) ( $item['id'] ?? 'ai_summary' ) ),
-			'summary' => $value,
-			'label'   => sanitize_text_field( (string) ( $item['label'] ?? '' ) ),
-			'reason'  => sanitize_text_field( (string) ( $item['reason'] ?? '' ) ),
+			'id'             => sanitize_key( (string) ( $item['id'] ?? 'ai_summary' ) ),
+			'summary'        => $value,
+			'label'          => sanitize_text_field( (string) ( $item['label'] ?? '' ) ),
+			'reason'         => sanitize_text_field( (string) ( $item['reason'] ?? '' ) ),
+			'quality_status' => sanitize_key( (string) ( $item['quality_status'] ?? '' ) ),
+			'quality_score'  => absint( $item['quality_score'] ?? 0 ),
+			'quality_issues' => is_array( $item['quality_issues'] ?? null ) ? array_values( array_map( 'sanitize_text_field', $item['quality_issues'] ) ) : array(),
 		);
 	}
 

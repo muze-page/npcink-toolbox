@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class Rest_Controller {
 	private const REQUIRED_TEXT_MAX_CHARS = 500;
+	private const EDITOR_SUMMARY_FULL_CONTENT_MAX_CHARS = 30000;
 
 	private Settings $settings;
 	private Provider_Client $client;
@@ -758,6 +759,7 @@ final class Rest_Controller {
 			'title'               => sanitize_text_field( (string) $request->get_param( 'title' ) ),
 			'excerpt'             => sanitize_textarea_field( (string) $request->get_param( 'excerpt' ) ),
 			'content_text'        => wp_trim_words( $content, 220, '' ),
+			'content_full_text'   => sanitize_textarea_field( $this->editor_trim_chars( $content, self::EDITOR_SUMMARY_FULL_CONTENT_MAX_CHARS ) ),
 			'selected_text'       => wp_trim_words( sanitize_textarea_field( $selected_text ), 110, '' ),
 			'selected_block_text' => wp_trim_words( sanitize_textarea_field( $selected_block_text ), 110, '' ),
 			'selected_block_name' => sanitize_text_field( (string) $request->get_param( 'selected_block_name' ) ),
@@ -769,6 +771,16 @@ final class Rest_Controller {
 			'featured_media'      => absint( $request->get_param( 'featured_media' ) ),
 			'media_items'         => $this->editor_media_items_from_request( $request ),
 		);
+	}
+
+	private function editor_trim_chars( string $value, int $max_chars ): string {
+		$value     = trim( $value );
+		$max_chars = max( 1, $max_chars );
+		if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+			return mb_strlen( $value, 'UTF-8' ) > $max_chars ? mb_substr( $value, 0, $max_chars, 'UTF-8' ) : $value;
+		}
+
+		return strlen( $value ) > $max_chars ? substr( $value, 0, $max_chars ) : $value;
 	}
 
 	private function editor_media_items_from_request( WP_REST_Request $request ): array {
@@ -1592,13 +1604,13 @@ final class Rest_Controller {
 					'post_id'            => absint( $context['post_id'] ?? 0 ),
 					'title'              => (string) ( $context['title'] ?? '' ),
 					'excerpt'            => (string) ( $context['excerpt'] ?? '' ),
-					'content'            => (string) ( $context['content_text'] ?? '' ),
+					'content'            => (string) ( $context['content_full_text'] ?? $context['content_text'] ?? '' ),
 					'user_instruction'   => (string) ( $context['user_instruction'] ?? '' ),
 					'generation_variant' => (string) ( $context['generation_variant'] ?? '' ),
 				)
 			)
 		);
-		$summary_layers     = $this->editor_ai_summary_layer_candidates( $summary_ai );
+		$summary_layers     = $this->editor_ai_summary_layer_candidates( $summary_ai, $context );
 		$proposed_new_terms = $this->empty_proposed_new_terms_review();
 		$handoff_preview    = $this->editor_summary_terms_handoff_preview( $summary_layers, array(), array(), $proposed_new_terms );
 		$metadata_delta     = $this->editor_content_metadata_delta( $context, $query, $summary_layers, array(), array(), $proposed_new_terms, array(), array(), $handoff_preview );
@@ -2226,98 +2238,406 @@ final class Rest_Controller {
 		);
 	}
 
-	private function editor_ai_summary_layer_candidates( array $summary_ai ): array {
+	private function editor_ai_summary_layer_candidates( array $summary_ai, array $context = array() ): array {
 		$result      = is_array( $summary_ai['result'] ?? null ) ? $summary_ai['result'] : array();
 		$output_text = trim( sanitize_textarea_field( (string) ( $summary_ai['output_text'] ?? '' ) ) );
-		$recommended = $this->editor_ai_summary_field( $result, array( 'recommended_excerpt', 'short_summary', 'excerpt', 'summary' ) );
-		$alternate   = $this->editor_ai_summary_field( $result, array( 'alternate_excerpt', 'standard_summary', 'alternate_summary' ) );
-		$third       = $this->editor_ai_summary_field( $result, array( 'third_excerpt', 'second_alternate_excerpt', 'alternate_excerpt_2', 'variant_excerpt' ) );
+		$decoded     = '' !== $output_text ? $this->editor_decode_ai_summary_output( $output_text ) : array();
 		$reason      = $this->editor_ai_summary_field( $result, array( 'why_this_works', 'reason', 'rationale' ) );
-		$listed      = $this->editor_ai_summary_list_fields( $result );
+		$coverage    = $this->editor_ai_summary_array_field( $result, array( 'coverage_check', 'coverage' ) );
+		$raw_items   = array();
 
-		if ( '' === $recommended && '' !== $output_text ) {
-			$decoded = $this->editor_decode_ai_summary_output( $output_text );
-			if ( is_array( $decoded ) ) {
-				$recommended = $this->editor_ai_summary_field( $decoded, array( 'recommended_excerpt', 'short_summary', 'excerpt', 'summary' ) );
-				$alternate   = $this->editor_ai_summary_field( $decoded, array( 'alternate_excerpt', 'standard_summary', 'alternate_summary' ) );
-				$third       = $this->editor_ai_summary_field( $decoded, array( 'third_excerpt', 'second_alternate_excerpt', 'alternate_excerpt_2', 'variant_excerpt' ) );
-				$reason      = $this->editor_ai_summary_field( $decoded, array( 'why_this_works', 'reason', 'rationale' ) );
-				$listed      = array_merge( $listed, $this->editor_ai_summary_list_fields( $decoded ) );
+		if ( is_array( $decoded ) && '' === $reason ) {
+			$reason = $this->editor_ai_summary_field( $decoded, array( 'why_this_works', 'reason', 'rationale' ) );
+		}
+		if ( is_array( $decoded ) && empty( $coverage ) ) {
+			$coverage = $this->editor_ai_summary_array_field( $decoded, array( 'coverage_check', 'coverage' ) );
+		}
+
+		$push_candidate = static function ( array &$items, string $value, string $label_key, int $order ) use ( $reason ): void {
+			$value = trim( $value );
+			if ( '' === $value ) {
+				return;
+			}
+			$items[] = array(
+				'value'     => $value,
+				'label_key' => $label_key,
+				'order'     => $order,
+				'reason'    => $reason,
+			);
+		};
+
+		foreach ( array( $result, is_array( $decoded ) ? $decoded : array() ) as $source ) {
+			$push_candidate( $raw_items, $this->editor_ai_summary_field( $source, array( 'recommended_excerpt', 'short_summary', 'excerpt', 'summary' ) ), 'recommended', count( $raw_items ) );
+			$push_candidate( $raw_items, $this->editor_ai_summary_field( $source, array( 'alternate_excerpt', 'standard_summary', 'alternate_summary' ) ), 'alternate', count( $raw_items ) );
+			$push_candidate( $raw_items, $this->editor_ai_summary_field( $source, array( 'third_excerpt', 'second_alternate_excerpt', 'alternate_excerpt_2', 'variant_excerpt' ) ), 'alternate', count( $raw_items ) );
+			foreach ( $this->editor_ai_summary_list_fields( $source ) as $listed_excerpt ) {
+				$push_candidate( $raw_items, $listed_excerpt, 'alternate', count( $raw_items ) );
 			}
 		}
-		foreach ( $listed as $listed_excerpt ) {
-			if ( '' === $recommended ) {
-				$recommended = $listed_excerpt;
-				continue;
-			}
-			if ( '' === $alternate && $listed_excerpt !== $recommended ) {
-				$alternate = $listed_excerpt;
-				continue;
-			}
-			if ( '' === $third && $listed_excerpt !== $recommended && $listed_excerpt !== $alternate ) {
-				$third = $listed_excerpt;
-				break;
-			}
-		}
-		if ( '' === $recommended && '' !== $output_text ) {
+
+		if ( empty( $raw_items ) && '' !== $output_text ) {
 			$fallback = preg_replace( '/^\s*(?:#+|\*+|-+)?\s*(?:recommended[_ ]excerpt|short[_ ]summary|summary|excerpt|推荐摘要|摘要)\s*[:：-]?\s*/iu', '', $output_text );
-			$recommended = sanitize_text_field( wp_html_excerpt( is_string( $fallback ) ? $fallback : $output_text, 180, '' ) );
+			$push_candidate( $raw_items, sanitize_text_field( wp_html_excerpt( is_string( $fallback ) ? $fallback : $output_text, 180, '' ) ), 'recommended', 0 );
 		}
-		$recommended = $this->editor_clean_ai_summary_excerpt( $recommended );
-		$alternate   = $this->editor_clean_ai_summary_excerpt( $alternate );
-		$third       = $this->editor_clean_ai_summary_excerpt( $third );
-		if ( ! $this->editor_ai_summary_excerpt_is_reviewable( $recommended ) ) {
-			$recommended = $this->editor_ai_summary_excerpt_is_reviewable( $alternate ) ? $alternate : '';
-			$alternate   = '';
-		} elseif ( ! $this->editor_ai_summary_excerpt_is_reviewable( $alternate ) ) {
-			$alternate = '';
+
+		$candidates = array();
+		$seen       = array();
+		foreach ( $raw_items as $raw_item ) {
+			$value = $this->editor_clean_ai_summary_excerpt( (string) ( $raw_item['value'] ?? '' ) );
+			if ( ! $this->editor_ai_summary_excerpt_is_reviewable( $value ) ) {
+				continue;
+			}
+			$key = strtolower( $value );
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+			$seen[ $key ] = true;
+			$quality      = $this->editor_ai_summary_candidate_quality( $value, $coverage, $context );
+			$candidates[] = array(
+				'value'     => $value,
+				'order'     => absint( $raw_item['order'] ?? 0 ),
+				'reason'    => sanitize_text_field( (string) ( $raw_item['reason'] ?? '' ) ),
+				'quality'   => $quality,
+			);
 		}
-		if ( ! $this->editor_ai_summary_excerpt_is_reviewable( $third ) || $third === $recommended || $third === $alternate ) {
-			$third = '';
-		}
+
+		usort(
+			$candidates,
+			static function ( array $a, array $b ): int {
+				$score_delta = (int) ( $b['quality']['score'] ?? 0 ) <=> (int) ( $a['quality']['score'] ?? 0 );
+				return 0 !== $score_delta ? $score_delta : ( absint( $a['order'] ?? 0 ) <=> absint( $b['order'] ?? 0 ) );
+			}
+		);
 
 		$items = array();
-		if ( '' !== $recommended ) {
-			$items[] = array(
-				'id'            => 'ai_recommended_excerpt',
-				'label'         => __( 'AI recommended excerpt', 'npcink-toolbox' ),
+		foreach ( array_slice( $candidates, 0, 3 ) as $index => $candidate ) {
+			$is_first = 0 === $index;
+			$items[]  = array(
+				'id'             => $is_first ? 'ai_recommended_excerpt' : ( 1 === $index ? 'ai_alternate_excerpt' : 'ai_third_excerpt' ),
+				'label'          => $is_first ? __( 'AI recommended excerpt', 'npcink-toolbox' ) : __( 'AI alternate excerpt', 'npcink-toolbox' ),
 				'limit'         => '50_160_zh_chars',
-				'value'         => sanitize_text_field( $recommended ),
-				'reason'        => '' !== $reason ? $reason : __( 'Generated by hosted AI from the current title, excerpt, and draft body. Review before applying.', 'npcink-toolbox' ),
-				'context_use'   => 'draft_grounded_ai_summary',
-				'evidence_refs' => array(),
-			);
-		}
-		if ( '' !== $alternate && $alternate !== $recommended ) {
-			$items[] = array(
-				'id'            => 'ai_alternate_excerpt',
-				'label'         => __( 'AI alternate excerpt', 'npcink-toolbox' ),
-				'limit'         => '50_160_zh_chars',
-				'value'         => sanitize_text_field( $alternate ),
-				'reason'        => __( 'Alternate AI wording with the same factual scope for editor comparison.', 'npcink-toolbox' ),
-				'context_use'   => 'draft_grounded_ai_summary',
-				'evidence_refs' => array(),
-			);
-		}
-		if ( '' !== $third ) {
-			$items[] = array(
-				'id'            => 'ai_third_excerpt',
-				'label'         => __( 'AI alternate excerpt', 'npcink-toolbox' ),
-				'limit'         => '50_160_zh_chars',
-				'value'         => sanitize_text_field( $third ),
-				'reason'        => __( 'Additional AI wording with the same factual scope for editor comparison.', 'npcink-toolbox' ),
-				'context_use'   => 'draft_grounded_ai_summary',
-				'evidence_refs' => array(),
+				'value'          => sanitize_text_field( (string) ( $candidate['value'] ?? '' ) ),
+				'reason'         => '' !== (string) ( $candidate['reason'] ?? '' ) ? (string) $candidate['reason'] : __( 'Generated by hosted AI from the current title, excerpt, and draft body. Review before applying.', 'npcink-toolbox' ),
+				'context_use'    => 'draft_grounded_ai_summary',
+				'quality_status' => sanitize_key( (string) ( $candidate['quality']['status'] ?? 'review' ) ),
+				'quality_score'  => absint( $candidate['quality']['score'] ?? 0 ),
+				'quality_issues' => is_array( $candidate['quality']['issues'] ?? null ) ? array_values( array_map( 'sanitize_text_field', $candidate['quality']['issues'] ) ) : array(),
+				'evidence_refs'  => array(),
 			);
 		}
 
 		return array(
-			'candidate_type'         => 'ai_summary_layer_candidates',
-			'write_posture'          => 'suggestion_only',
-			'direct_wordpress_write' => false,
+			'candidate_type'          => 'ai_summary_layer_candidates',
+			'write_posture'           => 'suggestion_only',
+			'direct_wordpress_write'  => false,
 			'related_context_summary' => array(),
-			'items'                  => $items,
+			'coverage_check'          => $this->editor_ai_summary_sanitize_array( $coverage ),
+			'quality_gate'            => array(
+				'name'           => 'runtime_summary_candidate_rerank',
+				'policy'         => 'length_meta_phrase_coverage_check_rerank_and_flag',
+				'minimum_score'  => 0,
+				'candidate_sort' => 'quality_score_desc_then_model_order',
+			),
+			'quality_notes'           => $this->editor_ai_summary_quality_notes( $items ),
+			'items'                   => $items,
 		);
+	}
+
+	private function editor_ai_summary_candidate_quality( string $excerpt, array $coverage, array $context ): array {
+		$score  = 100;
+		$issues = array();
+		$value  = trim( $excerpt );
+		$length = function_exists( 'mb_strlen' ) ? mb_strlen( $value, 'UTF-8' ) : strlen( $value );
+		$source = trim(
+			sanitize_textarea_field(
+				(string) ( $context['title'] ?? '' ) . "\n" .
+				(string) ( $context['excerpt'] ?? '' ) . "\n" .
+				wp_strip_all_tags( (string) ( $context['content_full_text'] ?? $context['content_text'] ?? '' ) )
+			)
+		);
+
+		if ( $length < 70 ) {
+			$score   -= 6;
+			$issues[] = __( '摘要偏短，可能没有覆盖足够信息。', 'npcink-toolbox' );
+		}
+		if ( 1 === preg_match( '/(?:草稿|本文|这篇文章|该文章|本文说明|本文介绍|这篇草稿|this\s+(?:article|post|draft))/iu', $value ) ) {
+			$score   -= 35;
+			$issues[] = __( '包含草稿或文章自指套话。', 'npcink-toolbox' );
+		}
+		if ( 1 === preg_match( '/^(?:面向|适合|需要|想要|对于)/u', $value ) ) {
+			$score   -= 4;
+			$issues[] = __( '开头较模板化。', 'npcink-toolbox' );
+		}
+
+		$core_subject = $this->editor_ai_summary_coverage_text( $coverage['core_subject'] ?? '' );
+		if ( $this->editor_ai_summary_coverage_group_missing( $source, $value, $core_subject ) ) {
+			$score   -= 18;
+			$issues[] = __( '可能缺少核心对象。', 'npcink-toolbox' );
+		}
+
+		$title_positioning = $this->editor_ai_summary_coverage_text( $coverage['title_positioning'] ?? '' );
+		if ( $this->editor_ai_summary_coverage_group_missing( $source, $value, $title_positioning ) ) {
+			$score   -= 10;
+			$issues[] = __( '可能遗漏标题中的关键定位。', 'npcink-toolbox' );
+		}
+
+		$missing_groups = 0;
+		foreach ( $this->editor_ai_summary_flatten_strings( $coverage['must_cover_points'] ?? array() ) as $point ) {
+			$terms = $this->editor_ai_summary_keyword_candidates( $point );
+			if ( empty( $terms ) ) {
+				continue;
+			}
+			$source_mentions = false;
+			$excerpt_mentions = false;
+			foreach ( $terms as $term ) {
+				if ( $this->editor_ai_summary_text_contains( $source, $term ) ) {
+					$source_mentions = true;
+				}
+				if ( $this->editor_ai_summary_text_contains( $value, $term ) ) {
+					$excerpt_mentions = true;
+				}
+			}
+			if ( $source_mentions && ! $excerpt_mentions ) {
+				++$missing_groups;
+			}
+		}
+		if ( $missing_groups > 0 ) {
+			$score   -= min( 24, $missing_groups * 8 );
+			$issues[] = __( '可能遗漏一个或多个必须覆盖点。', 'npcink-toolbox' );
+		}
+
+		$term_segments          = $this->editor_ai_summary_source_named_term_segments( $source );
+		$available_term_segments = 0;
+		$covered_term_segments   = 0;
+		$all_named_terms         = array();
+		foreach ( $term_segments as $terms ) {
+			if ( empty( $terms ) ) {
+				continue;
+			}
+			$all_named_terms = array_merge( $all_named_terms, $terms );
+			++$available_term_segments;
+			foreach ( $terms as $term ) {
+				if ( $this->editor_ai_summary_text_contains( $value, $term ) ) {
+					++$covered_term_segments;
+					break;
+				}
+			}
+		}
+		if ( $available_term_segments >= 2 && $covered_term_segments < 2 ) {
+			$score   -= 32;
+			$issues[] = __( '可能只覆盖了正文局部工具、方法或流程分支。', 'npcink-toolbox' );
+		}
+		$all_named_terms = array_values( array_unique( $all_named_terms ) );
+		if ( count( $all_named_terms ) >= 3 && count( $all_named_terms ) <= 5 ) {
+			$missing_named_terms = array();
+			foreach ( $all_named_terms as $term ) {
+				if ( ! $this->editor_ai_summary_text_contains( $value, $term ) ) {
+					$missing_named_terms[] = $term;
+				}
+			}
+			if ( ! empty( $missing_named_terms ) ) {
+				$score   -= min( 36, count( $missing_named_terms ) * 18 );
+				$issues[] = sprintf(
+					/* translators: %s: comma-separated missing named terms. */
+					__( '可能遗漏关键工具或方法：%s。', 'npcink-toolbox' ),
+					implode( ', ', array_slice( $missing_named_terms, 0, 5 ) )
+				);
+			}
+		}
+
+		$status = 'good';
+		if ( $score < 70 ) {
+			$status = 'review';
+		}
+		if ( $score < 55 ) {
+			$status = 'weak';
+		}
+
+		if ( empty( $issues ) ) {
+			$issues[] = __( '通过长度、自指套话和覆盖检查。', 'npcink-toolbox' );
+		}
+
+		return array(
+			'score'  => max( 0, min( 100, $score ) ),
+			'status' => $status,
+			'issues' => array_values( array_unique( $issues ) ),
+		);
+	}
+
+	private function editor_ai_summary_quality_notes( array $items ): array {
+		$notes = array();
+		foreach ( $items as $item ) {
+			$issues = is_array( $item['quality_issues'] ?? null ) ? $item['quality_issues'] : array();
+			$notes[] = array(
+				'name'   => (string) ( $item['label'] ?? __( 'Summary candidate', 'npcink-toolbox' ) ),
+				'status' => sanitize_key( (string) ( $item['quality_status'] ?? 'review' ) ),
+				'detail' => sprintf(
+					/* translators: 1: quality score, 2: quality notes. */
+					__( 'Quality score %1$d. %2$s', 'npcink-toolbox' ),
+					absint( $item['quality_score'] ?? 0 ),
+					implode( ' ', array_map( 'sanitize_text_field', $issues ) )
+				),
+			);
+		}
+
+		return $notes;
+	}
+
+	private function editor_ai_summary_array_field( array $source, array $keys ): array {
+		foreach ( $keys as $key ) {
+			if ( is_array( $source[ $key ] ?? null ) ) {
+				return $source[ $key ];
+			}
+		}
+
+		foreach ( array( 'result', 'data', 'summary', 'summary_candidates', 'output' ) as $nested_key ) {
+			if ( is_array( $source[ $nested_key ] ?? null ) ) {
+				$value = $this->editor_ai_summary_array_field( $source[ $nested_key ], $keys );
+				if ( ! empty( $value ) ) {
+					return $value;
+				}
+			}
+		}
+
+		return array();
+	}
+
+	private function editor_ai_summary_sanitize_array( array $value ): array {
+		$clean = array();
+		foreach ( $value as $key => $item ) {
+			$clean_key = is_string( $key ) ? sanitize_key( $key ) : absint( $key );
+			if ( is_array( $item ) ) {
+				$clean[ $clean_key ] = $this->editor_ai_summary_sanitize_array( $item );
+				continue;
+			}
+			$clean[ $clean_key ] = sanitize_text_field( (string) $item );
+		}
+
+		return $clean;
+	}
+
+	private function editor_ai_summary_coverage_text( $value ): string {
+		$parts = $this->editor_ai_summary_flatten_strings( $value );
+		return trim( sanitize_text_field( implode( ' ', array_slice( $parts, 0, 3 ) ) ) );
+	}
+
+	private function editor_ai_summary_flatten_strings( $value ): array {
+		if ( is_scalar( $value ) ) {
+			$text = trim( sanitize_text_field( (string) $value ) );
+			return '' !== $text ? array( $text ) : array();
+		}
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$parts = array();
+		foreach ( $value as $item ) {
+			foreach ( $this->editor_ai_summary_flatten_strings( $item ) as $part ) {
+				if ( '' !== $part ) {
+					$parts[] = $part;
+				}
+			}
+		}
+
+		return $parts;
+	}
+
+	private function editor_ai_summary_keyword_candidates( string $value ): array {
+		$text  = preg_replace( '/[，,、；;。.!！？?（）()\[\]【】"“”\'‘’：:]+/u', ' ', $value );
+		$parts = preg_split( '/\s+/u', is_string( $text ) ? $text : $value );
+		$terms = array();
+		foreach ( is_array( $parts ) ? $parts : array() as $part ) {
+			$term = trim( sanitize_text_field( $part ) );
+			if ( '' === $term ) {
+				continue;
+			}
+			$length = function_exists( 'mb_strlen' ) ? mb_strlen( $term, 'UTF-8' ) : strlen( $term );
+			if ( $length < 2 || in_array( $term, array( '以及', '或者', '并且', '主要', '核心', '覆盖', '说明', '介绍', '场景', '步骤', '能力' ), true ) ) {
+				continue;
+			}
+			$terms[] = $term;
+			if ( count( $terms ) >= 4 ) {
+				break;
+			}
+		}
+
+		return array_values( array_unique( $terms ) );
+	}
+
+	private function editor_ai_summary_coverage_group_missing( string $source, string $excerpt, string $coverage_text ): bool {
+		$terms = $this->editor_ai_summary_keyword_candidates( $coverage_text );
+		if ( empty( $terms ) ) {
+			return false;
+		}
+
+		$source_mentions = false;
+		$excerpt_mentions = false;
+		foreach ( $terms as $term ) {
+			if ( $this->editor_ai_summary_text_contains( $source, $term ) ) {
+				$source_mentions = true;
+			}
+			if ( $this->editor_ai_summary_text_contains( $excerpt, $term ) ) {
+				$excerpt_mentions = true;
+			}
+		}
+
+		return $source_mentions && ! $excerpt_mentions;
+	}
+
+	private function editor_ai_summary_text_contains( string $haystack, string $needle ): bool {
+		$needle = trim( $needle );
+		if ( '' === $needle ) {
+			return false;
+		}
+		if ( function_exists( 'mb_stripos' ) ) {
+			return false !== mb_stripos( $haystack, $needle, 0, 'UTF-8' );
+		}
+
+		return false !== stripos( $haystack, $needle );
+	}
+
+	private function editor_ai_summary_source_named_term_segments( string $source ): array {
+		$plain = trim( wp_strip_all_tags( $source ) );
+		$segments = array(
+			'lead'   => array(),
+			'middle' => array(),
+			'end'    => array(),
+		);
+		if ( '' === $plain ) {
+			return $segments;
+		}
+
+		$length = strlen( $plain );
+		if ( 1 !== preg_match_all( '/(?<![A-Za-z0-9._+-])([A-Za-z][A-Za-z0-9._+-]{1,})(?![A-Za-z0-9._+-])/u', $plain, $matches, PREG_OFFSET_CAPTURE ) ) {
+			return $segments;
+		}
+
+		foreach ( $matches[1] as $match ) {
+			$term = trim( sanitize_text_field( (string) ( $match[0] ?? '' ) ) );
+			$key  = strtolower( $term );
+			if ( '' === $term || in_array( $key, array( 'http', 'https', 'www', 'com', 'html', 'php', 'js', 'css', 'question', 'answer' ), true ) ) {
+				continue;
+			}
+			if ( 1 === preg_match( '/^[A-Z0-9]{2,5}$/', $term ) ) {
+				continue;
+			}
+			if ( 0 === strpos( $key, 'www.' ) || 1 === preg_match( '/\.(?:com|cn|net|org)$/', $key ) ) {
+				continue;
+			}
+
+			$offset     = max( 0, (int) ( $match[1] ?? 0 ) );
+			$segment_id = 'lead';
+			if ( $offset >= (int) floor( $length * 2 / 3 ) ) {
+				$segment_id = 'end';
+			} elseif ( $offset >= (int) floor( $length / 3 ) ) {
+				$segment_id = 'middle';
+			}
+			if ( ! in_array( $term, $segments[ $segment_id ], true ) ) {
+				$segments[ $segment_id ][] = $term;
+			}
+		}
+
+		return $segments;
 	}
 
 	private function editor_decode_ai_summary_output( string $output_text ): array {

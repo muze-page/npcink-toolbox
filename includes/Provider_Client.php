@@ -2520,7 +2520,10 @@ final class Provider_Client {
 
 		$title   = sanitize_text_field( (string) ( $input['title'] ?? '' ) );
 		$excerpt = sanitize_textarea_field( (string) ( $input['excerpt'] ?? '' ) );
-		$content = wp_trim_words( wp_strip_all_tags( (string) ( $input['content'] ?? '' ) ), 420, '' );
+		$raw_content = (string) ( $input['content'] ?? '' );
+		$content     = 'summary_suggestions' === $intent
+			? $this->hosted_ai_summary_source_content( $raw_content )
+			: wp_trim_words( wp_strip_all_tags( $raw_content ), 420, '' );
 		$post_id = absint( $input['post_id'] ?? 0 );
 		$user_instruction = wp_trim_words( sanitize_textarea_field( wp_strip_all_tags( (string) ( $input['user_instruction'] ?? '' ) ) ), 60, '' );
 		$quality_contract = $this->hosted_ai_quality_contract( $intent );
@@ -2539,6 +2542,7 @@ final class Provider_Client {
 			'title'                   => $title,
 			'excerpt'                 => $excerpt,
 			'content'                 => $content,
+			'content_coverage_map'    => 'summary_suggestions' === $intent ? $this->hosted_ai_summary_coverage_map( $raw_content ) : array(),
 			'user_instruction'        => $user_instruction,
 			'generation_variant'      => sanitize_text_field( (string) ( $input['generation_variant'] ?? '' ) ),
 			'post_context'            => $this->collect_hosted_ai_post_context( $post_id ),
@@ -2578,7 +2582,7 @@ final class Provider_Client {
 			'data_classification' => 'public_site_content',
 			'storage_mode'        => 'result_only',
 			'retention_ttl'       => 86400,
-			'timeout_seconds'     => 30,
+			'timeout_seconds'     => 'summary_suggestions' === $intent ? 60 : 30,
 			'retry_max'           => 0,
 			'policy'              => array(
 				'allow_fallback' => false,
@@ -2619,6 +2623,159 @@ final class Provider_Client {
 		}
 
 		return $this->normalize_hosted_ai_content_support_response( is_array( $response ) ? $response : array(), $runtime_payload, $intent );
+	}
+
+	private function hosted_ai_summary_source_content( string $content ): string {
+		$plain = $this->hosted_ai_normalized_text( $content );
+		if ( '' === $plain ) {
+			return '';
+		}
+
+		$length    = $this->hosted_ai_text_length( $plain );
+		$max_chars = 30000;
+		if ( $length <= $max_chars ) {
+			return sanitize_textarea_field( $plain );
+		}
+
+		return sanitize_textarea_field(
+			$this->hosted_ai_text_slice( $plain, 0, $max_chars ) . "\n\n[Draft context truncated after {$max_chars} characters for runtime safety.]"
+		);
+	}
+
+	private function hosted_ai_summary_coverage_map( string $content ): array {
+		$plain = $this->hosted_ai_normalized_text( $content );
+		if ( '' === $plain ) {
+			return array(
+				'sampling_policy' => 'empty_draft_context',
+				'headings'        => array(),
+			);
+		}
+
+		$headings = array();
+		$lines    = preg_split( '/\R+/', wp_strip_all_tags( $content ) );
+		foreach ( is_array( $lines ) ? $lines : array() as $line ) {
+			$item = trim( sanitize_text_field( preg_replace( '/\s+/u', ' ', (string) $line ) ) );
+			if ( '' === $item ) {
+				continue;
+			}
+			$line_length = $this->hosted_ai_text_length( $item );
+			if ( $line_length < 3 || $line_length > 80 ) {
+				continue;
+			}
+			if ( 1 !== preg_match( '/^(?:#+\s*)?(?:\d+[\.、]\s*)?(?:[一二三四五六七八九十]+[、.]\s*)?[^。！？!?]{3,80}$/u', $item ) ) {
+				continue;
+			}
+			if ( ! in_array( $item, $headings, true ) ) {
+				$headings[] = $item;
+			}
+			if ( count( $headings ) >= 12 ) {
+				break;
+			}
+		}
+
+		$length = $this->hosted_ai_text_length( $plain );
+
+		return array(
+			'sampling_policy' => 'full_draft_context_plus_heading_map_for_summary_coverage',
+			'text_length'     => $length,
+			'content_limit'   => 30000,
+			'content_truncated' => $length > 30000,
+			'headings'        => $headings,
+			'key_terms'       => $this->hosted_ai_summary_key_terms( $plain ),
+			'must_cover_named_terms' => $this->hosted_ai_summary_must_cover_named_terms( $plain ),
+			'segment_hints'   => $this->hosted_ai_summary_segment_hints( $plain ),
+			'lead_hint'       => sanitize_text_field( $this->hosted_ai_text_slice( $plain, 0, 180 ) ),
+			'middle_hint'     => sanitize_text_field( $this->hosted_ai_text_slice( $plain, max( 0, (int) floor( $length / 2 ) - 90 ), 180 ) ),
+			'end_hint'        => sanitize_text_field( $this->hosted_ai_text_slice( $plain, max( 0, $length - 180 ), 180 ) ),
+		);
+	}
+
+	private function hosted_ai_summary_segment_hints( string $plain ): array {
+		$length = $this->hosted_ai_text_length( $plain );
+		if ( $length <= 0 ) {
+			return array();
+		}
+
+		$segment_length = max( 1, (int) ceil( $length / 3 ) );
+		$segments       = array(
+			array( 'id' => 'lead', 'start' => 0 ),
+			array( 'id' => 'middle', 'start' => max( 0, $segment_length - 80 ) ),
+			array( 'id' => 'end', 'start' => max( 0, ( $segment_length * 2 ) - 80 ) ),
+		);
+		$items          = array();
+		foreach ( $segments as $segment ) {
+			$slice = $this->hosted_ai_text_slice( $plain, (int) $segment['start'], $segment_length + 160 );
+			if ( '' === $slice ) {
+				continue;
+			}
+
+			$items[] = array(
+				'id'       => sanitize_key( (string) $segment['id'] ),
+				'hint'     => sanitize_text_field( $this->hosted_ai_text_slice( $slice, 0, 220 ) ),
+				'key_terms' => $this->hosted_ai_summary_key_terms( $slice ),
+			);
+		}
+
+		return $items;
+	}
+
+	private function hosted_ai_summary_key_terms( string $plain ): array {
+		$terms = array();
+		if ( 1 === preg_match_all( '/(?<![A-Za-z0-9._+-])([A-Za-z][A-Za-z0-9._+-]{1,})(?![A-Za-z0-9._+-])/u', $plain, $matches ) ) {
+			foreach ( $matches[0] as $match ) {
+				$term = trim( sanitize_text_field( $match ) );
+				$key  = strtolower( $term );
+				if ( in_array( $key, array( 'http', 'https', 'www', 'com', 'html', 'php', 'js', 'css', 'question', 'answer' ), true ) ) {
+					continue;
+				}
+				if ( 0 === strpos( $key, 'www.' ) || 1 === preg_match( '/\.(?:com|cn|net|org)$/', $key ) ) {
+					continue;
+				}
+				if ( ! isset( $terms[ $key ] ) ) {
+					$terms[ $key ] = $term;
+				}
+				if ( count( $terms ) >= 24 ) {
+					break;
+				}
+			}
+		}
+
+		return array_values( $terms );
+	}
+
+	private function hosted_ai_summary_must_cover_named_terms( string $plain ): array {
+		$terms = array();
+		foreach ( $this->hosted_ai_summary_key_terms( $plain ) as $term ) {
+			if ( 1 === preg_match( '/^[A-Z0-9]{2,5}$/', $term ) ) {
+				continue;
+			}
+			$terms[] = $term;
+			if ( count( $terms ) >= 8 ) {
+				break;
+			}
+		}
+
+		return $terms;
+	}
+
+	private function hosted_ai_normalized_text( string $content ): string {
+		$text = wp_strip_all_tags( $content );
+		$text = preg_replace( '/[ \t]+/u', ' ', $text );
+		$text = preg_replace( '/\R{3,}/u', "\n\n", is_string( $text ) ? $text : '' );
+
+		return trim( is_string( $text ) ? $text : '' );
+	}
+
+	private function hosted_ai_text_length( string $value ): int {
+		return function_exists( 'mb_strlen' ) ? mb_strlen( $value, 'UTF-8' ) : strlen( $value );
+	}
+
+	private function hosted_ai_text_slice( string $value, int $start, int $length ): string {
+		if ( function_exists( 'mb_substr' ) ) {
+			return trim( mb_substr( $value, $start, $length, 'UTF-8' ) );
+		}
+
+		return trim( substr( $value, $start, $length ) );
 	}
 
 	public function run_hosted_ai_site_helper( array $input ) {
@@ -3994,6 +4151,11 @@ final class Provider_Client {
 				'For summary_suggestions in Chinese, target 70 to 140 Chinese characters and rewrite before returning if either excerpt is under 50 or over 160 characters.',
 				'For summary_suggestions, the recommended excerpt must name or clearly identify the core subject and cover the primary workflow, capability set, or reader decision path rather than a local detail.',
 				'For summary_suggestions, title-level differentiators such as high-performance, componentized, beginner-friendly, local-first, or step-by-step are must-cover when supported by the draft.',
+				'For summary_suggestions, treat source.content as the full draft context when it is not marked truncated; use source.content_coverage_map headings, hints, and key_terms only to verify coverage, not as a replacement for reading the full draft.',
+				'For summary_suggestions, source.content_coverage_map.must_cover_named_terms lists named tools, products, methods, or systems found in the draft; if it contains five or fewer terms, the recommended excerpt must represent every listed term directly or through a clear grouped role.',
+				'For summary_suggestions, use source.content_coverage_map.segment_hints to check lead, middle, and end coverage; if later segments introduce named tools, scenarios, or workflow branches not represented in the lead segment, compress those later branches into the recommended excerpt.',
+				'For summary_suggestions, before returning, count named terms represented in the recommended excerpt by segment; when two or more segment_hints contain named terms, the recommended excerpt must represent at least two different segments and must not mention only lead-segment tools.',
+				'For summary_suggestions, when the draft describes multiple named tools, methods, or workflow branches across sections, the recommended excerpt must compress those branches instead of only naming the first tool group.',
 				'For summary_suggestions, include core_subject, content_type, title_positioning, primary_reader_value, must_cover_points, and relationship_rules inside coverage_check when returning JSON; keep these fields short and do not copy them into the excerpt as labels.',
 				'For summary_suggestions, reject and rewrite the recommended excerpt if it leaves a must_cover_points group unrepresented.',
 				'For summary_suggestions, the excerpt itself must be public-facing preview copy, not editor analysis; avoid meta lead-ins such as 本文说明, 本文介绍, 这篇文章, 该文章, 这篇草稿主张, this article, or this draft.',

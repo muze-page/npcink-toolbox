@@ -41,6 +41,13 @@ function npcink_summary_eval_contains_any( string $haystack, array $needles ): a
 	return $hits;
 }
 
+function npcink_summary_eval_key( string $value ): string {
+	$value = strtolower( trim( $value ) );
+	$value = preg_replace( '/[^a-z0-9_-]+/', '_', $value );
+
+	return trim( is_string( $value ) ? $value : '', '_' );
+}
+
 function npcink_summary_eval_score_candidate( array $sample, array $candidate ): array {
 	$summary = trim( (string) ( $candidate['summary'] ?? $candidate['recommended_excerpt'] ?? '' ) );
 	$title   = trim( (string) ( $sample['title'] ?? '' ) );
@@ -109,12 +116,22 @@ function npcink_summary_eval_score_candidate( array $sample, array $candidate ):
 		}
 	}
 
+	if ( array_key_exists( 'quality_status', $candidate ) || array_key_exists( 'quality_score', $candidate ) ) {
+		$runtime_status = npcink_summary_eval_key( (string) ( $candidate['quality_status'] ?? '' ) );
+		$runtime_score  = (int) ( $candidate['quality_score'] ?? 0 );
+		if ( in_array( $runtime_status, array( 'weak', 'review' ), true ) || ( $runtime_score > 0 && $runtime_score < 70 ) ) {
+			$issues[] = 'runtime_quality_gate:' . ( '' !== $runtime_status ? $runtime_status : 'score_' . $runtime_score );
+		}
+	}
+
 	$score = 100;
 	foreach ( $issues as $issue ) {
 		if ( str_starts_with( $issue, 'forbidden_meta_phrase:' ) ) {
 			$score -= 35;
 		} elseif ( str_starts_with( $issue, 'unsupported_risky_claim:' ) ) {
 			$score -= 30;
+		} elseif ( str_starts_with( $issue, 'runtime_quality_gate:' ) ) {
+			$score -= 35;
 		} elseif ( str_starts_with( $issue, 'length_out_of_range:' ) ) {
 			$score -= 20;
 		} else {
