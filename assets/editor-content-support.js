@@ -1824,6 +1824,62 @@
 		}] : [];
 	}
 
+	function parseHostedJsonObject(value) {
+		const text = String(value || '').trim();
+		if (!text) {
+			return {};
+		}
+		try {
+			const direct = JSON.parse(text);
+			return direct && typeof direct === 'object' && !Array.isArray(direct) ? direct : {};
+		} catch (error) {
+			// Continue with fenced or embedded JSON extraction.
+		}
+		const fenced = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/i);
+		if (fenced && fenced[1]) {
+			try {
+				const parsed = JSON.parse(fenced[1]);
+				return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+			} catch (error) {
+				return {};
+			}
+		}
+		const firstBrace = text.indexOf('{');
+		const lastBrace = text.lastIndexOf('}');
+		if (firstBrace >= 0 && lastBrace > firstBrace) {
+			try {
+				const embedded = JSON.parse(text.slice(firstBrace, lastBrace + 1));
+				return embedded && typeof embedded === 'object' && !Array.isArray(embedded) ? embedded : {};
+			} catch (error) {
+				return {};
+			}
+		}
+		return {};
+	}
+
+	function hostedOutputObject(section) {
+		if (!section || typeof section !== 'object') {
+			return {};
+		}
+		if (section.output_json && typeof section.output_json === 'object' && !Array.isArray(section.output_json)) {
+			return section.output_json;
+		}
+		if (section.result && typeof section.result === 'object' && !Array.isArray(section.result)) {
+			if (section.result.output_json && typeof section.result.output_json === 'object' && !Array.isArray(section.result.output_json)) {
+				return section.result.output_json;
+			}
+			if (Array.isArray(section.result.title_options) || Array.isArray(section.result.titles) || Array.isArray(section.result.suggestions)) {
+				return section.result;
+			}
+			const resultText = section.result.output_text || section.result.text || section.result.content || (section.result.message && section.result.message.content) || '';
+			const parsedResultText = parseHostedJsonObject(resultText);
+			if (Object.keys(parsedResultText).length) {
+				return parsedResultText;
+			}
+		}
+		return parseHostedJsonObject(section.output_text || section.text || '');
+	}
+
 	function flowAcceptsUserInstruction(intent) {
 		return [
 			'title_suggestions',
@@ -1863,10 +1919,10 @@
 		if (!section || typeof section !== 'object') {
 			return [];
 		}
-		const output = section.output_json && typeof section.output_json === 'object' ? section.output_json : {};
+		const output = hostedOutputObject(section);
 		const source = Array.isArray(output.title_options) && output.title_options.length
 			? output.title_options
-			: (Array.isArray(output.titles) && output.titles.length ? output.titles : []);
+			: (Array.isArray(output.titles) && output.titles.length ? output.titles : (Array.isArray(output.suggestions) && output.suggestions.length ? output.suggestions : []));
 		if (source.length) {
 			return source.map((item, index) => {
 				const title = readableItemText(item && (item.title || item.name || item.label || item.value || item.text || item), '');
@@ -1878,16 +1934,22 @@
 				};
 			}).filter((item) => item.value);
 		}
+		const outputText = String(section.output_text || section.text || '').trim();
+		if (outputText && Object.keys(parseHostedJsonObject(outputText)).length) {
+			return [];
+		}
 		return hostedWritingSupportItems(section);
 	}
 
 	function renderTitleSuggestionSection(items, controls) {
 		const candidates = Array.isArray(items) ? items : [];
 		const status = controls && controls.titleApplyStatus ? controls.titleApplyStatus : null;
+		const activeIntent = controls && controls.intent ? controls.intent : '';
+		const showHeading = activeIntent !== 'title_suggestions';
 		return createElement(
 			'section',
 			{ className: 'npcink-toolbox-editor-support__metadata-compact-section' },
-			createElement('h4', null, __('Title suggestions', 'npcink-toolbox')),
+			showHeading ? createElement('h4', null, __('Title suggestions', 'npcink-toolbox')) : null,
 			candidates.length
 				? createElement(
 					'ul',

@@ -2153,6 +2153,9 @@ msgstr "AI 生成摘要"
 msgid "Generate a reviewed excerpt candidate from the current draft with hosted AI."
 msgstr "使用托管 AI 根据当前草稿生成可审阅的摘要候选。"
 
+msgid "Generate reviewed excerpt candidates from the current draft with hosted AI."
+msgstr "使用托管 AI 根据当前草稿生成可审阅的摘要候选。"
+
 msgid "Find matching existing categories without running the full metadata workflow."
 msgstr "查找匹配的已有分类，不运行完整元数据流程。"
 
@@ -2252,6 +2255,15 @@ msgstr "云端备注："
 msgid "Provider errors were reported by Cloud."
 msgstr "Cloud 返回了提供方错误。"
 
+msgid "Common recommendations"
+msgstr "常用推荐"
+
+msgid "Writing assist"
+msgstr "写作辅助"
+
+msgid "Pre-publish package"
+msgstr "发布前包"
+
 msgid "Suggestions only. Final writes require Core approval."
 msgstr "仅提供建议。最终写入需要 Core 审批。"
 
@@ -2260,6 +2272,27 @@ msgstr "返回工具"
 
 msgid "Run again"
 msgstr "重新运行"
+
+msgid "My request for this suggestion"
+msgstr "我对这次建议的要求"
+
+msgid "Example: shorter, less marketing, include product name."
+msgstr "例如：更短、少一点营销感、包含产品名。"
+
+msgid "Example: emphasize workflow value, avoid audience-label openings."
+msgstr "例如：强调流程价值，避免以受众标签开头。"
+
+msgid "Example: prefer existing product taxonomy and avoid broad generic terms."
+msgstr "例如：优先使用已有产品分类，避免宽泛通用词。"
+
+msgid "Example: prefer tutorials over announcement posts."
+msgstr "例如：优先推荐教程文章，少推荐公告文章。"
+
+msgid "Example: concise, factual ALT text; no keyword stuffing."
+msgstr "例如：简洁、事实化的 ALT，不堆关键词。"
+
+msgid "Example: more practical, concise, and less promotional."
+msgstr "例如：更实用、更简洁、少一点宣传感。"
 
 msgid "AI reads the current draft and returns an editor-ready excerpt candidate."
 msgstr "AI 会读取当前草稿，并返回可直接审阅的摘要候选。"
@@ -2335,6 +2368,21 @@ msgstr "推荐摘要"
 
 msgid "Hosted summary"
 msgstr "托管摘要"
+
+msgid "Title option"
+msgstr "标题选项"
+
+msgid "Use this title"
+msgstr "使用此标题"
+
+msgid "No title text is available to apply."
+msgstr "没有可应用的标题文本。"
+
+msgid "Could not update the current title in this editor."
+msgstr "无法更新当前编辑器中的标题。"
+
+msgid "Applied to the current title. Save the draft to persist it."
+msgstr "已填入当前标题。保存草稿后生效。"
 
 msgid "AI recommended excerpt"
 msgstr "AI 推荐摘要"
