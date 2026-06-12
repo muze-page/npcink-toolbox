@@ -2087,12 +2087,136 @@
 		const items = section && Array.isArray(section.items) ? section.items : [];
 		return items.map((item) => ({
 			name: formatMetaLabel(item.name || ''),
+			id: item.name || '',
 			status: item.status ? formatMetaLabel(item.status) : '',
+			rawStatus: item.status || '',
+			nextAction: item.next_action || '',
 			detail: [
 				item.detail || '',
 				item.next_action ? __('Next: ', 'npcink-toolbox') + formatMetaLabel(item.next_action) : '',
 			].filter(Boolean).join(' · '),
 		}));
+	}
+
+	function preflightActionIntent(action) {
+		const key = String(action || '').trim();
+		const mapping = {
+			title: 'title_suggestions',
+			excerpt: 'summary_suggestions',
+			summary: 'summary_suggestions',
+			categories: 'category_suggestions',
+			category_suggestions: 'category_suggestions',
+			tags: 'tag_suggestions',
+			tag_suggestions: 'tag_suggestions',
+			terms: 'category_suggestions',
+			featured_image: 'image_candidates',
+			featured_media: 'image_candidates',
+			image_candidates: 'image_candidates',
+			internal_links: 'internal_links',
+			seo_meta: 'discoverability',
+			seo_meta_single_post_handoff: 'discoverability',
+			duplicate_risk: 'discoverability',
+			duplicate_check: 'discoverability',
+		};
+		return mapping[key] || '';
+	}
+
+	function preflightActionLabel(intent, fallback) {
+		const labels = {
+			title_suggestions: __('Open title suggestions', 'npcink-toolbox'),
+			summary_suggestions: __('Open summary suggestions', 'npcink-toolbox'),
+			category_suggestions: __('Open category suggestions', 'npcink-toolbox'),
+			tag_suggestions: __('Open tag suggestions', 'npcink-toolbox'),
+			image_candidates: __('Open image candidates', 'npcink-toolbox'),
+			internal_links: __('Open internal link candidates', 'npcink-toolbox'),
+			discoverability: __('Open discoverability suggestions', 'npcink-toolbox'),
+		};
+		return labels[intent] || fallback || __('Open tool', 'npcink-toolbox');
+	}
+
+	function preflightActionItems(reviewSection, checksSection) {
+		const actions = [];
+		const seen = {};
+		function pushAction(id, label, status, detail, nextAction) {
+			const intent = preflightActionIntent(nextAction || id);
+			const key = String(id || nextAction || intent || label || '').trim();
+			if (!key || seen[key]) {
+				return;
+			}
+			seen[key] = true;
+			actions.push({
+				id: key,
+				label: label || formatMetaLabel(key),
+				status: status || '',
+				detail: detail || '',
+				intent,
+			});
+		}
+
+		const checks = checksSection && Array.isArray(checksSection.items) ? checksSection.items : [];
+		checks.forEach((item) => {
+			const status = String(item.status || '');
+			if (status && status !== 'ok') {
+				pushAction(item.id, item.label || formatMetaLabel(item.id || ''), status, item.detail || '', item.id);
+			}
+		});
+
+		const reviewItems = sectionItems(reviewSection);
+		reviewItems.forEach((item) => {
+			const status = String(item.status || '');
+			if (status && status === 'ok') {
+				return;
+			}
+			pushAction(item.name, formatMetaLabel(item.name || ''), status, item.detail || '', item.next_action || item.name);
+		});
+
+		return actions;
+	}
+
+	function sectionItems(section) {
+		return section && Array.isArray(section.items) ? section.items : [];
+	}
+
+	function renderPreflightActionList(reviewSection, checksSection, controls) {
+		const actions = preflightActionItems(reviewSection, checksSection);
+		if (!actions.length) {
+			return createElement(
+				'section',
+				{ className: 'npcink-toolbox-editor-support__preflight-actions' },
+				createElement('h4', null, __('Suggested handling list', 'npcink-toolbox')),
+				createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, __('No blocking suggestion items were returned. Review SEO and duplicate-risk evidence before publishing.', 'npcink-toolbox'))
+			);
+		}
+		return createElement(
+			'section',
+			{ className: 'npcink-toolbox-editor-support__preflight-actions' },
+			createElement('h4', null, __('Suggested handling list', 'npcink-toolbox')),
+			createElement(
+				'ul',
+				{ className: 'npcink-toolbox-editor-support__preflight-action-list' },
+				actions.map((item) => createElement(
+					'li',
+					{ key: item.id },
+					createElement(
+						'div',
+						null,
+						createElement('strong', null, item.label),
+						createElement('span', null, [item.status ? formatMetaLabel(item.status) : '', item.detail].filter(Boolean).join(' · '))
+					),
+					item.intent && controls && controls.runIntent ? createElement(
+						Button,
+						{
+							type: 'button',
+							variant: 'secondary',
+							disabled: Boolean(controls.runningIntent),
+							onClick: () => controls.runIntent(item.intent),
+						},
+						preflightActionLabel(item.intent)
+					) : createElement('small', null, __('Review evidence in this preflight result', 'npcink-toolbox'))
+				))
+			),
+			createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, __('Preflight routes work back to focused tools. It does not replace review, approval, or final WordPress writes.', 'npcink-toolbox'))
+		);
 	}
 
 	function seoHandoffItems(section) {
@@ -2228,6 +2352,7 @@
 	function renderCompactMetadataSection(title, items, emptyLabel, options) {
 		const candidates = Array.isArray(items) ? items : [];
 		const showHeading = !(options && options.hideHeading);
+		const actionNote = options && options.actionNote ? options.actionNote : '';
 		return createElement(
 			'section',
 			{ className: 'npcink-toolbox-editor-support__metadata-compact-section' },
@@ -2243,7 +2368,8 @@
 							'li',
 							{ key: String(index) + '-' + titleText },
 							createElement('strong', null, titleText),
-							detailText ? createElement('span', null, detailText) : null
+							detailText ? createElement('span', null, detailText) : null,
+							actionNote ? createElement('small', { className: 'npcink-toolbox-editor-support__candidate-policy' }, actionNote) : null
 						);
 					})
 				)
@@ -2290,6 +2416,29 @@
 				)
 				: createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, __('No summary suggestions returned.', 'npcink-toolbox')),
 			status ? createElement(Notice, { status: status.status || 'success', isDismissible: false }, status.message) : null
+		);
+	}
+
+	function renderInternalLinkCandidateSection(section) {
+		const candidates = internalLinkCandidateItems(section);
+		return createElement(
+			'section',
+			{ className: 'npcink-toolbox-editor-support__metadata-compact-section' },
+			createElement('h4', null, __('Internal link candidates', 'npcink-toolbox')),
+			candidates.length
+				? createElement(
+					'ul',
+					{ className: 'npcink-toolbox-editor-support__metadata-compact-list' },
+					candidates.slice(0, 5).map((item, index) => createElement(
+						'li',
+						{ key: String(index) + '-' + readableItemText(item && item.name, __('Internal link candidate', 'npcink-toolbox')) },
+						createElement('strong', null, readableItemText(item && item.name, __('Internal link candidate', 'npcink-toolbox'))),
+						item.value ? createElement('span', null, item.value) : null,
+						item.detail ? createElement('span', null, truncateText(item.detail, 180)) : null,
+						createElement('small', { className: 'npcink-toolbox-editor-support__candidate-policy' }, __('Review only. Toolbox does not insert links automatically.', 'npcink-toolbox'))
+					))
+				)
+				: createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, __('No internal link candidates returned.', 'npcink-toolbox'))
 		);
 	}
 
@@ -2548,7 +2697,10 @@
 				__('Category suggestions', 'npcink-toolbox'),
 				categoryItems,
 				__('No matching existing categories found.', 'npcink-toolbox'),
-				{ hideHeading: true }
+				{
+					hideHeading: true,
+					actionNote: __('Select existing categories in Core review submission.', 'npcink-toolbox'),
+				}
 			));
 			if (metadataHandoffControls && metadataHandoffControls.showHandoff && metadataHandoffHasChoices(section)) {
 				blocks.push(renderMetadataHandoffControl(section, metadataHandoffControls));
@@ -2560,7 +2712,10 @@
 				__('Tag suggestions', 'npcink-toolbox'),
 				tagItems,
 				__('No matching existing tags found.', 'npcink-toolbox'),
-				{ hideHeading: true }
+				{
+					hideHeading: true,
+					actionNote: __('Select existing tags in Core review submission.', 'npcink-toolbox'),
+				}
 			));
 			blocks.push(renderCompactMetadataSection(
 				__('New tag candidates', 'npcink-toolbox'),
@@ -2588,7 +2743,10 @@
 					__('Category suggestions', 'npcink-toolbox'),
 					categoryItems,
 					__('No matching existing categories found.', 'npcink-toolbox'),
-					{ hideHeading: activeIntent === 'category_suggestions' }
+					{
+						hideHeading: activeIntent === 'category_suggestions',
+						actionNote: __('Select existing categories in Core review submission.', 'npcink-toolbox'),
+					}
 				));
 			}
 			if (tagItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
@@ -2596,7 +2754,10 @@
 					__('Tag suggestions', 'npcink-toolbox'),
 					tagItems,
 					__('No matching existing tags found.', 'npcink-toolbox'),
-					{ hideHeading: activeIntent === 'tag_suggestions' }
+					{
+						hideHeading: activeIntent === 'tag_suggestions',
+						actionNote: __('Select existing tags in Core review submission.', 'npcink-toolbox'),
+					}
 				));
 			}
 		if (newTermItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
@@ -2684,7 +2845,8 @@
 			}
 
 		if (sections.pre_publish_review) {
-			blocks.push(createElement('h4', { key: 'pre-publish-review-title' }, __('Pre-publish review', 'npcink-toolbox')));
+			blocks.push(renderPreflightActionList(sections.pre_publish_review, sections.checks, metadataHandoffControls));
+			blocks.push(createElement('h4', { key: 'pre-publish-review-title' }, __('Pre-publish review details', 'npcink-toolbox')));
 			blocks.push(renderItems(prePublishReviewItems(sections.pre_publish_review), __('No pre-publish review returned.', 'npcink-toolbox')));
 		}
 
@@ -2703,8 +2865,7 @@
 		}
 
 		if (sections.internal_links) {
-			blocks.push(createElement('h4', { key: 'internal-links-title' }, __('Internal link candidates', 'npcink-toolbox')));
-			blocks.push(renderItems(internalLinkCandidateItems(sections.internal_links), __('No internal link candidates returned.', 'npcink-toolbox')));
+			blocks.push(renderInternalLinkCandidateSection(sections.internal_links));
 		}
 
 		if (sections.site_knowledge && !sections.internal_links) {
@@ -3738,6 +3899,8 @@
 			applyExcerpt: applyRecommendedExcerpt,
 			excerptApplyStatus,
 			openEvidence: setEvidenceModalBlocks,
+			runIntent: runFlow,
+			runningIntent: running,
 			seoHandoff: {
 				submit: submitSeoHandoff,
 				running: seoHandoffRunning,

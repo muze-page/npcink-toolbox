@@ -66,6 +66,22 @@ The first editor stage is six focused tools plus a publish preflight package:
   the focused tools. It is a closing checklist, not a replacement editing
   workspace.
 
+The second editor stage keeps the same backend contracts and improves the
+author loop:
+
+- title and summary candidates show explicit use buttons that fill the current
+  unsaved editor field;
+- category and tag candidates show existing-term choices, then submit selected
+  terms through the Core review handoff;
+- image candidates stay in the image-source modal and continue through the
+  existing media adoption flow;
+- internal-link candidates show target article, anchor text, and placement
+  evidence as review-only suggestions. Toolbox must not insert links by
+  default;
+- publish preflight renders a suggested handling list that routes operators
+  back to the focused tools. It must not create a parallel apply surface or
+  bypass Core proposals.
+
 ## Focused Intents
 
 - `title_suggestions`: hosted AI reads the current title, excerpt, and draft
