@@ -54,6 +54,9 @@ their items with `contract=recommendation_candidate.v1`.
 - AI title suggestions expose `recommendation_candidates` and keep legacy
   `title_options` parsing as a fallback. Title recommendation is a first-class
   single-intent action, separate from summary generation.
+- Category and tag shortcuts return `article_taxonomy_suggestions.v1` focused
+  artifacts. They rank existing WordPress terms and may expose review-only new
+  tag gaps without creating terms or preparing a metadata handoff.
 
 ## Boundary
 

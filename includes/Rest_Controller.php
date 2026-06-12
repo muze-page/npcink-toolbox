@@ -498,6 +498,12 @@ final class Rest_Controller {
 		}
 
 		$context = $this->editor_post_context( $request );
+		if ( 'title_suggestions' === $intent ) {
+			$context['context_scope']        = 'full_article';
+			$context['selected_text']        = '';
+			$context['selected_block_text']  = '';
+			$context['selected_block_name']  = '';
+		}
 		$query   = $this->editor_support_query( $context );
 		if ( 'image_candidates' === $intent ) {
 			$query = $this->editor_image_support_query( $context );
@@ -1913,30 +1919,22 @@ final class Rest_Controller {
 	}
 
 	private function editor_fast_category_suggestions( array $context, string $query ): array {
-		$taxonomy_terms     = $this->editor_taxonomy_term_candidates( $context, $query );
-		$items              = is_array( $taxonomy_terms['items'] ?? null ) ? $taxonomy_terms['items'] : array();
-		$categories         = array_values(
+		$taxonomy_terms = $this->editor_taxonomy_term_candidates( $context, $query );
+		$items          = is_array( $taxonomy_terms['items'] ?? null ) ? $taxonomy_terms['items'] : array();
+		$categories     = array_values(
 			array_filter(
 				$items,
 				static fn( array $item ): bool => 'category' === (string) ( $item['taxonomy'] ?? '' )
 			)
 		);
-		$summary_layers     = $this->empty_summary_layer_candidates();
-		$proposed_new_terms = $this->empty_proposed_new_terms_review();
-		$handoff_preview    = $this->editor_summary_terms_handoff_preview( $summary_layers, $categories, array(), $proposed_new_terms );
-		$metadata_delta     = $this->editor_content_metadata_delta( $context, $query, $summary_layers, $categories, array(), $proposed_new_terms, array(), array(), $handoff_preview );
 
-		return $this->editor_metadata_suggestion_section(
+		return $this->editor_taxonomy_only_suggestion_section(
 			'category_suggestions',
-			$context,
-			$summary_layers,
 			$categories,
 			array(),
-			$proposed_new_terms,
+			$this->empty_proposed_new_terms_review(),
 			$taxonomy_terms,
-			array(),
-			$handoff_preview,
-			$metadata_delta
+			$context
 		);
 	}
 
@@ -1949,22 +1947,137 @@ final class Rest_Controller {
 				static fn( array $item ): bool => 'post_tag' === (string) ( $item['taxonomy'] ?? '' )
 			)
 		);
-		$summary_layers     = $this->empty_summary_layer_candidates();
 		$proposed_new_terms = $this->editor_proposed_new_terms_from_query( $context, $query, $tags );
-		$handoff_preview    = $this->editor_summary_terms_handoff_preview( $summary_layers, array(), $tags, $proposed_new_terms );
-		$metadata_delta     = $this->editor_content_metadata_delta( $context, $query, $summary_layers, array(), $tags, $proposed_new_terms, array(), array(), $handoff_preview );
 
-		return $this->editor_metadata_suggestion_section(
+		return $this->editor_taxonomy_only_suggestion_section(
 			'tag_suggestions',
-			$context,
-			$summary_layers,
 			array(),
 			$tags,
 			$proposed_new_terms,
 			$taxonomy_terms,
-			array(),
-			$handoff_preview,
-			$metadata_delta
+			$context
+		);
+	}
+
+	private function editor_taxonomy_only_suggestion_section( string $candidate_type, array $categories, array $tags, array $proposed_new_terms, array $taxonomy_terms, array $context ): array {
+		return array(
+			'artifact_type'              => 'article_taxonomy_suggestions.v1',
+			'composition_role'           => 'taxonomy_candidates_only',
+			'candidate_type'             => sanitize_key( $candidate_type ),
+			'candidate_contract'         => 'recommendation_candidate.v1',
+			'write_posture'              => 'suggestion_only',
+			'final_write_path'           => 'core_proposal_required',
+			'direct_wordpress_write'     => false,
+			'input_scope'                => $this->editor_input_scope( $context ),
+			'category_candidates'        => array_slice( $categories, 0, 5 ),
+			'tag_candidates'             => array_slice( $tags, 0, 8 ),
+			'proposed_new_terms'         => $proposed_new_terms,
+			'taxonomy_terms'             => $taxonomy_terms,
+			'recommendation_candidates'  => $this->editor_taxonomy_recommendation_candidates( $candidate_type, $categories, $tags, $proposed_new_terms ),
+			'quality_gate'               => array(
+				'name'           => 'runtime_taxonomy_candidate_rerank',
+				'policy'         => 'existing_terms_first_current_draft_match_then_related_history',
+				'candidate_sort' => 'score_desc_then_existing_term_order',
+			),
+			'selection_policy'           => array(
+				'prefer_existing_terms'      => true,
+				'new_terms_are_review_only'  => true,
+				'no_toolbox_term_creation'   => true,
+				'accepted_write_path'        => 'core_proposal_required',
+			),
+		);
+	}
+
+	private function editor_taxonomy_recommendation_candidates( string $candidate_type, array $categories, array $tags, array $proposed_new_terms ): array {
+		$items  = 'category_suggestions' === $candidate_type ? array_slice( $categories, 0, 5 ) : array_slice( $tags, 0, 8 );
+		$result = array();
+		foreach ( $items as $index => $item ) {
+			$taxonomy = sanitize_key( (string) ( $item['taxonomy'] ?? '' ) );
+			$term_id  = absint( $item['term_id'] ?? 0 );
+			$name     = sanitize_text_field( (string) ( $item['name'] ?? '' ) );
+			if ( '' === $name || 0 >= $term_id ) {
+				continue;
+			}
+			$quality  = $this->editor_taxonomy_candidate_quality( $item );
+			$result[] = $this->editor_recommendation_candidate(
+				array(
+					'id'             => ( 'category' === $taxonomy ? 'category_' : 'tag_' ) . $term_id,
+					'kind'           => 'category' === $taxonomy ? 'category' : 'tag',
+					'label'          => 'category' === $taxonomy ? __( 'Existing category', 'npcink-toolbox' ) : __( 'Existing tag', 'npcink-toolbox' ),
+					'value'          => $name,
+					'reason'         => sanitize_text_field( (string) ( $item['reason'] ?? '' ) ),
+					'confidence'     => $quality['confidence'],
+					'target_field'   => 'category' === $taxonomy ? 'category' : 'post_tag',
+					'action_policy'  => 'core_proposal_required',
+					'quality_status' => $quality['status'],
+					'quality_score'  => $quality['score'],
+					'quality_issues' => $quality['issues'],
+					'evidence_refs'  => is_array( $item['evidence_refs'] ?? null ) ? $item['evidence_refs'] : array(),
+				)
+			);
+		}
+
+		if ( 'tag_suggestions' === $candidate_type ) {
+			$new_terms = is_array( $proposed_new_terms['items'] ?? null ) ? array_slice( $proposed_new_terms['items'], 0, 5 ) : array();
+			foreach ( $new_terms as $index => $item ) {
+				$name = sanitize_text_field( (string) ( $item['name'] ?? '' ) );
+				if ( '' === $name ) {
+					continue;
+				}
+				$result[] = $this->editor_recommendation_candidate(
+					array(
+						'id'             => 'new_tag_candidate_' . ( $index + 1 ),
+						'kind'           => 'new_tag',
+						'label'          => __( 'Review-only new tag', 'npcink-toolbox' ),
+						'value'          => $name,
+						'reason'         => sanitize_text_field( (string) ( $item['reason'] ?? '' ) ),
+						'confidence'     => 0.2,
+						'target_field'   => 'post_tag',
+						'action_policy'  => 'operator_review_only_no_insert',
+						'quality_status' => 'review',
+						'quality_score'  => 40,
+						'quality_issues' => array( __( '新标签候选仅用于人工审查；Toolbox 不创建词条。', 'npcink-toolbox' ) ),
+					)
+				);
+			}
+		}
+
+		return $result;
+	}
+
+	private function editor_taxonomy_candidate_quality( array $item ): array {
+		$score            = is_numeric( $item['score'] ?? null ) ? (float) $item['score'] : 0.0;
+		$match_signals    = is_array( $item['match_signals'] ?? null ) ? $item['match_signals'] : array();
+		$related_context  = is_array( $item['related_context'] ?? null ) ? $item['related_context'] : array();
+		$quality_score    = max( 0, min( 100, 45 + (int) round( $score * 10 ) ) );
+		$quality_issues   = array();
+		if ( in_array( 'current_draft_match', $match_signals, true ) ) {
+			$quality_issues[] = __( '匹配当前草稿中的标题、摘要或正文词。', 'npcink-toolbox' );
+		}
+		if ( in_array( 'related_site_knowledge_term', $match_signals, true ) ) {
+			$quality_issues[] = __( '历史相关文章使用过该词汇，可作为站内词库证据。', 'npcink-toolbox' );
+		}
+		if ( empty( $quality_issues ) ) {
+			$quality_issues[] = __( '仅作为现有 WordPress 词条候选，采用人工审查。', 'npcink-toolbox' );
+		}
+		if ( 0 === absint( $related_context['source_count'] ?? 0 ) && ! in_array( 'current_draft_match', $match_signals, true ) ) {
+			$quality_score -= 15;
+			$quality_issues[] = __( '缺少当前草稿或历史文章的强匹配证据。', 'npcink-toolbox' );
+		}
+
+		$status = 'good';
+		if ( $quality_score < 70 ) {
+			$status = 'review';
+		}
+		if ( $quality_score < 55 ) {
+			$status = 'weak';
+		}
+
+		return array(
+			'score'      => max( 0, min( 100, $quality_score ) ),
+			'status'     => $status,
+			'confidence' => max( 0.0, min( 1.0, $score / 5 ) ),
+			'issues'     => array_values( array_unique( $quality_issues ) ),
 		);
 	}
 

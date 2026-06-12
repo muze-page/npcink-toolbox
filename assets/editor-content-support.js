@@ -2499,6 +2499,8 @@
 		const summaryText = summary.output_text || '';
 		const activeIntent = metadataHandoffControls && metadataHandoffControls.intent ? metadataHandoffControls.intent : '';
 		const summaryOnlyRun = activeIntent === 'summary_suggestions' || section.candidate_type === 'summary_suggestions';
+		const categoryOnlyRun = activeIntent === 'category_suggestions' || section.candidate_type === 'category_suggestions';
+		const tagOnlyRun = activeIntent === 'tag_suggestions' || section.candidate_type === 'tag_suggestions';
 		const showFullMetadataSurface = activeIntent === 'summary_terms_optimization' || (!activeIntent && fullMetadataRun);
 		if (showFullMetadataSurface) {
 			blocks.push(createElement('h4', { key: 'summary-optimization-title' }, __('Metadata optimization', 'npcink-toolbox')));
@@ -2516,6 +2518,29 @@
 		}
 
 		if (summaryOnlyRun) {
+			return createElement('div', { className: 'npcink-toolbox-editor-support__optimization' }, blocks);
+		}
+		if (categoryOnlyRun) {
+			blocks.push(renderCompactMetadataSection(
+				__('Category suggestions', 'npcink-toolbox'),
+				categoryItems,
+				__('No matching existing categories found.', 'npcink-toolbox'),
+				{ hideHeading: true }
+			));
+			return createElement('div', { className: 'npcink-toolbox-editor-support__optimization' }, blocks);
+		}
+		if (tagOnlyRun) {
+			blocks.push(renderCompactMetadataSection(
+				__('Tag suggestions', 'npcink-toolbox'),
+				tagItems,
+				__('No matching existing tags found.', 'npcink-toolbox'),
+				{ hideHeading: true }
+			));
+			blocks.push(renderCompactMetadataSection(
+				__('New tag candidates', 'npcink-toolbox'),
+				newTermItems,
+				(section.proposed_new_terms && section.proposed_new_terms.empty_message) || __('No new tag candidates returned.', 'npcink-toolbox')
+			));
 			return createElement('div', { className: 'npcink-toolbox-editor-support__optimization' }, blocks);
 		}
 
@@ -2854,6 +2879,12 @@
 					generation_variant: ['title_suggestions', 'article_outline', 'polish_notes', 'summary_suggestions'].indexOf(intent) >= 0 ? String(Date.now()) : '',
 					user_instruction: userInstruction,
 				});
+				if (intent === 'title_suggestions') {
+					payload.context_scope = 'full_article';
+					payload.selected_text = '';
+					payload.selected_block_text = '';
+					payload.selected_block_name = '';
+				}
 				const flowResult = await postJson('editor/content-support', payload);
 				setResult((current) => mergeContentSupportResult(current, flowResult, intent));
 			} catch (requestError) {
