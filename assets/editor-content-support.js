@@ -2360,20 +2360,25 @@
 		const candidates = Array.isArray(items) ? items : [];
 		const showHeading = !(options && options.hideHeading);
 		const actionNote = options && options.actionNote ? options.actionNote : '';
+		const description = options && options.description ? options.description : '';
+		const badgeLabel = options && options.badgeLabel ? options.badgeLabel : '';
+		const detailFallback = options && options.detailFallback ? options.detailFallback : '';
 		return createElement(
 			'section',
 			{ className: 'npcink-toolbox-editor-support__metadata-compact-section' },
 			showHeading ? createElement('h4', null, title) : null,
+			description ? createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, description) : null,
 			candidates.length
 				? createElement(
 					'ul',
 					{ className: 'npcink-toolbox-editor-support__metadata-compact-list' },
 					candidates.slice(0, 5).map((item, index) => {
 						const titleText = readableItemText(item && (item.name || item.title || item.label || item.value || item.term_id || item.id), __('Candidate', 'npcink-toolbox'));
-						const detailText = truncateText(readableItemText(item && (item.detail || item.reason || item.excerpt || item.description || item.taxonomy || item.status), ''), 140);
+						const detailText = truncateText(detailFallback || readableItemText(item && (item.detail || item.reason || item.excerpt || item.description || item.taxonomy || item.status), ''), 140);
 						return createElement(
 							'li',
 							{ key: String(index) + '-' + titleText },
+							badgeLabel ? createElement('span', { className: 'npcink-toolbox-editor-support__candidate-badge' }, badgeLabel) : null,
 							createElement('strong', null, titleText),
 							detailText ? createElement('span', null, detailText) : null,
 							actionNote ? createElement('small', { className: 'npcink-toolbox-editor-support__candidate-policy' }, actionNote) : null
@@ -2701,12 +2706,11 @@
 		}
 		if (categoryOnlyRun) {
 			blocks.push(renderCompactMetadataSection(
-				__('Category suggestions', 'npcink-toolbox'),
+				__('Recommended existing categories', 'npcink-toolbox'),
 				categoryItems,
 				__('No matching existing categories found.', 'npcink-toolbox'),
 				{
-					hideHeading: true,
-					actionNote: __('Select existing categories in Core review submission.', 'npcink-toolbox'),
+					actionNote: __('Existing WordPress category. Final assignment requires Core review.', 'npcink-toolbox'),
 				}
 			));
 			if (metadataHandoffControls && metadataHandoffControls.showHandoff && metadataHandoffHasChoices(section)) {
@@ -2716,18 +2720,24 @@
 		}
 		if (tagOnlyRun) {
 			blocks.push(renderCompactMetadataSection(
-				__('Tag suggestions', 'npcink-toolbox'),
+				__('Recommended existing tags', 'npcink-toolbox'),
 				tagItems,
 				__('No matching existing tags found.', 'npcink-toolbox'),
 				{
-					hideHeading: true,
-					actionNote: __('Select existing tags in Core review submission.', 'npcink-toolbox'),
+					description: __('Use this section for tags that already exist in WordPress.', 'npcink-toolbox'),
+					actionNote: __('Existing WordPress tag. Final assignment requires Core review.', 'npcink-toolbox'),
 				}
 			));
 			blocks.push(renderCompactMetadataSection(
-				__('New tag candidates', 'npcink-toolbox'),
+				__('Proposed new tags for review only', 'npcink-toolbox'),
 				newTermItems,
-				(section.proposed_new_terms && section.proposed_new_terms.empty_message) || __('No new tag candidates returned.', 'npcink-toolbox')
+				__('No proposed new tag gaps found. Prefer existing tags.', 'npcink-toolbox'),
+				{
+					description: __('These are possible vocabulary gaps, not tags that Toolbox will create.', 'npcink-toolbox'),
+					badgeLabel: __('Review-only', 'npcink-toolbox'),
+					detailFallback: __('Only consider this as a new tag if no existing WordPress tag is close enough.', 'npcink-toolbox'),
+					actionNote: __('Toolbox does not create or assign new tags from this panel.', 'npcink-toolbox'),
+				}
 			));
 			if (metadataHandoffControls && metadataHandoffControls.showHandoff && metadataHandoffHasChoices(section)) {
 				blocks.push(renderMetadataHandoffControl(section, metadataHandoffControls));
@@ -2741,37 +2751,43 @@
 			evidenceBlocks.push(renderItems(summaryQuality, __('No summary quality notes returned.', 'npcink-toolbox')));
 		}
 
-			if (section.content_metadata_delta) {
-				evidenceBlocks.push(renderContentMetadataDelta(section.content_metadata_delta));
-			}
+		if (section.content_metadata_delta) {
+			evidenceBlocks.push(renderContentMetadataDelta(section.content_metadata_delta));
+		}
 
-			if (categoryItems.length || metadataSectionHasSource(section, 'category_suggestions') || fullMetadataRun) {
-				blocks.push(renderCompactMetadataSection(
-					__('Category suggestions', 'npcink-toolbox'),
-					categoryItems,
-					__('No matching existing categories found.', 'npcink-toolbox'),
-					{
-						hideHeading: activeIntent === 'category_suggestions',
-						actionNote: __('Select existing categories in Core review submission.', 'npcink-toolbox'),
-					}
-				));
-			}
-			if (tagItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
-				blocks.push(renderCompactMetadataSection(
-					__('Tag suggestions', 'npcink-toolbox'),
-					tagItems,
-					__('No matching existing tags found.', 'npcink-toolbox'),
-					{
-						hideHeading: activeIntent === 'tag_suggestions',
-						actionNote: __('Select existing tags in Core review submission.', 'npcink-toolbox'),
-					}
-				));
-			}
+		if (categoryItems.length || metadataSectionHasSource(section, 'category_suggestions') || fullMetadataRun) {
+			blocks.push(renderCompactMetadataSection(
+				__('Recommended existing categories', 'npcink-toolbox'),
+				categoryItems,
+				__('No matching existing categories found.', 'npcink-toolbox'),
+				{
+					hideHeading: activeIntent === 'category_suggestions',
+					actionNote: __('Existing WordPress category. Final assignment requires Core review.', 'npcink-toolbox'),
+				}
+			));
+		}
+		if (tagItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
+			blocks.push(renderCompactMetadataSection(
+				__('Recommended existing tags', 'npcink-toolbox'),
+				tagItems,
+				__('No matching existing tags found.', 'npcink-toolbox'),
+				{
+					hideHeading: activeIntent === 'tag_suggestions',
+					actionNote: __('Existing WordPress tag. Final assignment requires Core review.', 'npcink-toolbox'),
+				}
+			));
+		}
 		if (newTermItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
 			blocks.push(renderCompactMetadataSection(
-				__('New tag candidates', 'npcink-toolbox'),
+				__('Proposed new tags for review only', 'npcink-toolbox'),
 				newTermItems,
-				(section.proposed_new_terms && section.proposed_new_terms.empty_message) || __('No new tag candidates returned.', 'npcink-toolbox')
+				__('No proposed new tag gaps found. Prefer existing tags.', 'npcink-toolbox'),
+				{
+					description: __('These are possible vocabulary gaps, not tags that Toolbox will create.', 'npcink-toolbox'),
+					badgeLabel: __('Review-only', 'npcink-toolbox'),
+					detailFallback: __('Only consider this as a new tag if no existing WordPress tag is close enough.', 'npcink-toolbox'),
+					actionNote: __('Toolbox does not create or assign new tags from this panel.', 'npcink-toolbox'),
+				}
 			));
 		}
 
@@ -2908,6 +2924,14 @@
 		return ['summary_suggestions', 'category_suggestions', 'tag_suggestions', 'summary_terms_optimization'].indexOf(intent) >= 0;
 	}
 
+	function hasMergeableMetadataResult(result) {
+		const sections = result && result.sections && typeof result.sections === 'object' ? result.sections : null;
+		if (!sections || !sections.summary_terms_optimization) {
+			return false;
+		}
+		return Object.keys(sections).every((key) => key === 'summary_terms_optimization');
+	}
+
 	function mergeUniqueByKey(currentItems, incomingItems, keyFn) {
 		const seen = {};
 		const merged = [];
@@ -2966,23 +2990,23 @@
 		});
 	}
 
-		function mergeContentSupportResult(currentResult, incomingResult, intent) {
-			if (!isMetadataIntent(intent)) {
-				return incomingResult;
-			}
-			const incomingSection = incomingResult && incomingResult.sections ? incomingResult.sections.summary_terms_optimization : null;
-			if (!incomingSection) {
-				return incomingResult;
-			}
-			const currentSections = currentResult && currentResult.sections ? currentResult.sections : {};
-			const currentSection = currentSections.summary_terms_optimization || {};
-			return Object.assign({}, incomingResult, {
-				intent: 'summary_terms_optimization',
-				sections: Object.assign({}, incomingResult.sections || {}, {
-					summary_terms_optimization: mergeMetadataSection(currentSection, incomingSection),
-				}),
-			});
+	function mergeContentSupportResult(currentResult, incomingResult, intent) {
+		if (!isMetadataIntent(intent)) {
+			return incomingResult;
 		}
+		const incomingSection = incomingResult && incomingResult.sections ? incomingResult.sections.summary_terms_optimization : null;
+		if (!incomingSection) {
+			return incomingResult;
+		}
+		const currentSections = currentResult && currentResult.sections ? currentResult.sections : {};
+		const currentSection = currentSections.summary_terms_optimization || {};
+		return Object.assign({}, incomingResult, {
+			intent: 'summary_terms_optimization',
+			sections: Object.assign({}, incomingResult.sections || {}, {
+				summary_terms_optimization: mergeMetadataSection(currentSection, incomingSection),
+			}),
+		});
+	}
 
 	function ContentSupportControls() {
 		const postContext = usePostContext();
@@ -3056,7 +3080,9 @@
 			setActiveFlowIntent(intent);
 			setRunning(intent);
 			setError('');
-			if (!isMetadataIntent(intent)) {
+			if (isMetadataIntent(intent)) {
+				setResult((current) => hasMergeableMetadataResult(current) ? current : null);
+			} else {
 				setResult(null);
 				setMetadataHandoffSelection({});
 			}
