@@ -2,12 +2,9 @@
 set -eu
 
 if [ "$#" -lt 1 ]; then
-	echo "Usage: scripts/eval-lab.sh <composer-script> [args...]" >&2
+	echo "Usage: scripts/eval-lab.sh task=<eval-lab-task> [args...]" >&2
 	exit 1
 fi
-
-script_name="$1"
-shift
 
 eval_lab_path="${MAGICK_AI_EVAL_LAB_PATH:-../magick-ai-eval-lab}"
 
@@ -17,4 +14,13 @@ if [ ! -d "$eval_lab_path" ]; then
 	exit 1
 fi
 
-exec composer --working-dir="$eval_lab_path" "$script_name" -- "$@"
+case "$1" in
+	task=*|--list|--help|-h|help|list|tasks)
+		exec composer --working-dir="$eval_lab_path" eval:task -- "$@"
+		;;
+	*)
+		script_name="$1"
+		shift
+		exec composer --working-dir="$eval_lab_path" "$script_name" -- "$@"
+		;;
+esac
