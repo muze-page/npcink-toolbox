@@ -35,7 +35,9 @@ must still behave like a single-action tool.
    shortcut should not create categories and should not show a Core handoff
    packet.
 4. `tag_suggestions` prefers existing WordPress tags. New tag gaps may appear
-   as review-only candidates, but Toolbox must not create terms directly.
+   only when the current user can create `post_tag` terms. Users without that
+   taxonomy capability should see existing tag recommendations only, because
+   vocabulary management is not their actionable editor task.
 5. `summary_terms_optimization` remains the richer workflow for combined
    summary, taxonomy, Site Knowledge evidence, diagnostics, and Core proposal
    preparation.
@@ -96,7 +98,12 @@ author loop:
   Site Knowledge term evidence. The focused shortcut does not use selected text
   and does not create categories.
 - `tag_suggestions`: Toolbox ranks existing WordPress tags by the same rules.
-  Review-only new tag gaps may be shown, but Toolbox does not create terms.
+  Proposed new tag gaps are capability-gated by the WordPress taxonomy
+  capability for creating `post_tag` terms, not by a hard-coded role name. When
+  the user cannot create tags, the focused result hides new tag gaps and shows
+  only existing tag recommendations. When the user can create tags, proposed
+  gaps may be shown as review-only vocabulary notes; Toolbox still does not
+  create terms from this panel.
 - `summary_terms_optimization`: the full workflow that may combine summary,
   taxonomy, Site Knowledge, discoverability evidence, diagnostics, and Core
   handoff preparation.
