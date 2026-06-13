@@ -60,9 +60,9 @@ The first editor stage is six focused tools plus a publish preflight package:
 - image recommendations use the current article or selected paragraph plus the
   operator image preference text, then continue through `image_candidate.v1`
   review and the existing media adoption path;
-- internal-link recommendations use Cloud Site Knowledge evidence and remain
-  review-only: they show target, anchor, and placement hints, but do not insert
-  links or create post-content patches;
+- internal-link recommendations use Cloud Site Knowledge evidence, show target,
+  anchor, and placement hints, then offer copy-link and open-target actions;
+  they do not create backend post-content patches or mutate the current draft;
 - publish preflight aggregates readiness issues and routes operators back to
   the focused tools. It is a closing checklist, not a replacement editing
   workspace.
@@ -77,8 +77,8 @@ author loop:
 - image candidates stay in the image-source modal and continue through the
   existing media adoption flow;
 - internal-link candidates show target article, anchor text, and placement
-  evidence as review-only suggestions. Toolbox must not insert links by
-  default;
+  evidence with explicit actions to copy the link or open the target. Toolbox
+  must not insert links or patch post content in the background;
 - publish preflight renders a suggested handling list that routes operators
   back to the focused tools. It must not create a parallel apply surface or
   bypass Core proposals.
@@ -88,10 +88,16 @@ author loop:
 - `title_suggestions`: hosted AI reads the current title, excerpt, and draft
   text, then returns title candidates. Toolbox parses,
   deduplicates, reranks, and flags weak candidates.
-- `summary_suggestions`: hosted AI reads the full draft context and returns
-  excerpt candidates. Toolbox strips meta wording, enforces length limits,
-  reranks by coverage, and lets the editor copy one candidate into the current
-  unsaved excerpt field.
+- `summary_suggestions`: hosted AI reads a local `fast_brief` source package by
+  default and returns excerpt candidates. The default fast path does not block
+  on Cloud Site Knowledge; it only includes bounded vector context when a prior
+  short cache entry is already available, and reports timing for the cached
+  vector lookup and hosted AI call. Any vector context is used only for coverage
+  and site-style hints while the current draft brief remains the factual source.
+  The result view also offers an advanced full-context rerun for quality
+  fallback. Toolbox strips meta wording, enforces length limits, reranks by
+  coverage, and lets the editor copy one candidate into the current unsaved
+  excerpt field.
 - `category_suggestions`: Toolbox ranks existing WordPress categories by
   current draft token matches and, when supplied by the richer flow, related
   Site Knowledge term evidence. The focused shortcut does not use selected text
@@ -118,7 +124,7 @@ review, export, and batch dry-run projection:
   attribution, download tracking, media SEO, and generated-image metadata;
 - internal-link recommendations keep `internal_link_candidates.v1` as the
   source of truth, including target post, URL, suggested anchor, placement hint,
-  Site Knowledge evidence, and the no-insert review policy;
+  Site Knowledge evidence, and the no-background-patch review policy;
 - projection fields such as `label`, `value`, `reason`, `quality_status`, and
   `action_policy` should point back to the source candidate rather than replace
   it.

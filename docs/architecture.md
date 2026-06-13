@@ -290,6 +290,17 @@ buttons. The image candidate modal also exposes the saved-post
 primary sidebar button and it does not write media, metadata, or post content.
 The route returns an `editor_content_support_flow` artifact with
 suggestion-only sections and no direct WordPress write posture.
+Focused summary generation defaults to `summary_generation_mode=fast_brief`:
+Toolbox locally compresses the current draft into a source brief before calling
+the hosted AI runtime. To keep the first result path interactive, the default
+fast brief does not block on a fresh Cloud Site Knowledge vector request; it
+only attaches `summary_context` passages when the matching short cache is
+already available and reports timing for the vector cache check and hosted AI
+call. Those passages can add coverage and site-style hints, but cannot replace
+the current draft as the factual source. The result view can run an explicit
+advanced `full_context` fallback that sends the bounded full draft context with
+a longer timeout. This remains a hosted runtime call pattern, not Cloud
+prompt/router truth, local indexing ownership, or a new write path.
 The split metadata intents return the same
 `article_discoverability_optimization.v1` section shape through lighter
 draft/taxonomy fast paths, while the full `summary_terms_optimization` intent
@@ -410,18 +421,33 @@ same fixed workflows that the admin surface owns:
 - image-source candidates through the configured Cloud image-source runtime.
 
 The editor panel reads the current draft title, excerpt, content, terms, status,
-and featured image id. It never mutates the draft, assigns terms, inserts links,
-imports media, publishes content, or writes SEO fields. Write-like follow-up
-must still go through Core proposals and reusable WordPress abilities.
+and featured image id. It never assigns terms, automatically inserts links,
+imports media, publishes content, or writes SEO fields. The internal-link panel
+may copy reviewed links or open target articles, but it does not format editor
+text selections or run backend post-content patches. Write-like follow-up must
+still go through Core proposals and reusable WordPress abilities.
+The editor feedback surface is intentionally low-friction. Explicit rating
+buttons are folded behind `Report issue` and `Report image issue` details
+entries, while successful operator actions can send silent metadata-only
+Agent feedback through the existing `/agent-feedback` route. These events
+capture bounded action metadata such as handoff type, handoff id, outcome,
+fixed labels, run id, and evidence refs. They must not include article body
+text, prompts, user email, provider secrets, free-form notes, SEO values,
+media write payloads, or WordPress write authorization. Cloud may use the
+events for eval and quality rollup only; Toolbox does not persist learning
+truth, approval truth, audit truth, prompt/router truth, or final write truth.
 The image-source entry opens a Cloud recommendation modal that auto-searches
 from the selected paragraph or selected block when available, combines that
 focus with the current draft title/excerpt/body context, and also accepts a
-manual image query. The request may include a bounded visual context contract so
-Cloud can build a visual brief, use Cloud-managed site context vectors, rerank
-candidate images, and return media SEO suggestions. Toolbox only receives the
-normalized candidate payload, match reasons, visual brief status, and optional
-SEO fields; it does not configure or own image providers, vector indexes, or
-rerank models. The modal renders image candidates with previews, source links,
+manual image query. The interactive path uses `latency_mode=fast_first`: the
+initial request sends a short visual query and bounded article context so Cloud
+can build a visual brief and return source candidates quickly, while
+Cloud-managed site context vectors, candidate rerank, and media SEO enrichment
+are treated as deferred enhancement work; in other words, site-context vectors,
+candidate rerank, and media SEO stay Cloud-owned. Toolbox only receives the normalized
+candidate payload, match reasons, visual brief status, and optional SEO fields;
+it does not configure or own image providers, vector indexes, or rerank models.
+The modal renders image candidates with previews, source links,
 attribution, provider metadata, license-review state, and preserved Unsplash
 download tracking when present. It does not upload media, set featured images,
 or create a write proposal directly.

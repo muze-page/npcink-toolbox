@@ -113,15 +113,23 @@ Batch optimization is a review-set workflow, not a one-click whole-site
 replacement. The default surface should:
 
 1. build a bounded review plan;
-2. let the operator generate previews only for selected candidates;
-3. submit only selected Core reviews;
-4. leave Core/Adapter to approve, execute, audit, and roll back each governed
+2. show `eligibility_summary`, skipped candidates, and blocked reasons before
+   any preview or proposal action;
+3. let the operator generate previews only for selected candidates;
+4. submit only selected Core reviews;
+5. leave Core/Adapter to approve, execute, audit, and roll back each governed
    proposal.
 
 Avoid labels such as "replace all" or "whole site optimization" in the current
 stage. Broad scopes may exist as bounded candidate searches, but the visible
 language should keep the operator focused on sampled review sets and selected
 proposal submission.
+
+Batch response payloads should follow
+[Batch Automation Governance Plan](batch-automation-governance-plan.md): include
+`blocked_items[]`, `retryable`, `retry_guidance`, `operator_next_action`,
+selected/submitted counts, and per-item status or result references. Those
+fields are display and handoff evidence, not a Toolbox workflow store.
 
 ## Proposal Shape
 

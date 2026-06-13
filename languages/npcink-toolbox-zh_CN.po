@@ -2255,6 +2255,15 @@ msgstr "查找图片候选"
 msgid "Search configured image-source providers for featured or inline candidates."
 msgstr "搜索已配置的图片来源提供方，生成特色图或正文图片候选。"
 
+msgid "AI recommended featured image"
+msgstr "AI 推荐特色图"
+
+msgid "Recommend or generate a featured image from the current article context."
+msgstr "根据当前文章上下文推荐或生成特色图。"
+
+msgid "Find image for selected paragraph"
+msgstr "为当前段落找配图"
+
 msgid "Image ALT suggestions"
 msgstr "图片 ALT 建议"
 
@@ -2347,6 +2356,12 @@ msgstr "返回工具"
 
 msgid "Run again"
 msgstr "重新运行"
+
+msgid "Regenerate"
+msgstr "重新生成"
+
+msgid "Advanced rerun"
+msgstr "高级重跑"
 
 msgid "My request for this suggestion"
 msgstr "我对这次建议的要求"
@@ -2585,8 +2600,41 @@ msgstr "内链候选"
 msgid "Internal link candidates"
 msgstr "内链候选"
 
+msgid "Recommended internal links"
+msgstr "推荐内链"
+
 msgid "Anchor: "
 msgstr "锚文本："
+
+msgid "Score "
+msgstr "评分 "
+
+msgid "Related by Site Knowledge. Review as an internal link."
+msgstr "与当前文章语义相关，可作为内链审阅。"
+
+msgid "Copy link"
+msgstr "复制链接"
+
+msgid "Open article"
+msgstr "打开文章"
+
+msgid "Showing top %1$d of %2$d candidates."
+msgstr "显示 %2$d 个候选中的前 %1$d 个。"
+
+msgid "Copy a reviewed link or open the article, then place the link manually in the draft."
+msgstr "复制已审阅链接或打开文章，然后手动放入草稿。"
+
+msgid "This candidate has no URL to copy."
+msgstr "这个候选没有可复制的 URL。"
+
+msgid "Link copied. Paste it where the reviewed anchor belongs."
+msgstr "链接已复制。请粘贴到已审阅锚文本的位置。"
+
+msgid "Could not copy the link. Open the article and copy it manually."
+msgstr "无法复制链接。请打开文章后手动复制。"
+
+msgid "This candidate has no article URL to open."
+msgstr "这个候选没有可打开的文章 URL。"
 
 msgid "No internal link candidates returned."
 msgstr "没有返回内链候选。"
@@ -2675,11 +2723,68 @@ msgstr "计划中"
 msgid "Generate image plan"
 msgstr "生成图片计划"
 
+msgid "Generate featured image plan"
+msgstr "生成特色图计划"
+
+msgid "AI image generation is available from the featured image entry. Paragraph image suggestions use the selected paragraph to find source images."
+msgstr "AI 生图仅在特色图入口可用。段落配图建议会使用选中段落查找来源图片。"
+
 msgid "Image source suggestions"
 msgstr "图片来源建议"
 
+msgid "Select a featured image candidate"
+msgstr "选择特色图候选"
+
+msgid "Selected featured image"
+msgstr "所选特色图"
+
+msgid "Selected paragraph image"
+msgstr "所选段落配图"
+
+msgid "Import paragraph image"
+msgstr "导入段落配图"
+
+msgid "Uses the current article title, excerpt, and body context to recommend or generate a featured image. Paragraph selection is ignored for this entry."
+msgstr "使用当前文章标题、摘要和正文上下文来推荐或生成特色图。此入口会忽略段落选区。"
+
+msgid "Uses the currently selected paragraph as the primary image context, with nearby article context only for disambiguation."
+msgstr "以当前选中的段落作为主要配图上下文，附近文章内容仅用于消歧。"
+
 msgid "Search uses your current draft or a short visual query. Results are source candidates only; importing media or setting a featured image still requires Core approval."
 msgstr "搜索会使用当前草稿或简短视觉查询。结果仅为来源候选；导入媒体或设置特色图仍需 Core 审批。"
+
+msgid "Add a title, excerpt, or body text to use article-level featured image recommendations, or enter a manual search query."
+msgstr "添加标题、摘要或正文后，可使用文章级特色图推荐；也可以手动输入搜索词。"
+
+msgid "Select a paragraph with text before asking for paragraph image recommendations, or enter a manual image search query."
+msgstr "请先选择有文字的段落再请求段落配图推荐；也可以手动输入图片搜索词。"
+
+msgid "Enter a short image search query or provide setting context before searching."
+msgstr "搜索前请输入简短图片搜索词，或提供设置上下文。"
+
+msgid "Recommend featured image"
+msgstr "推荐特色图"
+
+msgid "Generate featured image"
+msgstr "生成特色图"
+
+msgid "Recommend paragraph image"
+msgstr "推荐段落配图"
+
+msgid "Review or enter a featured image prompt"
+msgstr "审阅或输入特色图提示词"
+
+msgid "Search or describe featured image needs"
+msgstr "搜索或描述特色图需求"
+
+msgid "Search or describe this paragraph image"
+msgstr "搜索或描述当前段落配图"
+
+msgid "Use article context"
+msgstr "使用文章上下文"
+
+msgid "Use selected paragraph"
+msgstr "使用选中段落"
 
 msgid "Search image sources"
 msgstr "搜索图片来源"

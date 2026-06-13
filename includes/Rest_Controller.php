@@ -135,6 +135,7 @@ final class Rest_Controller {
 					'color'       => sanitize_key( (string) $request->get_param( 'color' ) ),
 					'provider'    => sanitize_key( (string) $request->get_param( 'provider' ) ),
 					'per_page'    => (int) ( $request->get_param( 'per_page' ) ?: 8 ),
+					'latency_mode' => sanitize_key( (string) $request->get_param( 'latency_mode' ) ),
 					'include_ai_generated' => ! empty( $request->get_param( 'include_ai_generated' ) ),
 					'generation_prompt'     => sanitize_textarea_field( (string) $request->get_param( 'generation_prompt' ) ),
 					'generated_image_url'   => esc_url_raw( (string) $request->get_param( 'generated_image_url' ) ),
@@ -606,6 +607,7 @@ final class Rest_Controller {
 							'provider'       => 'auto',
 							'per_page'       => 6,
 							'image_mode'     => 'paragraph' === sanitize_key( (string) ( $context['image_mode'] ?? '' ) ) ? 'paragraph_image' : 'featured_image',
+							'latency_mode'   => sanitize_key( (string) ( $context['latency_mode'] ?? '' ) ),
 							'visual_context' => $this->editor_image_visual_context( $context, $query ),
 						)
 					)
@@ -770,8 +772,12 @@ final class Rest_Controller {
 		$selected_block_text = trim( wp_strip_all_tags( (string) $request->get_param( 'selected_block_text' ) ) );
 		$user_instruction    = trim( wp_strip_all_tags( (string) $request->get_param( 'user_instruction' ) ) );
 		$context_scope       = sanitize_key( (string) ( $request->get_param( 'context_scope' ) ?: 'auto' ) );
+		$summary_mode        = sanitize_key( (string) ( $request->get_param( 'summary_generation_mode' ) ?: 'fast_brief' ) );
 		if ( ! in_array( $context_scope, array( 'auto', 'full_article', 'selected_text', 'topic_only' ), true ) ) {
 			$context_scope = 'auto';
+		}
+		if ( ! in_array( $summary_mode, array( 'fast_brief', 'full_context' ), true ) ) {
+			$summary_mode = 'fast_brief';
 		}
 
 		return array(
@@ -788,6 +794,8 @@ final class Rest_Controller {
 			'selected_block_name' => sanitize_text_field( (string) $request->get_param( 'selected_block_name' ) ),
 			'user_instruction'    => wp_trim_words( sanitize_textarea_field( $user_instruction ), 60, '' ),
 			'generation_variant'  => sanitize_text_field( (string) $request->get_param( 'generation_variant' ) ),
+			'force_regenerate'    => (bool) $request->get_param( 'force_regenerate' ),
+			'summary_generation_mode' => $summary_mode,
 			'image_mode'          => sanitize_key( (string) $request->get_param( 'image_mode' ) ),
 			'category_ids'        => $this->csv_absint_list( (string) $request->get_param( 'category_ids' ) ),
 			'tag_ids'             => $this->csv_absint_list( (string) $request->get_param( 'tag_ids' ) ),
@@ -946,6 +954,7 @@ final class Rest_Controller {
 		$context = $request->get_param( 'visual_context' );
 		if ( is_array( $context ) ) {
 			$context['manual_query'] = $context['manual_query'] ?? $query;
+			$context['latency_mode'] = $context['latency_mode'] ?? (string) $request->get_param( 'latency_mode' );
 			return $this->sanitize_image_visual_context( $context );
 		}
 
@@ -960,6 +969,7 @@ final class Rest_Controller {
 				'selected_block_text' => (string) $request->get_param( 'selected_block_text' ),
 				'selected_block_name' => (string) $request->get_param( 'selected_block_name' ),
 				'image_mode'          => (string) $request->get_param( 'image_mode' ),
+				'latency_mode'        => (string) $request->get_param( 'latency_mode' ),
 			)
 		);
 	}
@@ -976,6 +986,7 @@ final class Rest_Controller {
 				'selected_block_text' => (string) ( $context['selected_block_text'] ?? '' ),
 				'selected_block_name' => (string) ( $context['selected_block_name'] ?? '' ),
 				'image_mode'          => (string) ( $context['image_mode'] ?? '' ),
+				'latency_mode'        => (string) ( $context['latency_mode'] ?? '' ),
 			)
 		);
 	}
@@ -1010,6 +1021,7 @@ final class Rest_Controller {
 			'selected_block_text' => wp_trim_words( sanitize_textarea_field( (string) ( $context['selected_block_text'] ?? '' ) ), 80, '' ),
 			'selected_block_name' => sanitize_key( (string) ( $context['selected_block_name'] ?? '' ) ),
 			'avoid_brand_logos'   => ! empty( $context['avoid_brand_logos'] ),
+			'latency_mode'        => sanitize_key( (string) ( $context['latency_mode'] ?? '' ) ),
 			'query_intent'        => array(
 				'rewrite_abstract_terms'       => ! empty( $context['query_intent']['rewrite_abstract_terms'] ),
 				'prefer_concrete_visual_scene' => ! empty( $context['query_intent']['prefer_concrete_visual_scene'] ),
@@ -1220,6 +1232,21 @@ final class Rest_Controller {
 		);
 	}
 
+	private function editor_cached_site_knowledge_hit( array $input ): array {
+		$cached = $this->editor_cached_client_hit( 'site_knowledge', $input );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		return array(
+			'status'                 => 'skipped',
+			'cache_status'           => 'miss',
+			'skip_reason'            => 'nonblocking_summary_fast_brief_uses_site_knowledge_cache_hit_only',
+			'write_posture'          => 'suggestion_only',
+			'direct_wordpress_write' => false,
+		);
+	}
+
 	private function editor_cached_content_discoverability( array $input ) {
 		return $this->editor_cached_client_result(
 			'content_discoverability',
@@ -1230,19 +1257,20 @@ final class Rest_Controller {
 		);
 	}
 
-	private function editor_cached_hosted_ai_content_support( array $input ) {
+	private function editor_cached_hosted_ai_content_support( array $input, bool $force_refresh = false ) {
 		return $this->editor_cached_client_result(
 			'hosted_ai_content_support',
 			$input,
 			function () use ( $input ) {
 				return $this->client->run_hosted_ai_content_support( $input );
-			}
+			},
+			$force_refresh
 		);
 	}
 
-	private function editor_cached_client_result( string $namespace, array $input, callable $callback ) {
+	private function editor_cached_client_result( string $namespace, array $input, callable $callback, bool $force_refresh = false ) {
 		$cache_key = $this->editor_flow_cache_key( $namespace, $input );
-		$cached    = get_transient( $cache_key );
+		$cached    = $force_refresh ? false : get_transient( $cache_key );
 		if ( false !== $cached && is_array( $cached ) ) {
 			$cached['cache_status'] = 'hit';
 			return $cached;
@@ -1250,11 +1278,23 @@ final class Rest_Controller {
 
 		$result = $callback();
 		if ( ! is_wp_error( $result ) && is_array( $result ) ) {
-			$result['cache_status'] = 'miss';
-			set_transient( $cache_key, $result, self::EDITOR_FLOW_CACHE_TTL );
+			$result['cache_status'] = $force_refresh ? 'bypass' : 'miss';
+			if ( ! $force_refresh ) {
+				set_transient( $cache_key, $result, self::EDITOR_FLOW_CACHE_TTL );
+			}
 		}
 
 		return $result;
+	}
+
+	private function editor_cached_client_hit( string $namespace, array $input ): ?array {
+		$cached = get_transient( $this->editor_flow_cache_key( $namespace, $input ) );
+		if ( false !== $cached && is_array( $cached ) ) {
+			$cached['cache_status'] = 'hit';
+			return $cached;
+		}
+
+		return null;
 	}
 
 	private function editor_flow_cache_key( string $namespace, array $input ): string {
@@ -1663,6 +1703,28 @@ final class Rest_Controller {
 		);
 	}
 
+	private function editor_summary_vector_context_for_ai( array $summary_context ): array {
+		$items = $this->editor_related_content_items( $summary_context );
+		$context_items = array();
+
+		foreach ( array_slice( $items, 0, 5 ) as $index => $item ) {
+			$post_id = absint( $item['post_id'] ?? 0 );
+			$ref_id  = sanitize_key( (string) ( $item['post_id'] ?? ( $item['id'] ?? $index ) ) );
+			$context_items[] = array(
+				'evidence_ref' => 'site_knowledge:' . $ref_id,
+				'post_id'      => $post_id,
+				'title'        => sanitize_text_field( (string) ( $item['title'] ?? $item['name'] ?? '' ) ),
+				'score'        => is_numeric( $item['score'] ?? null ) ? (float) $item['score'] : null,
+				'excerpt'      => sanitize_textarea_field( wp_trim_words( wp_strip_all_tags( (string) ( $item['excerpt'] ?? $item['snippet'] ?? $item['content_excerpt'] ?? '' ) ), 42, '' ) ),
+			);
+		}
+
+		return array(
+			'policy' => 'cloud_vector_context_for_fast_summary_brief_only_current_draft_remains_primary_source',
+			'items'  => array_values( array_filter( $context_items, static fn( array $item ): bool => '' !== (string) ( $item['title'] ?? '' ) || '' !== (string) ( $item['excerpt'] ?? '' ) ) ),
+		);
+	}
+
 	private function editor_internal_link_candidates( array $context, string $query ): array {
 		$knowledge = $this->editor_support_section(
 			$this->editor_cached_site_knowledge(
@@ -1827,6 +1889,38 @@ final class Rest_Controller {
 	}
 
 	private function editor_ai_summary_suggestions( array $context, string $query ): array {
+		$summary_mode           = in_array( (string) ( $context['summary_generation_mode'] ?? 'fast_brief' ), array( 'fast_brief', 'full_context' ), true ) ? (string) $context['summary_generation_mode'] : 'fast_brief';
+		$summary_vector_context = array();
+		$timing                 = array(
+			'summary_generation_mode'        => $summary_mode,
+			'site_knowledge_ms'              => 0,
+			'site_knowledge_cache_status'    => 'skipped',
+			'site_knowledge_blocking'        => false,
+			'hosted_ai_ms'                   => 0,
+			'hosted_ai_cache_status'         => 'unknown',
+			'fast_brief_target_seconds'      => '3_5',
+			'vector_context_included'        => false,
+		);
+		if ( 'fast_brief' === $summary_mode ) {
+			$site_knowledge_started = microtime( true );
+			$summary_vector_context = $this->editor_support_section(
+				$this->editor_cached_site_knowledge_hit(
+					array(
+						'query'           => $query,
+						'intent'          => 'summary_context',
+						'current_post_id' => absint( $context['post_id'] ?? 0 ),
+						'max_results'     => 5,
+					)
+				)
+			);
+			$timing['site_knowledge_ms']           = (int) round( ( microtime( true ) - $site_knowledge_started ) * 1000 );
+			$timing['site_knowledge_cache_status'] = sanitize_key( (string) ( $summary_vector_context['cache_status'] ?? 'miss' ) );
+		}
+
+		$summary_vector_context_for_ai       = $this->editor_summary_vector_context_for_ai( $summary_vector_context );
+		$timing['vector_context_included']   = ! empty( $summary_vector_context_for_ai['items'] );
+		$force_regenerate                    = ! empty( $context['force_regenerate'] );
+		$hosted_ai_started                   = microtime( true );
 		$summary_ai = $this->editor_support_section(
 			$this->editor_cached_hosted_ai_content_support(
 				array(
@@ -1837,13 +1931,19 @@ final class Rest_Controller {
 					'content'            => (string) ( $context['content_full_text'] ?? $context['content_text'] ?? '' ),
 					'user_instruction'   => (string) ( $context['user_instruction'] ?? '' ),
 					'generation_variant' => (string) ( $context['generation_variant'] ?? '' ),
-				)
+					'summary_generation_mode' => $summary_mode,
+					'summary_vector_context'  => $summary_vector_context_for_ai,
+				),
+				$force_regenerate
 			)
 		);
-		return $this->editor_summary_only_suggestion_section( $summary_ai, $context );
+		$timing['hosted_ai_ms']           = (int) round( ( microtime( true ) - $hosted_ai_started ) * 1000 );
+		$timing['hosted_ai_cache_status'] = sanitize_key( (string) ( $summary_ai['cache_status'] ?? 'unknown' ) );
+
+		return $this->editor_summary_only_suggestion_section( $summary_ai, $context, $timing );
 	}
 
-	private function editor_summary_only_suggestion_section( array $summary_ai, array $context ): array {
+	private function editor_summary_only_suggestion_section( array $summary_ai, array $context, array $timing = array() ): array {
 		$summary_layers = $this->editor_ai_summary_layer_candidates( $summary_ai, $context );
 
 		return array(
@@ -1858,7 +1958,9 @@ final class Rest_Controller {
 			'summary_candidates'     => $summary_ai,
 			'provider_execution'     => 'hosted_ai',
 			'generation_mode'        => 'ai_summary',
+			'summary_generation_mode' => in_array( (string) ( $context['summary_generation_mode'] ?? 'fast_brief' ), array( 'fast_brief', 'full_context' ), true ) ? (string) $context['summary_generation_mode'] : 'fast_brief',
 			'generation_variant'     => sanitize_text_field( (string) ( $context['generation_variant'] ?? '' ) ),
+			'timing'                 => $timing,
 			'quality_contract'       => is_array( $summary_ai['quality_contract'] ?? null ) ? $summary_ai['quality_contract'] : array(),
 			'review_checklist'       => is_array( $summary_ai['review_checklist'] ?? null ) ? $summary_ai['review_checklist'] : array(),
 		);

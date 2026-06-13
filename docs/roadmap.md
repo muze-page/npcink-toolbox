@@ -70,6 +70,9 @@ Target features:
 - consolidate **Optimize Existing Image** as `media_optimization_v1`, the fixed
   governed media optimization workflow over the existing media derivative,
   reviewed metadata, Adapter recipe, and Core proposal handoff surface;
+- batch review-set planning for media optimization, with explicit eligibility
+  summaries, blocked reasons, selected previews, and selected Core proposal
+  submissions;
 - article write plan artifact for one reviewed human draft as a fallback
   off-ramp;
 - set featured image proposal handoff;
@@ -85,6 +88,7 @@ Rules:
 - every write-like action creates or prepares a Core proposal;
 - Toolbox does not bypass Core approval;
 - proposal payloads use real WordPress ability ids.
+- batch plans are review sets, not Toolbox-owned queues or automation workers.
 
 ## Stage 3 - Knowledge Base Operations
 
@@ -138,6 +142,13 @@ queues, retries, and scheduling require a separate runtime decision.
 `media_optimization_v1` should stay a fixed governed workflow over the existing
 Optimize Existing Image surface, not a generic workflow builder or persistent
 run store.
+
+Batch and automation planning follows
+[Batch Automation Governance Plan](batch-automation-governance-plan.md):
+Toolbox may adopt rule-first eligibility, blocked-item reporting, selected
+previews, and operator recovery guidance, but it must not import local queue
+runtime, unauthenticated triggers, administrator impersonation, automatic
+publishing, automatic term creation, or direct WordPress writes.
 
 ## Deferred Decisions
 

@@ -64,6 +64,7 @@ Project goals, ownership, and future-session instructions are documented in:
 - [Content Assistant Surface Lessons](docs/content-assistant-surface-lessons.md)
 - [Article Assistant Workbench](docs/article-assistant-workbench.md)
 - [Media Optimization V1](docs/media-optimization-v1.md)
+- [Batch Automation Governance Plan](docs/batch-automation-governance-plan.md)
 - [Media Optimization Stage Summary](docs/media-optimization-stage-summary.md)
 - [Media Optimization Release Checklist](docs/media-optimization-release-checklist.md)
 - [Development Workflow](docs/development-workflow.md)

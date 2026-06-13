@@ -191,9 +191,12 @@ candidates or apply-plan inputs. The only apply-oriented local surface is
 which is still read-only planning output: it packages reviewed excerpt,
 existing category, and existing tag choices into dry-run Core handoff actions
 and rejects missing term creation by keeping `create_missing=false`.
-Internal-link support returns `internal_link_candidates.v1` with review-only
-targets, anchor suggestions, and placement hints. It must not insert links,
-patch post content, or submit a post-content patch on the operator's behalf.
+Internal-link support returns `internal_link_candidates.v1` with reviewable
+targets, anchor suggestions, and placement hints. The REST route must not
+insert links, patch post content, or submit a post-content patch on the
+operator's behalf. The editor sidebar may offer explicit copy-link and
+open-target actions only; the human editor still owns where any reviewed link is
+placed in the draft.
 Publish preflight may aggregate summary, taxonomy, image, internal-link,
 duplicate-risk, and SEO readiness into `pre_publish_review.v1`, but that
 artifact remains advisory. SEO metadata support is limited to a single current

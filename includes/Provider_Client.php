@@ -877,18 +877,19 @@ final class Provider_Client {
 				array(
 					'site_search',
 					'related_content',
-					'writing_context',
-					'internal_links',
-					'refresh_suggestions',
-					'image_context',
-					'faq_candidates',
-					'content_gap_analysis',
-					'duplicate_check',
-					'writing_support_plan',
-				),
-				true
-			)
-		) {
+						'writing_context',
+						'internal_links',
+						'refresh_suggestions',
+						'image_context',
+						'faq_candidates',
+						'content_gap_analysis',
+						'duplicate_check',
+						'summary_context',
+						'writing_support_plan',
+					),
+					true
+				)
+			) {
 			$intent = 'site_search';
 		}
 
@@ -2526,12 +2527,17 @@ final class Provider_Client {
 			);
 		}
 
-		$title   = sanitize_text_field( (string) ( $input['title'] ?? '' ) );
-		$excerpt = sanitize_textarea_field( (string) ( $input['excerpt'] ?? '' ) );
-		$raw_content = (string) ( $input['content'] ?? '' );
-		$content     = 'summary_suggestions' === $intent
-			? $this->hosted_ai_summary_source_content( $raw_content )
-			: wp_trim_words( wp_strip_all_tags( $raw_content ), 420, '' );
+			$title                   = sanitize_text_field( (string) ( $input['title'] ?? '' ) );
+			$excerpt                 = sanitize_textarea_field( (string) ( $input['excerpt'] ?? '' ) );
+			$raw_content             = (string) ( $input['content'] ?? '' );
+			$summary_generation_mode = sanitize_key( (string) ( $input['summary_generation_mode'] ?? 'fast_brief' ) );
+			if ( ! in_array( $summary_generation_mode, array( 'fast_brief', 'full_context' ), true ) ) {
+				$summary_generation_mode = 'fast_brief';
+			}
+			$summary_vector_context = is_array( $input['summary_vector_context'] ?? null ) ? $this->sanitize_payload( $input['summary_vector_context'] ) : array();
+			$content                = 'summary_suggestions' === $intent
+				? $this->hosted_ai_summary_source_content_for_mode( $raw_content, $summary_generation_mode, $summary_vector_context )
+				: wp_trim_words( wp_strip_all_tags( $raw_content ), 420, '' );
 		$post_id = absint( $input['post_id'] ?? 0 );
 		$user_instruction = wp_trim_words( sanitize_textarea_field( wp_strip_all_tags( (string) ( $input['user_instruction'] ?? '' ) ) ), 60, '' );
 		$quality_contract = $this->hosted_ai_quality_contract( $intent );
@@ -2546,12 +2552,14 @@ final class Provider_Client {
 		$context = $this->settings->get_content_context_for_ability();
 		$related_context = is_array( $input['related_content_context'] ?? null ) ? $this->sanitize_payload( $input['related_content_context'] ) : array();
 		$source  = array(
-			'post_id'                 => $post_id,
-			'title'                   => $title,
-			'excerpt'                 => $excerpt,
-			'content'                 => $content,
-			'content_coverage_map'    => 'summary_suggestions' === $intent ? $this->hosted_ai_summary_coverage_map( $raw_content ) : array(),
-			'user_instruction'        => $user_instruction,
+				'post_id'                 => $post_id,
+				'title'                   => $title,
+				'excerpt'                 => $excerpt,
+				'content'                 => $content,
+				'content_coverage_map'    => 'summary_suggestions' === $intent ? $this->hosted_ai_summary_coverage_map( $raw_content ) : array(),
+				'summary_generation_mode' => 'summary_suggestions' === $intent ? $summary_generation_mode : '',
+				'summary_vector_context'  => 'summary_suggestions' === $intent ? $summary_vector_context : array(),
+				'user_instruction'        => $user_instruction,
 			'generation_variant'      => sanitize_text_field( (string) ( $input['generation_variant'] ?? '' ) ),
 			'post_context'            => $this->collect_hosted_ai_post_context( $post_id ),
 			'related_content_context' => $related_context,
@@ -2582,16 +2590,16 @@ final class Provider_Client {
 					),
 				),
 				'params'   => array(
-					'temperature' => 'summary_suggestions' === $intent ? 0.45 : 0.2,
-					'max_tokens'  => 'summary_suggestions' === $intent ? 450 : 650,
+						'temperature' => 'summary_suggestions' === $intent ? 0.45 : 0.2,
+						'max_tokens'  => 'summary_suggestions' === $intent ? 450 : 650,
+					),
+					'quality_contract' => $quality_contract,
 				),
-				'quality_contract' => $quality_contract,
-			),
-			'data_classification' => 'public_site_content',
-			'storage_mode'        => 'result_only',
-			'retention_ttl'       => 86400,
-			'timeout_seconds'     => 'summary_suggestions' === $intent ? 60 : 30,
-			'retry_max'           => 0,
+				'data_classification' => 'public_site_content',
+				'storage_mode'        => 'result_only',
+				'retention_ttl'       => 86400,
+				'timeout_seconds'     => 'summary_suggestions' === $intent && 'full_context' === $summary_generation_mode ? 60 : 30,
+				'retry_max'           => 0,
 			'policy'              => array(
 				'allow_fallback' => false,
 			),
@@ -2633,6 +2641,14 @@ final class Provider_Client {
 		return $this->normalize_hosted_ai_content_support_response( is_array( $response ) ? $response : array(), $runtime_payload, $intent );
 	}
 
+	private function hosted_ai_summary_source_content_for_mode( string $content, string $mode, array $summary_vector_context = array() ): string {
+		if ( 'full_context' === $mode ) {
+			return $this->hosted_ai_summary_source_content( $content );
+		}
+
+		return $this->hosted_ai_summary_source_brief( $content, $summary_vector_context );
+	}
+
 	private function hosted_ai_summary_source_content( string $content ): string {
 		$plain = $this->hosted_ai_normalized_text( $content );
 		if ( '' === $plain ) {
@@ -2648,6 +2664,92 @@ final class Provider_Client {
 		return sanitize_textarea_field(
 			$this->hosted_ai_text_slice( $plain, 0, $max_chars ) . "\n\n[Draft context truncated after {$max_chars} characters for runtime safety.]"
 		);
+	}
+
+	private function hosted_ai_summary_source_brief( string $content, array $summary_vector_context = array() ): string {
+		$plain = $this->hosted_ai_normalized_text( $content );
+		if ( '' === $plain ) {
+			return '';
+		}
+
+		$coverage = $this->hosted_ai_summary_coverage_map( $content );
+		$parts    = array(
+			'Summary source brief. Use this compressed brief as the source for fast excerpt generation.',
+		);
+
+		$headings = is_array( $coverage['headings'] ?? null ) ? array_slice( $coverage['headings'], 0, 10 ) : array();
+		if ( ! empty( $headings ) ) {
+			$parts[] = 'Headings: ' . implode( ' / ', array_map( 'sanitize_text_field', $headings ) );
+		}
+
+		$terms = is_array( $coverage['must_cover_named_terms'] ?? null ) ? array_slice( $coverage['must_cover_named_terms'], 0, 8 ) : array();
+		if ( ! empty( $terms ) ) {
+			$parts[] = 'Must-cover named terms: ' . implode( ', ', array_map( 'sanitize_text_field', $terms ) );
+		}
+
+		$vector_items = is_array( $summary_vector_context['items'] ?? null ) ? array_slice( $summary_vector_context['items'], 0, 5 ) : array();
+		if ( ! empty( $vector_items ) ) {
+			$parts[] = 'Cloud vector context: related public site passages for coverage and site-style hints only. Do not copy these as facts unless supported by the current draft brief.';
+			foreach ( $vector_items as $index => $item ) {
+				if ( ! is_array( $item ) ) {
+					continue;
+				}
+				$title   = sanitize_text_field( (string) ( $item['title'] ?? '' ) );
+				$excerpt = sanitize_textarea_field( (string) ( $item['excerpt'] ?? '' ) );
+				$score   = is_numeric( $item['score'] ?? null ) ? ' score=' . (string) (float) $item['score'] : '';
+				if ( '' === $title && '' === $excerpt ) {
+					continue;
+				}
+				$parts[] = 'Vector passage ' . ( $index + 1 ) . $score . ': ' . trim( $title . ' - ' . $this->hosted_ai_text_slice( $excerpt, 0, 260 ), " \t\n\r\0\x0B-" );
+			}
+		}
+
+		foreach ( array( 'lead_hint' => 'Lead', 'middle_hint' => 'Middle', 'end_hint' => 'End' ) as $key => $label ) {
+			$hint = trim( sanitize_text_field( (string) ( $coverage[ $key ] ?? '' ) ) );
+			if ( '' !== $hint ) {
+				$parts[] = $label . ': ' . $hint;
+			}
+		}
+
+		$segment_hints = is_array( $coverage['segment_hints'] ?? null ) ? $coverage['segment_hints'] : array();
+		foreach ( array_slice( $segment_hints, 0, 3 ) as $segment ) {
+			if ( ! is_array( $segment ) ) {
+				continue;
+			}
+			$hint = trim( sanitize_text_field( (string) ( $segment['hint'] ?? '' ) ) );
+			if ( '' === $hint ) {
+				continue;
+			}
+			$segment_terms = is_array( $segment['key_terms'] ?? null ) ? array_slice( $segment['key_terms'], 0, 6 ) : array();
+			$parts[]       = 'Segment ' . sanitize_key( (string) ( $segment['id'] ?? 'part' ) ) . ': ' . $hint . ( $segment_terms ? ' Terms: ' . implode( ', ', array_map( 'sanitize_text_field', $segment_terms ) ) : '' );
+		}
+
+		$paragraphs = preg_split( '/\R{2,}/', $plain );
+		$paragraphs = array_values(
+			array_filter(
+				array_map(
+					static function ( $paragraph ) {
+						$value = trim( sanitize_textarea_field( (string) $paragraph ) );
+						return '' !== $value ? $value : null;
+					},
+					is_array( $paragraphs ) ? $paragraphs : array()
+				)
+			)
+		);
+		if ( ! empty( $paragraphs ) ) {
+			$selected = array();
+			foreach ( array( 0, (int) floor( count( $paragraphs ) / 2 ), count( $paragraphs ) - 1 ) as $index ) {
+				if ( isset( $paragraphs[ $index ] ) && ! in_array( $paragraphs[ $index ], $selected, true ) ) {
+					$selected[] = $paragraphs[ $index ];
+				}
+			}
+			foreach ( array_slice( $selected, 0, 3 ) as $index => $paragraph ) {
+				$parts[] = 'Selected paragraph ' . ( $index + 1 ) . ': ' . $this->hosted_ai_text_slice( $paragraph, 0, 520 );
+			}
+		}
+
+		$brief = implode( "\n\n", array_filter( $parts ) );
+		return sanitize_textarea_field( $this->hosted_ai_text_slice( $brief, 0, 6000 ) );
 	}
 
 	private function hosted_ai_summary_coverage_map( string $content ): array {
@@ -3205,18 +3307,35 @@ final class Provider_Client {
 		return $this->normalize_site_knowledge_cloud_response( is_array( $response ) ? $response : array(), $artifact_type, $composition_role, $runtime_payload );
 	}
 
+	private function image_source_latency_mode( array $options ): string {
+		$mode = sanitize_key( (string) ( $options['latency_mode'] ?? $options['image_latency_mode'] ?? '' ) );
+		return 'fast_first' === $mode ? 'fast_first' : 'complete';
+	}
+
 	private function execute_image_source_cloud_request( string $query, array $options, string $provider ) {
-		$per_page = max( 1, min( 30, (int) ( $options['per_page'] ?? 8 ) ) );
-		$input    = array(
+		$per_page     = max( 1, min( 30, (int) ( $options['per_page'] ?? 8 ) ) );
+		$latency_mode = $this->image_source_latency_mode( $options );
+		$fast_first   = 'fast_first' === $latency_mode;
+		$input        = array(
 			'query'              => $query,
 			'provider'           => $provider,
 			'provider_origin'    => 'cloud',
 			'per_page'           => $per_page,
+			'latency_mode'       => $latency_mode,
+			'latency_budget_seconds' => $fast_first ? 5 : 60,
+			'enhancement_mode'   => $fast_first ? 'deferred' : 'inline',
 			'orientation'        => sanitize_key( (string) ( $options['orientation'] ?? '' ) ),
 			'color'              => sanitize_key( (string) ( $options['color'] ?? '' ) ),
 			'purpose'            => sanitize_key( (string) ( $options['purpose'] ?? 'image_reference_candidate' ) ),
 			'candidate_contract' => 'image_candidate.v1',
 		);
+		if ( $fast_first ) {
+			$input['deferred_cloud_ai_steps'] = array(
+				'site_context_vectors',
+				'candidate_rerank',
+				'media_seo_suggestions',
+			);
+		}
 		$visual_context = $this->image_visual_context_input( $query, $options, $per_page );
 		if ( array() !== $visual_context ) {
 			$input['visual_context'] = $visual_context;
@@ -3231,7 +3350,7 @@ final class Provider_Client {
 			'data_classification' => 'public_reference_media',
 			'storage_mode'        => 'result_only',
 			'retention_ttl'       => 3600,
-			'timeout_seconds'     => 60,
+			'timeout_seconds'     => $fast_first ? 5 : 60,
 			'retry_max'           => 0,
 			'policy'              => array(
 				'allow_fallback' => true,
@@ -3279,6 +3398,15 @@ final class Provider_Client {
 		if ( array() === $context && ! empty( $options['post_context'] ) && is_array( $options['post_context'] ) ) {
 			$context = $options['post_context'];
 		}
+		$latency_mode = $this->image_source_latency_mode(
+			array_merge(
+				$options,
+				array(
+					'latency_mode' => $context['latency_mode'] ?? ( $options['latency_mode'] ?? '' ),
+				)
+			)
+		);
+		$fast_first   = 'fast_first' === $latency_mode;
 
 		$selection = trim( sanitize_textarea_field( (string) ( $context['selected_text'] ?? $context['selected_block_text'] ?? '' ) ) );
 		$title     = trim( sanitize_text_field( (string) ( $context['title'] ?? '' ) ) );
@@ -3293,6 +3421,8 @@ final class Provider_Client {
 		$visual_context = array(
 			'contract_version'       => 'image_visual_brief_request.v1',
 			'image_use'              => $mode,
+			'latency_mode'           => $latency_mode,
+			'latency_budget_seconds' => $fast_first ? 5 : 60,
 			'manual_query'           => sanitize_text_field( (string) ( $context['manual_query'] ?? $options['manual_query'] ?? '' ) ),
 			'fallback_query'         => sanitize_text_field( $query ),
 			'post_id'                => $post_id,
@@ -3311,12 +3441,21 @@ final class Provider_Client {
 				'prefer_editorial_safe' => true,
 				'write_posture'         => 'suggestion_only',
 			),
-			'cloud_ai_steps'         => array(
-				'visual_brief',
-				'site_context_vectors',
-				'candidate_rerank',
-				'media_seo_suggestions',
-			),
+			'cloud_ai_steps'         => $fast_first
+				? array( 'visual_brief' )
+				: array(
+					'visual_brief',
+					'site_context_vectors',
+					'candidate_rerank',
+					'media_seo_suggestions',
+				),
+			'deferred_cloud_ai_steps' => $fast_first
+				? array(
+					'site_context_vectors',
+					'candidate_rerank',
+					'media_seo_suggestions',
+				)
+				: array(),
 			'quality_filters'        => array(
 				'dedupe_similar_images'       => true,
 				'avoid_visible_watermarks'     => true,
@@ -3332,18 +3471,19 @@ final class Provider_Client {
 				'return_license_review_status' => true,
 			),
 			'ui_contract'            => array(
-				'return_match_reason'           => true,
+				'return_match_reason'           => ! $fast_first,
 				'return_quality_tags'           => true,
 				'return_risk_flags'             => true,
 				'return_empty_query_suggestions' => true,
 			),
 			'candidate_limits'       => array(
 				'returned_candidates'      => $per_page,
-				'max_source_candidates'    => max( $per_page, min( 30, max( 20, $per_page * 3 ) ) ),
-				'max_site_context_results' => 4,
+				'max_source_candidates'    => $fast_first ? max( $per_page, min( 12, max( 8, $per_page * 2 ) ) ) : max( $per_page, min( 30, max( 20, $per_page * 3 ) ) ),
+				'max_site_context_results' => $fast_first ? 0 : 4,
 			),
 			'fallback_policy'        => array(
 				'plain_image_search' => true,
+				'defer_rerank'       => $fast_first,
 				'keep_candidate_order_when_rerank_unavailable' => true,
 			),
 			'data_minimization'      => array(
@@ -4160,10 +4300,13 @@ final class Provider_Client {
 				'For title_summary, each title must be plain text, no more than 80 characters, match the source language, avoid markdown, avoid 本文, 这篇文章, 草稿, title suggestion, and avoid clickbait or unsupported superlatives.',
 				'For title_summary regeneration, treat generation_variant as a fresh-request marker: vary wording and angle without changing draft-grounded facts.',
 				'For summary_suggestions, return the recommended excerpt first and keep it ready to paste into the WordPress excerpt field.',
+				'For summary_suggestions when source.summary_generation_mode is fast_brief, treat source.content as a compressed source brief containing headings, lead/middle/end hints, named terms, and selected paragraphs; do not ask for the full draft, and do not invent details beyond the brief.',
+				'For summary_suggestions when source.summary_vector_context has items, use them only to choose emphasis, avoid duplicate framing, and match proven site excerpt style; the current draft brief remains the factual source of truth.',
+				'For summary_suggestions when source.summary_generation_mode is full_context, treat source.content as the full draft context when it is not marked truncated.',
 				'For summary_suggestions in Chinese, target 70 to 140 Chinese characters and rewrite before returning if either excerpt is under 50 or over 160 characters.',
 				'For summary_suggestions, the recommended excerpt must name or clearly identify the core subject and cover the primary workflow, capability set, or reader decision path rather than a local detail.',
 				'For summary_suggestions, title-level differentiators such as high-performance, componentized, beginner-friendly, local-first, or step-by-step are must-cover when supported by the draft.',
-				'For summary_suggestions, treat source.content as the full draft context when it is not marked truncated; use source.content_coverage_map headings, hints, and key_terms only to verify coverage, not as a replacement for reading the full draft.',
+				'For summary_suggestions, use source.content_coverage_map headings, hints, and key_terms to verify coverage; in fast_brief mode, source.content is already the compressed source package, and in full_context mode it is the full draft context unless marked truncated.',
 				'For summary_suggestions, source.content_coverage_map.must_cover_named_terms lists named tools, products, methods, or systems found in the draft; if it contains five or fewer terms, the recommended excerpt must represent every listed term directly or through a clear grouped role.',
 				'For summary_suggestions, use source.content_coverage_map.segment_hints to check lead, middle, and end coverage; if later segments introduce named tools, scenarios, or workflow branches not represented in the lead segment, compress those later branches into the recommended excerpt.',
 				'For summary_suggestions, before returning, count named terms represented in the recommended excerpt by segment; when two or more segment_hints contain named terms, the recommended excerpt must represent at least two different segments and must not mention only lead-segment tools.',

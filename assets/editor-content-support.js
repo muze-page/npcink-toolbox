@@ -17,6 +17,7 @@
 	const useEffect = element.useEffect;
 	const useSelect = data.useSelect;
 	const __ = i18n.__ || ((value) => value);
+	const sprintf = i18n.sprintf || ((value) => value);
 	const SIDEBAR_NAME = 'npcink-content-support-sidebar';
 	const PLUGIN_NAME = 'npcink-toolbox-editor-content-support';
 	const PARAGRAPH_IMAGE_EVENT = 'npcink-toolbox:paragraph-image-suggestions';
@@ -25,6 +26,7 @@
 	const IMAGE_RESULT_CACHE_TTL = 5 * 60 * 1000;
 	const IMAGE_RESULT_CACHE_MAX_ENTRIES = 20;
 	const imageResultCache = {};
+	const implicitAgentFeedbackSent = {};
 	const PluginSidebarComponent = editor.PluginSidebar || editPost.PluginSidebar;
 	const BlockControlsComponent = blockEditor.BlockControls || editor.BlockControls || null;
 
@@ -90,28 +92,50 @@
 			mode: 'featured',
 			imageUse: 'featured_image',
 			adoptionMode: 'featured_image',
+			contextScope: 'article',
 			initialSearchMode: 'source',
 			autoSearch: true,
-			title: __('Image source suggestions', 'npcink-toolbox'),
-			intro: __('Search uses the selected paragraph when available, plus article context, or a short visual query. Select one image to import it with media details and set it as the featured image through Adapter/Core.', 'npcink-toolbox'),
-			emptyTitle: __('Select an image to adopt', 'npcink-toolbox'),
+			allowGeneration: true,
+			allowImagePlan: true,
+			title: __('AI recommended featured image', 'npcink-toolbox'),
+			intro: __('Uses the current article title, excerpt, and body context to recommend or generate a featured image. Paragraph selection is ignored for this entry.', 'npcink-toolbox'),
+			emptyTitle: __('Select a featured image candidate', 'npcink-toolbox'),
+			sourceModeLabel: __('Recommend featured image', 'npcink-toolbox'),
+			generateModeLabel: __('Generate featured image', 'npcink-toolbox'),
+			searchPlaceholder: __('Search or describe featured image needs', 'npcink-toolbox'),
+			generatePlaceholder: __('Review or enter a featured image prompt', 'npcink-toolbox'),
+			searchButtonLabel: __('Recommend featured image', 'npcink-toolbox'),
+			searchBusyLabel: __('Recommending', 'npcink-toolbox'),
+			autoButtonLabel: __('Use article context', 'npcink-toolbox'),
+			briefButtonLabel: __('Generate featured image plan', 'npcink-toolbox'),
 		},
 		paragraph: {
 			mode: 'paragraph',
 			imageUse: 'paragraph_image',
 			adoptionMode: 'media_import',
+			contextScope: 'paragraph',
 			initialSearchMode: 'source',
 			autoSearch: true,
+			allowGeneration: false,
+			allowImagePlan: false,
 			title: __('Paragraph image suggestions', 'npcink-toolbox'),
-			intro: __('Search uses the selected paragraph plus article context. Select one image to import it with media details through Adapter/Core.', 'npcink-toolbox'),
+			intro: __('Uses the currently selected paragraph as the primary image context, with nearby article context only for disambiguation.', 'npcink-toolbox'),
 			emptyTitle: __('Select an image for this paragraph', 'npcink-toolbox'),
+			sourceModeLabel: __('Recommend paragraph image', 'npcink-toolbox'),
+			searchPlaceholder: __('Search or describe this paragraph image', 'npcink-toolbox'),
+			searchButtonLabel: __('Recommend paragraph image', 'npcink-toolbox'),
+			searchBusyLabel: __('Recommending', 'npcink-toolbox'),
+			autoButtonLabel: __('Use selected paragraph', 'npcink-toolbox'),
 		},
 		inline: {
 			mode: 'inline',
 			imageUse: 'inline_image',
 			adoptionMode: 'media_import',
+			contextScope: 'paragraph',
 			initialSearchMode: 'source',
 			autoSearch: true,
+			allowGeneration: false,
+			allowImagePlan: false,
 			title: __('Inline image suggestions', 'npcink-toolbox'),
 			intro: __('Search uses the selected text plus article context. Select one image to import it with media details through Adapter/Core.', 'npcink-toolbox'),
 			emptyTitle: __('Select an image source', 'npcink-toolbox'),
@@ -120,8 +144,11 @@
 			mode: 'setting',
 			imageUse: 'setting_image',
 			adoptionMode: 'select_only',
+			contextScope: 'setting',
 			initialSearchMode: 'source',
 			autoSearch: false,
+			allowGeneration: false,
+			allowImagePlan: false,
 			title: __('Setting image suggestions', 'npcink-toolbox'),
 			intro: __('Search uses a short visual query or supplied setting context. Select one image source to return it to the calling field; Toolbox does not write settings directly.', 'npcink-toolbox'),
 			emptyTitle: __('Select an image source', 'npcink-toolbox'),
@@ -155,8 +182,8 @@
 		},
 		{
 			intent: 'image_candidates',
-			label: __('Find image candidates', 'npcink-toolbox'),
-			description: __('Search configured image-source providers for featured or inline candidates.', 'npcink-toolbox'),
+			label: __('AI recommended featured image', 'npcink-toolbox'),
+			description: __('Recommend or generate a featured image from the current article context.', 'npcink-toolbox'),
 			group: 'common_recommendations',
 		},
 		{
@@ -335,6 +362,25 @@
 
 	async function postJson(path, payload) {
 		return postJsonToUrl(joinRestUrl(config.restUrl, path), payload);
+	}
+
+	function submitImplicitAgentFeedback(payload) {
+		if (!payload || typeof payload !== 'object') {
+			return;
+		}
+		const key = [
+			payload.source_runtime || '',
+			payload.handoff_type || '',
+			payload.handoff_id || '',
+			payload.local_outcome || '',
+		].join('|').slice(0, 500);
+		if (implicitAgentFeedbackSent[key]) {
+			return;
+		}
+		implicitAgentFeedbackSent[key] = true;
+		postJson('agent-feedback', payload).catch(() => {
+			// Keep behavior collection silent; visible flows must not fail because eval is unavailable.
+		});
 	}
 
 	function adapterRestUrl(path) {
@@ -598,6 +644,10 @@
 		return image.thumbnail_url || image.thumb_url || image.small_url || image.preview_url || image.regular_url || image.download_url || image.url || '';
 	}
 
+	function imageFullPreviewUrl(image) {
+		return image.regular_url || image.download_url || image.url || imagePreviewUrl(image);
+	}
+
 	function imageSourceUrl(image) {
 		return image.html_url || image.source_url || image.photographer_url || image.regular_url || image.download_url || image.url || '';
 	}
@@ -631,15 +681,17 @@
 		return ids.slice(0, 24);
 	}
 
-	function editorImageAgentFeedbackPayload(payload, selectedImage, picker, outcome, labels) {
+	function editorImageAgentFeedbackPayload(payload, selectedImage, picker, outcome, labels, options) {
+		const feedbackOptions = options && typeof options === 'object' ? options : {};
 		const activePicker = normalizeImagePickerOptions(picker || {});
 		const sourceType = String((selectedImage && selectedImage.source_type) || (payload && payload.provider_mode) || '').toLowerCase();
 		const aiGenerated = sourceType === 'ai_generated';
 		const sourceRuntime = aiGenerated ? 'ai_image_generation' : 'image_candidates';
-		const surface = aiGenerated ? 'editor_ai_image_generation_modal' : 'editor_image_candidate_modal';
+		const surface = feedbackOptions.localSurface || (aiGenerated ? 'editor_ai_image_generation_modal' : 'editor_image_candidate_modal');
 		const runId = payload && payload.run_id ? String(payload.run_id) : '';
 		const handoffId = [
 			sourceRuntime,
+			feedbackOptions.action || '',
 			activePicker.imageUse || activePicker.mode,
 			selectedImage ? imageStableKey(selectedImage, 0) : '',
 			runId
@@ -652,7 +704,7 @@
 			source_runtime: sourceRuntime,
 			source_run_id: runId,
 			handoff_id: handoffId.slice(0, 191),
-			handoff_type: 'editor_image_candidate_result',
+			handoff_type: feedbackOptions.handoffType || 'editor_image_candidate_result',
 			local_surface: surface,
 			local_outcome: outcome,
 			feedback_labels: labels,
@@ -663,6 +715,93 @@
 			retention_class: 'quality_eval',
 			created_at: new Date().toISOString()
 		};
+	}
+
+	function editorImageImplicitFeedbackPayload(payload, selectedImage, picker, action, outcome, labels) {
+		return editorImageAgentFeedbackPayload(payload, selectedImage, picker, outcome, labels, {
+			action,
+			handoffType: 'editor_image_candidate_' + sanitizeFeedbackAction(action),
+			localSurface: 'editor_image_candidate_modal_implicit',
+		});
+	}
+
+	function contentSupportFeedbackEvidenceRefIds(payload) {
+		const ids = [];
+		const sections = payload && payload.sections && typeof payload.sections === 'object' ? payload.sections : {};
+		const addId = (value) => {
+			const normalized = String(value || '').trim().slice(0, 191);
+			if (normalized && ids.indexOf(normalized) === -1) {
+				ids.push(normalized);
+			}
+		};
+		if (payload && payload.run_id) {
+			addId('content_support_run:' + payload.run_id);
+		}
+		Object.keys(sections).forEach((key) => {
+			const section = sections[key];
+			addId('content_support_section:' + key);
+			if (!section || typeof section !== 'object') {
+				return;
+			}
+			if (section.artifact_type) {
+				addId('artifact:' + section.artifact_type);
+			}
+			if (section.run_id) {
+				addId('section_run:' + section.run_id);
+			}
+			const refs = Array.isArray(section.evidence_refs) ? section.evidence_refs : [];
+			refs.forEach((ref, index) => {
+				if (ref && typeof ref === 'object') {
+					addId(ref.id || ref.ref_id || [key, ref.source_type || 'evidence', ref.source_id || ref.post_id || ref.url || index + 1].join(':'));
+				}
+			});
+		});
+		return ids.slice(0, 24);
+	}
+
+	function editorContentSupportFeedbackPayload(payload, intent, outcome, labels, localProposalId, options) {
+		const feedbackOptions = options && typeof options === 'object' ? options : {};
+		const activeIntent = String(intent || (payload && payload.intent) || 'content_support').trim();
+		const runId = payload && payload.run_id ? String(payload.run_id) : '';
+		const artifactType = payload && payload.artifact_type ? String(payload.artifact_type) : 'editor_content_support_flow';
+		const handoffId = [
+			'content_support',
+			feedbackOptions.action || '',
+			activeIntent,
+			artifactType,
+			runId || String(contentSupportFeedbackEvidenceRefIds(payload || {}).length)
+		].filter(Boolean).join(':');
+
+		return {
+			contract_version: 'cloud_agent_feedback.v1',
+			agent_id: 'editor_content_support_agent',
+			agent_version: payload && payload.contract_version ? String(payload.contract_version) : '',
+			source_runtime: 'content_support',
+			source_run_id: runId,
+			handoff_id: handoffId.slice(0, 191),
+			handoff_type: feedbackOptions.handoffType || 'editor_content_support_result',
+			local_surface: feedbackOptions.localSurface || 'editor_content_support_sidebar',
+			local_outcome: outcome,
+			feedback_labels: labels,
+			operator_note: '',
+			local_proposal_id: localProposalId || '',
+			evidence_ref_ids: contentSupportFeedbackEvidenceRefIds(payload || {}),
+			redaction_status: 'metadata_only',
+			retention_class: 'quality_eval',
+			created_at: new Date().toISOString()
+		};
+	}
+
+	function editorContentImplicitFeedbackPayload(payload, intent, action, outcome, labels, localProposalId) {
+		return editorContentSupportFeedbackPayload(payload, intent, outcome, labels, localProposalId, {
+			action,
+			handoffType: 'editor_content_support_' + sanitizeFeedbackAction(action),
+			localSurface: 'editor_content_support_sidebar_implicit',
+		});
+	}
+
+	function sanitizeFeedbackAction(value) {
+		return String(value || 'interaction').toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'interaction';
 	}
 
 	function imageSearchCacheKey(type, picker, query, context) {
@@ -755,6 +894,28 @@
 		return Boolean(String(postContext.selected_text || postContext.selected_block_text || postContext.title || postContext.excerpt || postContext.content || '').trim());
 	}
 
+	function hasScopedImageContext(context, picker) {
+		const activePicker = normalizeImagePickerOptions(picker || {});
+		if (activePicker.contextScope === 'paragraph') {
+			return Boolean(String(context.selected_text || context.selected_block_text || '').trim());
+		}
+		if (activePicker.contextScope === 'setting') {
+			return hasDraftImageContext(context);
+		}
+		return Boolean(String(context.title || context.excerpt || context.content || '').trim());
+	}
+
+	function imageMissingContextMessage(picker) {
+		const activePicker = normalizeImagePickerOptions(picker || {});
+		if (activePicker.contextScope === 'paragraph') {
+			return __('Select a paragraph with text before asking for paragraph image recommendations, or enter a manual image search query.', 'npcink-toolbox');
+		}
+		if (activePicker.contextScope === 'setting') {
+			return __('Enter a short image search query or provide setting context before searching.', 'npcink-toolbox');
+		}
+		return __('Add a title, excerpt, or body text to use article-level featured image recommendations, or enter a manual search query.', 'npcink-toolbox');
+	}
+
 	function normalizeImagePickerOptions(options) {
 		const source = options && typeof options === 'object' ? options : {};
 		const requestedMode = String(source.mode || source.image_mode || '').replace(/_image$/, '') || 'featured';
@@ -763,29 +924,59 @@
 		const imageUse = source.image_use || source.imageUse || preset.imageUse;
 		const adoptionMode = source.adoption_mode || source.adoptionMode || preset.adoptionMode;
 		const initialSearchMode = source.initial_search_mode || source.initialSearchMode || preset.initialSearchMode || 'source';
+		const allowGeneration = source.allow_generation !== undefined ? Boolean(source.allow_generation) : (source.allowGeneration !== undefined ? Boolean(source.allowGeneration) : Boolean(preset.allowGeneration));
 		return Object.assign({}, preset, {
 			mode: preset.mode,
 			imageUse,
 			adoptionMode,
-			initialSearchMode: initialSearchMode === 'generate' ? 'generate' : 'source',
+			contextScope: source.context_scope || source.contextScope || preset.contextScope || 'article',
+			initialSearchMode: allowGeneration && initialSearchMode === 'generate' ? 'generate' : 'source',
 			title: source.title || preset.title,
 			intro: source.intro || preset.intro,
 			emptyTitle: source.empty_title || source.emptyTitle || preset.emptyTitle,
 			context,
 			initialQuery: source.query || source.manual_query || source.initialQuery || '',
 			autoSearch: source.auto_search !== undefined ? Boolean(source.auto_search) : Boolean(preset.autoSearch),
+			allowGeneration,
+			allowImagePlan: source.allow_image_plan !== undefined ? Boolean(source.allow_image_plan) : (source.allowImagePlan !== undefined ? Boolean(source.allowImagePlan) : Boolean(preset.allowImagePlan)),
+			sourceModeLabel: source.source_mode_label || source.sourceModeLabel || preset.sourceModeLabel || __('Recommended image', 'npcink-toolbox'),
+			generateModeLabel: source.generate_mode_label || source.generateModeLabel || preset.generateModeLabel || __('Manual prompt', 'npcink-toolbox'),
+			searchPlaceholder: source.search_placeholder || source.searchPlaceholder || preset.searchPlaceholder || __('Search or describe image needs', 'npcink-toolbox'),
+			generatePlaceholder: source.generate_placeholder || source.generatePlaceholder || preset.generatePlaceholder || __('Review or enter an AI image prompt', 'npcink-toolbox'),
+			searchButtonLabel: source.search_button_label || source.searchButtonLabel || preset.searchButtonLabel || __('Recommend images', 'npcink-toolbox'),
+			searchBusyLabel: source.search_busy_label || source.searchBusyLabel || preset.searchBusyLabel || __('Recommending', 'npcink-toolbox'),
+			autoButtonLabel: source.auto_button_label || source.autoButtonLabel || preset.autoButtonLabel || __('Search from article', 'npcink-toolbox'),
+			briefButtonLabel: source.brief_button_label || source.briefButtonLabel || preset.briefButtonLabel || __('Generate image plan', 'npcink-toolbox'),
 			selectionEvent: source.selection_event || source.selectionEvent || IMAGE_SOURCE_PICKER_SELECTED_EVENT,
 			closeOnSelect: source.close_on_select !== undefined ? Boolean(source.close_on_select) : false,
 		});
 	}
 
+	function imagePickerContextOverride(picker, contextOverride) {
+		const activePicker = normalizeImagePickerOptions(picker || {});
+		const base = Object.assign({}, activePicker.context || {}, contextOverride && typeof contextOverride === 'object' ? contextOverride : {});
+		base.context_scope = activePicker.contextScope;
+		if (activePicker.contextScope === 'article') {
+			base.ignore_selection = true;
+			base.selected_text = '';
+			base.selected_block_text = '';
+			base.selected_block_name = '';
+		}
+		return base;
+	}
+
 	function imageRequestContext(postContext, contextOverride) {
 		const override = contextOverride && typeof contextOverride === 'object' ? contextOverride : {};
+		const ignoreSelection = Boolean(override.ignore_selection || override.ignoreSelection || override.context_scope === 'article' || override.contextScope === 'article');
 		return Object.assign({}, postContext, override, {
-			selected_text: browserSelectedText() || override.selected_text || postContext.selected_text || '',
-			selected_block_text: override.selected_block_text || postContext.selected_block_text || '',
-			selected_block_name: override.selected_block_name || postContext.selected_block_name || '',
+			selected_text: ignoreSelection ? '' : (browserSelectedText() || override.selected_text || postContext.selected_text || ''),
+			selected_block_text: ignoreSelection ? '' : (override.selected_block_text || postContext.selected_block_text || ''),
+			selected_block_name: ignoreSelection ? '' : (override.selected_block_name || postContext.selected_block_name || ''),
 		});
+	}
+
+	function imagePickerRequestContext(postContext, picker, contextOverride) {
+		return imageRequestContext(postContext || {}, imagePickerContextOverride(picker, contextOverride));
 	}
 
 	function buildImageVisualContext(postContext, imageMode, manualQuery, contextOverride, imageUse) {
@@ -807,6 +998,35 @@
 				return_alternate_queries: true,
 			},
 		};
+	}
+
+	function imageFastSearchQuery(postContext, manualQuery, contextOverride, picker) {
+		const activePicker = normalizeImagePickerOptions(picker || {});
+		const context = imagePickerRequestContext(postContext, activePicker, contextOverride);
+		const query = String(manualQuery || '').trim();
+		if (query) {
+			return truncateText(query, 180);
+		}
+
+		if (activePicker.contextScope === 'paragraph') {
+			const selected = [context.selected_text, context.selected_block_text]
+				.map((value) => String(value || '').trim())
+				.filter(Boolean)
+				.join(' ');
+			if (selected) {
+				return truncateText(selected, 180);
+			}
+		}
+
+		const summary = [context.title, context.excerpt]
+			.map((value) => String(value || '').trim())
+			.filter(Boolean)
+			.join(' ');
+		if (summary) {
+			return truncateText(summary, 180);
+		}
+
+		return truncateText(plainTextFromHtml(context.content), 180);
 	}
 
 	function formatMetaLabel(value) {
@@ -839,6 +1059,11 @@
 			image_candidates: __('Image candidates', 'npcink-toolbox'),
 			internal_link_candidates: __('Internal link candidates', 'npcink-toolbox'),
 			internal_links: __('Internal links', 'npcink-toolbox'),
+			ready: __('Ready', 'npcink-toolbox'),
+			required: __('Required', 'npcink-toolbox'),
+			pexels: __('Pexels', 'npcink-toolbox'),
+			pixabay: __('Pixabay', 'npcink-toolbox'),
+			unsplash: __('Unsplash', 'npcink-toolbox'),
 			pre_publish_review: __('Pre-publish review', 'npcink-toolbox'),
 			seo_handoff: __('SEO handoff', 'npcink-toolbox'),
 			seo_meta_single_post_handoff: __('SEO handoff', 'npcink-toolbox'),
@@ -1013,11 +1238,13 @@
 
 	function aiImagePromptSubject(postContext, picker, manualPrompt) {
 		const activePicker = normalizeImagePickerOptions(picker || {});
-		const context = imageRequestContext(postContext || {}, activePicker.context);
+		const context = imagePickerRequestContext(postContext || {}, activePicker);
 		const selectedContext = String(context.selected_text || context.selected_block_text || '').trim();
 		const operatorPrompt = String(manualPrompt || '').trim();
 		const articleContext = String(context.title || context.excerpt || '').trim();
-		const subject = selectedContext || operatorPrompt || articleContext;
+		const subject = activePicker.contextScope === 'paragraph'
+			? (selectedContext || operatorPrompt)
+			: (operatorPrompt || articleContext || truncateText(plainTextFromHtml(context.content), 260));
 		if (!String(subject || '').trim()) {
 			return null;
 		}
@@ -1058,7 +1285,7 @@
 		const activePicker = normalizeImagePickerOptions(picker || {});
 		const basePrompt = String(currentPrompt || selectedImage && (selectedImage.generation_prompt || selectedImage.prompt || selectedImage.description) || '').trim()
 			|| defaultAiImageGenerationPrompt(postContext, activePicker, '', aspectRatio);
-		const context = imageRequestContext(postContext || {}, activePicker.context);
+		const context = imagePickerRequestContext(postContext || {}, activePicker);
 		const selectedContext = String(context.selected_text || context.selected_block_text || context.title || context.excerpt || '').trim();
 		const mode = String(revisionMode || 'more_editorial');
 		const instruction = mode === 'more_specific'
@@ -1178,8 +1405,6 @@
 			queryLabel ? __('Query: ', 'npcink-toolbox') + queryLabel : '',
 			sourceLabel ? __('Source: ', 'npcink-toolbox') + sourceLabel : '',
 			imageCount ? __('Candidates: ', 'npcink-toolbox') + String(imageCount) : '',
-			source.candidate_source_count !== undefined ? __('Received: ', 'npcink-toolbox') + String(source.candidate_source_count) : '',
-			source.status ? __('Status: ', 'npcink-toolbox') + formatMetaLabel(source.status) : '',
 			selectedImage ? __('Selected: ', 'npcink-toolbox') + truncateText(imageTitle(selectedImage), 52) : '',
 		].filter(Boolean);
 		if (!items.length) {
@@ -1198,29 +1423,20 @@
 		if (!visualBrief && !diagnostics) {
 			return null;
 		}
-		const detailPanel = diagnostics ? createElement(
-			'details',
-			{ className: 'npcink-toolbox-editor-support__cloud-details' },
-			createElement('summary', null, __('Cloud details', 'npcink-toolbox')),
-			diagnostics
-		) : null;
-		if (visualBrief) {
-			return createElement(
-				'div',
-				{ className: 'npcink-toolbox-editor-support__image-cloud-context' },
-				visualBrief,
-				detailPanel
-			);
-		}
 		return createElement(
 			'details',
 			{ className: 'npcink-toolbox-editor-support__cloud-details' },
-			createElement('summary', null, __('Cloud details', 'npcink-toolbox')),
+			createElement('summary', null, visualBrief ? __('Optional image directions', 'npcink-toolbox') : __('Cloud details', 'npcink-toolbox')),
+			visualBrief ? createElement(
+				'div',
+				{ className: 'npcink-toolbox-editor-support__image-cloud-context' },
+				visualBrief
+			) : null,
 			diagnostics
 		);
 	}
 
-	function renderImageCandidateCards(images, payload, selectedImage, onSelectImage, onUseSuggestion, picker) {
+	function renderImageCandidateCards(images, payload, selectedImage, onSelectImage, onPreviewImage, onUseSuggestion, picker) {
 		if (!Array.isArray(images) || !images.length) {
 			const source = imageResultSource(payload || {});
 			const status = String(source.status || '').toLowerCase();
@@ -1241,60 +1457,94 @@
 		return createElement(
 			'div',
 			{ className: 'npcink-toolbox-editor-support__image-grid' },
-			images.slice(0, 8).map((image, index) => {
-				const previewUrl = imagePreviewUrl(image);
-				const sourceUrl = imageSourceUrl(image);
-				const candidateKey = imageStableKey(image, index);
-				const selected = selectedImage && imageStableKey(selectedImage, index) === candidateKey;
-				const cardTags = [
-					imageCandidateSourceLabel(image, payload),
-					imageDimensionLabel(image),
-				].concat(imageCandidateTagValues(image)).filter(Boolean).slice(0, 4);
+				images.slice(0, 8).map((image, index) => {
+					const previewUrl = imagePreviewUrl(image);
+					const candidateKey = imageStableKey(image, index);
+					const selected = selectedImage && imageStableKey(selectedImage, index) === candidateKey;
 
-				return createElement(
-					'article',
-					{
-						className: 'npcink-toolbox-editor-support__image-card' + (selected ? ' is-selected' : ''),
-						key: String(index) + '-' + candidateKey,
-						role: 'button',
-						tabIndex: 0,
-						'aria-pressed': selected ? 'true' : 'false',
-						onClick: () => onSelectImage(image),
-						onKeyDown: (event) => {
-							if (event.key === 'Enter' || event.key === ' ') {
-								event.preventDefault();
-								onSelectImage(image);
-							}
+					return createElement(
+						'article',
+						{
+							className: 'npcink-toolbox-editor-support__image-card' + (selected ? ' is-selected' : ''),
+							key: String(index) + '-' + candidateKey,
+							role: 'button',
+							tabIndex: 0,
+							'aria-pressed': selected ? 'true' : 'false',
+							'aria-label': __('Select image candidate', 'npcink-toolbox') + ' ' + String(index + 1),
+							onClick: () => onSelectImage(image),
+							onKeyDown: (event) => {
+								if (event.key === 'Enter' || event.key === ' ') {
+									event.preventDefault();
+									onSelectImage(image);
+								}
+							},
 						},
-					},
-					selected ? createElement('span', { className: 'npcink-toolbox-editor-support__selected-badge', 'aria-hidden': 'true' }, '✓') : null,
-					previewUrl
+						selected ? createElement('span', { className: 'npcink-toolbox-editor-support__selected-badge', 'aria-hidden': 'true' }, '✓') : null,
+						previewUrl
 						? createElement('img', {
 							className: 'npcink-toolbox-editor-support__image-thumb',
 							src: previewUrl,
 							alt: image.alt_description || image.description || '',
 							loading: 'lazy',
-						})
-						: createElement('div', { className: 'npcink-toolbox-editor-support__image-placeholder' }, __('No preview', 'npcink-toolbox')),
-					createElement(
-						'div',
-						{ className: 'npcink-toolbox-editor-support__image-card-body' },
-						createElement('strong', null, truncateText(imageTitle(image), 64)),
+							})
+							: createElement('div', { className: 'npcink-toolbox-editor-support__image-placeholder' }, __('No preview', 'npcink-toolbox')),
 						createElement(
-							'div',
-							{ className: 'npcink-toolbox-editor-support__image-card-meta' },
-							cardTags.map((item, tagIndex) => createElement('span', { key: String(tagIndex) + '-' + item }, item))
-						),
-						createElement(
-							'div',
-							{ className: 'npcink-toolbox-editor-support__image-card-actions' },
-							sourceUrl
-								? createElement('a', { href: sourceUrl, target: '_blank', rel: 'noreferrer', onClick: (event) => event.stopPropagation() }, __('Open source', 'npcink-toolbox'))
-								: null
+							'button',
+							{
+								type: 'button',
+								className: 'npcink-toolbox-editor-support__image-zoom',
+								'aria-label': __('Preview image larger', 'npcink-toolbox'),
+								onClick: (event) => {
+									event.preventDefault();
+									event.stopPropagation();
+									onPreviewImage(image);
+								},
+							},
+							createElement('span', { className: 'dashicons dashicons-search', 'aria-hidden': 'true' })
 						)
-					)
-				);
-			})
+					);
+				})
+			);
+		}
+
+	function renderImagePreviewLightbox(image, onClose) {
+		if (!image) {
+			return null;
+		}
+		const previewUrl = imageFullPreviewUrl(image);
+		if (!previewUrl) {
+			return null;
+		}
+		return createElement(
+			'div',
+			{
+				className: 'npcink-toolbox-editor-support__image-lightbox',
+				role: 'dialog',
+				'aria-modal': 'true',
+				'aria-label': __('Image preview', 'npcink-toolbox'),
+				onClick: onClose,
+			},
+			createElement(
+				'div',
+				{
+					className: 'npcink-toolbox-editor-support__image-lightbox-frame',
+					onClick: (event) => event.stopPropagation(),
+				},
+				createElement(
+					'button',
+					{
+						type: 'button',
+						className: 'npcink-toolbox-editor-support__image-lightbox-close',
+						'aria-label': __('Close preview', 'npcink-toolbox'),
+						onClick: onClose,
+					},
+					'×'
+				),
+				createElement('img', {
+					src: previewUrl,
+					alt: image.alt_description || image.description || imageTitle(image),
+				})
+			)
 		);
 	}
 
@@ -1455,9 +1705,9 @@
 			{ label: __('Not relevant', 'npcink-toolbox'), outcome: 'rejected', labels: ['not_relevant_to_site'] },
 		];
 		return createElement(
-			'div',
+			'details',
 			{ className: 'npcink-toolbox-editor-support__image-feedback', 'data-toolbox-editor-image-agent-feedback': 'true' },
-			createElement('h3', null, __('Quick feedback', 'npcink-toolbox')),
+			createElement('summary', null, __('Report image issue', 'npcink-toolbox')),
 			createElement(
 				'div',
 				{ className: 'npcink-toolbox-editor-support__image-feedback-actions' },
@@ -1474,8 +1724,46 @@
 					option.label
 				))
 			),
-			createElement('small', null, __('Feedback updates Cloud eval only. Media import and WordPress writes stay local.', 'npcink-toolbox')),
+			createElement('small', null, __('Optional issue report only. Toolbox also sends metadata-only interaction signals; media import and WordPress writes stay local.', 'npcink-toolbox')),
 			feedbackStatus ? createElement(Notice, { status: feedbackStatus.status, isDismissible: false }, feedbackStatus.message) : null
+		);
+	}
+
+	function renderContentSupportFeedbackControls(payload, controls) {
+		if (!payload || !controls || typeof controls.submitFeedback !== 'function') {
+			return null;
+		}
+		const options = [
+			{ label: __('Useful', 'npcink-toolbox'), outcome: 'accepted', labels: ['evidence_useful', 'operator_confidence_high'] },
+			{ label: __('Useful after edits', 'npcink-toolbox'), outcome: 'edited_before_accept', labels: ['evidence_useful', 'good_but_needs_human_draft'] },
+			{ label: __('Evidence weak', 'npcink-toolbox'), outcome: 'rejected', labels: ['evidence_weak', 'operator_confidence_low'] },
+			{ label: __('Wrong intent', 'npcink-toolbox'), outcome: 'rejected', labels: ['wrong_intent'] },
+			{ label: __('Too generic', 'npcink-toolbox'), outcome: 'rejected', labels: ['too_generic'] },
+			{ label: __('Missing context', 'npcink-toolbox'), outcome: 'rejected', labels: ['missing_context', 'operator_confidence_low'] },
+			{ label: __('Not relevant', 'npcink-toolbox'), outcome: 'rejected', labels: ['not_relevant_to_site'] },
+		];
+		return createElement(
+			'details',
+			{ className: 'npcink-toolbox-editor-support__content-feedback', 'data-toolbox-editor-content-agent-feedback': 'true' },
+			createElement('summary', null, __('Report issue', 'npcink-toolbox')),
+			createElement(
+				'div',
+				{ className: 'npcink-toolbox-editor-support__content-feedback-actions' },
+				options.map((option) => createElement(
+					Button,
+					{
+						key: option.label,
+						type: 'button',
+						variant: 'secondary',
+						isBusy: controls.feedbackRunning === option.label,
+						disabled: Boolean(controls.feedbackRunning),
+						onClick: () => controls.submitFeedback(option),
+					},
+					option.label
+				))
+			),
+			createElement('small', null, __('Optional issue report only. Toolbox also sends metadata-only interaction signals; Core approval, media import, SEO fields, and WordPress writes stay local.', 'npcink-toolbox')),
+			controls.feedbackStatus ? createElement(Notice, { status: controls.feedbackStatus.status, isDismissible: false }, controls.feedbackStatus.message) : null
 		);
 	}
 
@@ -1555,7 +1843,10 @@
 		const sourceUrl = imageSourceUrl(selectedImage);
 		const existingAttachmentId = findAttachmentId(selectedImage, 0);
 		const providerDetails = imageCandidateProviderDetails(selectedImage);
-		const rows = [
+		const selectedPanelTitle = selectOnlyMode
+			? __('Selected image', 'npcink-toolbox')
+			: (paragraphMode ? __('Selected paragraph image', 'npcink-toolbox') : __('Selected featured image', 'npcink-toolbox'));
+		const sourceDetailRows = [
 			renderInfoRow(__('Source', 'npcink-toolbox'), imageCandidateSourceLabel(selectedImage), 'source'),
 			renderInfoRow(__('Review', 'npcink-toolbox'), selectedImage.license_review_status ? formatMetaLabel(selectedImage.license_review_status) : '', 'review'),
 			renderInfoRow(__('Size', 'npcink-toolbox'), imageDimensionLabel(selectedImage), 'size'),
@@ -1567,7 +1858,7 @@
 			createElement(
 				'div',
 				{ className: 'npcink-toolbox-editor-support__selected-title' },
-				createElement('h3', null, __('Selected image', 'npcink-toolbox')),
+				createElement('h3', null, selectedPanelTitle),
 				createElement('strong', null, truncateText(imageTitle(selectedImage), 90))
 			),
 			createElement(
@@ -1575,11 +1866,6 @@
 				{ className: 'npcink-toolbox-editor-support__selected-head' },
 				previewUrl ? createElement('img', { src: previewUrl, alt: seo.alt || imageTitle(selectedImage), loading: 'lazy' }) : null
 			),
-			rows.length ? createElement(
-				'div',
-				{ className: 'npcink-toolbox-editor-support__info-list' },
-				rows
-			) : null,
 			createElement(
 				'div',
 				{ className: 'npcink-toolbox-editor-support__selected-actions' },
@@ -1601,7 +1887,7 @@
 						disabled: adoptionRunning,
 						onClick: onImportOnly,
 					},
-					adoptionRunning ? __('Importing media', 'npcink-toolbox') : __('Import media for paragraph', 'npcink-toolbox')
+					adoptionRunning ? __('Importing media', 'npcink-toolbox') : __('Import paragraph image', 'npcink-toolbox')
 				) : createElement(
 					Button,
 					{
@@ -1661,6 +1947,11 @@
 				'details',
 				{ className: 'npcink-toolbox-editor-support__image-details' },
 				createElement('summary', null, __('Source details', 'npcink-toolbox')),
+				sourceDetailRows.length ? createElement(
+					'div',
+					{ className: 'npcink-toolbox-editor-support__info-list' },
+					sourceDetailRows
+				) : null,
 				sourceUrl ? createElement('a', { href: sourceUrl, target: '_blank', rel: 'noreferrer' }, __('Open source', 'npcink-toolbox')) : null,
 				selectedImage.source_type ? createElement('small', null, __('Type: ', 'npcink-toolbox') + formatMetaLabel(selectedImage.source_type)) : null,
 				providerDetails.length ? createElement('small', null, __('Runtime: ', 'npcink-toolbox') + providerDetails.join(' / ')) : null,
@@ -1741,7 +2032,7 @@
 		return createElement(
 			'div',
 			{ className: 'npcink-toolbox-editor-support__visual-brief' },
-			createElement('strong', null, __('Cloud visual brief', 'npcink-toolbox')),
+			createElement('strong', null, __('Image direction reference', 'npcink-toolbox')),
 			brief.visual_intent ? createElement('span', null, truncateText(brief.visual_intent, 160)) : null,
 			chips.length ? createElement(
 				'div',
@@ -1751,7 +2042,7 @@
 			promptCandidates.length ? createElement(
 				'div',
 				{ className: 'npcink-toolbox-editor-support__prompt-candidates' },
-				createElement('small', null, __('AI image directions', 'npcink-toolbox')),
+				createElement('small', null, __('AI prompt directions', 'npcink-toolbox')),
 				promptCandidates.map((candidate, index) => {
 					const prompt = String(candidate.prompt || '');
 					const usePrompt = (event) => {
@@ -2020,35 +2311,61 @@
 		}));
 	}
 
-	function internalLinkCandidateItems(section) {
-		if (section && Array.isArray(section.recommendation_candidates) && section.recommendation_candidates.length) {
-			return section.recommendation_candidates.map((item) => ({
-				name: readableItemText(item.label || item.name || item.id, __('Internal link candidate', 'npcink-toolbox')),
-				value: item.value ? __('Anchor: ', 'npcink-toolbox') + readableItemText(item.value, '') : '',
-				detail: [
-					item.quality_status ? formatMetaLabel(item.quality_status) : __('Review only, no insert', 'npcink-toolbox'),
-					readableItemText(item.reason || item.detail, ''),
-					item.quality_score ? __('Quality score: ', 'npcink-toolbox') + String(item.quality_score) : '',
-					item.source_candidate_ref || '',
-				].filter(Boolean).join(' · '),
-				quality_status: item.quality_status,
-				quality_score: item.quality_score,
-				quality_issues: item.quality_issues,
-				action_policy: item.action_policy,
-				target_field: item.target_field,
-			}));
+	function internalLinkReasonText(reason) {
+		const text = readableItemText(reason, '');
+		if (!text) {
+			return __('Related by Site Knowledge. Review as an internal link.', 'npcink-toolbox');
 		}
-		const items = section && Array.isArray(section.items) ? section.items : [];
-		return items.map((item) => ({
-			name: item.title || item.target_url || __('Internal link candidate', 'npcink-toolbox'),
-			value: item.suggested_anchor_text ? __('Anchor: ', 'npcink-toolbox') + item.suggested_anchor_text : '',
-			detail: [
-				item.status ? formatMetaLabel(item.status) : '',
-				item.reason || '',
-				item.placement_hint || '',
-				item.target_url || '',
-			].filter(Boolean).join(' · '),
-			}));
+		if (text.toLowerCase().indexOf('the indexed passage is semantically related') >= 0) {
+			return __('Related by Site Knowledge. Review as an internal link.', 'npcink-toolbox');
+		}
+		return text;
+	}
+
+	function internalLinkScoreText(score) {
+		const value = parseInt(score || '0', 10);
+		return value > 0 ? __('Score ', 'npcink-toolbox') + String(value) : '';
+	}
+
+	function internalLinkCandidateItems(section) {
+		const sourceItems = section && Array.isArray(section.items) ? section.items : [];
+		if (section && Array.isArray(section.recommendation_candidates) && section.recommendation_candidates.length) {
+			return section.recommendation_candidates.map((item, index) => {
+				const source = sourceItems[index] && typeof sourceItems[index] === 'object' ? sourceItems[index] : {};
+				const title = readableItemText(item.label || item.name || source.title || item.id, __('Internal link candidate', 'npcink-toolbox'));
+				const targetUrl = readableItemText(item.target_url || item.source_candidate_ref || source.target_url || source.url, '');
+				const anchorText = readableItemText(item.value || source.suggested_anchor_text || title, '');
+				return {
+					id: readableItemText(item.id || source.target_post_id || String(index + 1), String(index + 1)),
+					title,
+					anchorText,
+					targetUrl,
+					reason: internalLinkReasonText(item.reason || item.detail || source.reason),
+					placementHint: readableItemText(source.placement_hint || item.placement_hint, ''),
+					score: internalLinkScoreText(item.quality_score),
+					quality_status: item.quality_status,
+					quality_score: item.quality_score,
+					quality_issues: item.quality_issues,
+					action_policy: item.action_policy,
+					target_field: item.target_field,
+				};
+			});
+		}
+		return sourceItems.map((item, index) => {
+			const title = readableItemText(item.title || item.target_url, __('Internal link candidate', 'npcink-toolbox'));
+			return {
+				id: readableItemText(item.target_post_id || String(index + 1), String(index + 1)),
+				title,
+				anchorText: readableItemText(item.suggested_anchor_text || title, ''),
+				targetUrl: readableItemText(item.target_url || item.url, ''),
+				reason: internalLinkReasonText(item.reason),
+				placementHint: readableItemText(item.placement_hint, ''),
+				score: item.score ? internalLinkScoreText(Math.round(Number(item.score) * 100)) : '',
+				quality_status: item.status,
+				action_policy: 'operator_review_only_no_insert',
+				target_field: 'post_content',
+			};
+		});
 	}
 
 	function imageAltSuggestionItems(section) {
@@ -2407,18 +2724,16 @@
 			{ className: 'npcink-toolbox-editor-support__metadata-compact-section' },
 			showHeading ? createElement('h4', null, __('Summary suggestions', 'npcink-toolbox')) : null,
 			candidates.length
-				? createElement(
-					'ul',
-					{ className: 'npcink-toolbox-editor-support__metadata-compact-list npcink-toolbox-editor-support__summary-candidate-list' },
-					candidates.slice(0, 3).map((item, index) => {
-						const titleText = readableItemText(item && (item.name || item.title || item.label), __('Summary candidate', 'npcink-toolbox'));
-						const excerptText = readableItemText(item && (item.detail || item.value || item.excerpt), '');
-						return createElement(
-							'li',
-							{ key: String(index) + '-' + titleText },
-							createElement('strong', null, titleText),
-							excerptText ? createElement('span', null, excerptText) : null,
-							excerptText && controls && controls.applyExcerpt ? createElement(
+					? createElement(
+						'ul',
+						{ className: 'npcink-toolbox-editor-support__metadata-compact-list npcink-toolbox-editor-support__summary-candidate-list' },
+						candidates.slice(0, 3).map((item, index) => {
+							const excerptText = readableItemText(item && (item.detail || item.value || item.excerpt), readableItemText(item && (item.name || item.title || item.label), __('Summary candidate', 'npcink-toolbox')));
+							return createElement(
+								'li',
+								{ key: String(index) + '-' + excerptText },
+								excerptText ? createElement('span', null, excerptText) : null,
+								excerptText && controls && controls.applyExcerpt ? createElement(
 								'div',
 								{ className: 'npcink-toolbox-editor-support__candidate-actions' },
 								createElement(
@@ -2439,27 +2754,93 @@
 		);
 	}
 
-	function renderInternalLinkCandidateSection(section) {
+	function copyTextToClipboard(text) {
+		const value = String(text || '');
+		if (!value) {
+			return Promise.reject(new Error('empty_clipboard_value'));
+		}
+		if (window.navigator && window.navigator.clipboard && window.navigator.clipboard.writeText) {
+			return window.navigator.clipboard.writeText(value);
+		}
+		return new Promise((resolve, reject) => {
+			const textarea = document.createElement('textarea');
+			textarea.value = value;
+			textarea.setAttribute('readonly', 'readonly');
+			textarea.style.position = 'fixed';
+			textarea.style.left = '-9999px';
+			document.body.appendChild(textarea);
+			textarea.select();
+			try {
+				const copied = document.execCommand && document.execCommand('copy');
+				document.body.removeChild(textarea);
+				copied ? resolve() : reject(new Error('copy_failed'));
+			} catch (error) {
+				document.body.removeChild(textarea);
+				reject(error);
+			}
+		});
+	}
+
+	function renderInternalLinkCandidateSection(section, controls) {
 		const candidates = internalLinkCandidateItems(section);
+		const visibleCandidates = candidates.slice(0, 3);
+		const actionControls = controls && controls.internalLinks ? controls.internalLinks : {};
 		return createElement(
 			'section',
-			{ className: 'npcink-toolbox-editor-support__metadata-compact-section' },
-			createElement('h4', null, __('Internal link candidates', 'npcink-toolbox')),
-			candidates.length
+			{ className: 'npcink-toolbox-editor-support__metadata-compact-section npcink-toolbox-editor-support__internal-links' },
+			createElement('h4', null, __('Recommended internal links', 'npcink-toolbox')),
+			visibleCandidates.length
 				? createElement(
 					'ul',
-					{ className: 'npcink-toolbox-editor-support__metadata-compact-list' },
-					candidates.slice(0, 5).map((item, index) => createElement(
+					{ className: 'npcink-toolbox-editor-support__internal-link-list' },
+					visibleCandidates.map((item, index) => {
+						const key = String(index) + '-' + readableItemText(item && item.title, __('Internal link candidate', 'npcink-toolbox'));
+						const hasUrl = Boolean(item && item.targetUrl);
+						return createElement(
 						'li',
-						{ key: String(index) + '-' + readableItemText(item && item.name, __('Internal link candidate', 'npcink-toolbox')) },
-						createElement('strong', null, readableItemText(item && item.name, __('Internal link candidate', 'npcink-toolbox'))),
-						item.value ? createElement('span', null, item.value) : null,
-						item.detail ? createElement('span', null, truncateText(item.detail, 180)) : null,
-						createElement('small', { className: 'npcink-toolbox-editor-support__candidate-policy' }, __('Review only. Toolbox does not insert links automatically.', 'npcink-toolbox'))
-					))
-				)
-				: createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, __('No internal link candidates returned.', 'npcink-toolbox'))
-		);
+						{ key, className: 'npcink-toolbox-editor-support__internal-link-card' },
+						createElement('strong', null, readableItemText(item && item.title, __('Internal link candidate', 'npcink-toolbox'))),
+						createElement(
+							'div',
+							{ className: 'npcink-toolbox-editor-support__internal-link-meta' },
+							item.anchorText ? createElement('span', null, __('Anchor: ', 'npcink-toolbox') + truncateText(item.anchorText, 48)) : null,
+							item.score ? createElement('span', null, item.score) : null
+						),
+						item.reason ? createElement('p', null, truncateText(item.reason, 92)) : null,
+						createElement(
+							'div',
+							{ className: 'npcink-toolbox-editor-support__internal-link-actions' },
+							createElement(
+								Button,
+								{
+									type: 'button',
+									variant: 'primary',
+									disabled: !hasUrl || Boolean(actionControls.running),
+									isBusy: actionControls.running === key + ':copy',
+									onClick: () => actionControls.copy && actionControls.copy(item, key),
+								},
+								__('Copy link', 'npcink-toolbox')
+							),
+							createElement(
+								Button,
+								{
+									type: 'button',
+									variant: 'tertiary',
+									disabled: !hasUrl,
+									onClick: () => actionControls.open && actionControls.open(item),
+								},
+								__('Open article', 'npcink-toolbox')
+							)
+						)
+					);
+					})
+					)
+						: createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, __('No internal link candidates returned.', 'npcink-toolbox'))
+				,
+				candidates.length > visibleCandidates.length ? createElement('small', { className: 'npcink-toolbox-editor-support__candidate-policy' }, sprintf(__('Showing top %1$d of %2$d candidates.', 'npcink-toolbox'), visibleCandidates.length, candidates.length)) : null,
+				createElement('small', { className: 'npcink-toolbox-editor-support__candidate-policy' }, __('Copy a reviewed link or open the article, then place the link manually in the draft.', 'npcink-toolbox')),
+				actionControls.status ? createElement(Notice, { status: actionControls.status.status || 'info', isDismissible: false }, actionControls.status.message) : null
+			);
 	}
 
 	function renderEvidenceDetails(blocks, controls) {
@@ -2871,7 +3252,7 @@
 		}
 
 		if (sections.internal_links) {
-			blocks.push(renderInternalLinkCandidateSection(sections.internal_links));
+			blocks.push(renderInternalLinkCandidateSection(sections.internal_links, metadataHandoffControls));
 		}
 
 		if (sections.site_knowledge && !sections.internal_links) {
@@ -2899,6 +3280,8 @@
 			blocks.push(renderItems(seoHandoffItems(sections.seo_handoff), __('No SEO handoff preview returned.', 'npcink-toolbox')));
 			blocks.push(renderSeoHandoffControl(sections.seo_handoff, metadataHandoffControls && metadataHandoffControls.seoHandoff));
 		}
+
+		blocks.push(renderContentSupportFeedbackControls(payload, metadataHandoffControls));
 
 		return createElement('div', { className: 'npcink-toolbox-editor-support__result' }, blocks);
 	}
@@ -3012,6 +3395,7 @@
 		const [imagePicker, setImagePicker] = useState(() => normalizeImagePickerOptions({ mode: 'featured' }));
 		const [selectedImage, setSelectedImage] = useState(null);
 		const [selectedImageSeo, setSelectedImageSeo] = useState(null);
+		const [imagePreviewLightbox, setImagePreviewLightbox] = useState(null);
 		const [imageAdoptionRunning, setImageAdoptionRunning] = useState(false);
 		const [imageAdoptionResult, setImageAdoptionResult] = useState(null);
 		const [imageAdoptionError, setImageAdoptionError] = useState('');
@@ -3025,10 +3409,34 @@
 		const [seoHandoffRunning, setSeoHandoffRunning] = useState(false);
 		const [seoHandoffResult, setSeoHandoffResult] = useState(null);
 		const [seoHandoffError, setSeoHandoffError] = useState('');
+		const [contentFeedbackRunning, setContentFeedbackRunning] = useState('');
+		const [contentFeedbackStatus, setContentFeedbackStatus] = useState(null);
+		const [internalLinkRunning, setInternalLinkRunning] = useState('');
+		const [internalLinkStatus, setInternalLinkStatus] = useState(null);
 		const [flowInstructions, setFlowInstructions] = useState({});
 		const [titleApplyStatus, setTitleApplyStatus] = useState(null);
 		const [excerptApplyStatus, setExcerptApplyStatus] = useState(null);
 		const [evidenceModalBlocks, setEvidenceModalBlocks] = useState(null);
+
+		useEffect(() => {
+			const images = extractImageCandidates(imageResult);
+			if (!imageModalOpen || imageRunning || !images.length) {
+				return;
+			}
+			const currentKey = selectedImage ? imageStableKey(selectedImage, 0) : '';
+			const currentStillVisible = currentKey && images.some((image, index) => imageStableKey(image, index) === currentKey);
+			if (currentStillVisible) {
+				return;
+			}
+			const firstImage = images[0];
+			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
+			const seoContext = imagePickerRequestContext(postContext, activePicker);
+			setSelectedImage(firstImage);
+			setSelectedImageSeo(buildImageSeoFields(firstImage, seoContext));
+			setImageAdoptionResult(null);
+			setImageAdoptionError('');
+			resetImageFeedbackState();
+		}, [imageResult, imageModalOpen, imageRunning, selectedImage, imagePicker, imageMode, postContext]);
 
 		useEffect(() => {
 			function handleParagraphImageRequest(event) {
@@ -3053,7 +3461,8 @@
 			};
 		});
 
-		async function runFlow(intent) {
+		async function runFlow(intent, options) {
+			const runOptions = options && typeof options === 'object' ? options : {};
 			if (intent === 'image_candidates') {
 				openImageSourcePicker({ mode: 'featured' });
 				return;
@@ -3073,21 +3482,30 @@
 			setMetadataHandoffError('');
 			setSeoHandoffResult(null);
 			setSeoHandoffError('');
+			setContentFeedbackRunning('');
+			setContentFeedbackStatus(null);
+			setInternalLinkRunning('');
+			setInternalLinkStatus(null);
 			setTitleApplyStatus(null);
 			setExcerptApplyStatus(null);
-			try {
-				const userInstruction = flowAcceptsUserInstruction(intent) ? String(flowInstructions[intent] || '').trim() : '';
-				const payload = Object.assign({}, postContext, {
-					intent,
-					category_ids: Array.isArray(postContext.category_ids) ? postContext.category_ids.join(',') : '',
-					tag_ids: Array.isArray(postContext.tag_ids) ? postContext.tag_ids.join(',') : '',
-					media_items: Array.isArray(postContext.media_items) ? postContext.media_items : [],
-					generation_variant: ['title_suggestions', 'article_outline', 'polish_notes', 'summary_suggestions'].indexOf(intent) >= 0 ? String(Date.now()) : '',
-					user_instruction: userInstruction,
-				});
-				if (intent === 'title_suggestions') {
-					payload.context_scope = 'full_article';
-					payload.selected_text = '';
+				try {
+					const userInstruction = flowAcceptsUserInstruction(intent) ? String(flowInstructions[intent] || '').trim() : '';
+					const shouldForceRegenerate = Boolean(runOptions.forceRegenerate);
+					const payload = Object.assign({}, postContext, {
+						intent,
+						category_ids: Array.isArray(postContext.category_ids) ? postContext.category_ids.join(',') : '',
+						tag_ids: Array.isArray(postContext.tag_ids) ? postContext.tag_ids.join(',') : '',
+						media_items: Array.isArray(postContext.media_items) ? postContext.media_items : [],
+						generation_variant: ['title_suggestions', 'article_outline', 'polish_notes'].indexOf(intent) >= 0 || shouldForceRegenerate ? String(Date.now()) : '',
+						force_regenerate: shouldForceRegenerate,
+						user_instruction: userInstruction,
+					});
+					if (intent === 'summary_suggestions') {
+						payload.summary_generation_mode = runOptions.summaryGenerationMode === 'full_context' ? 'full_context' : 'fast_brief';
+					}
+					if (intent === 'title_suggestions') {
+						payload.context_scope = 'full_article';
+						payload.selected_text = '';
 					payload.selected_block_text = '';
 					payload.selected_block_name = '';
 				}
@@ -3101,6 +3519,75 @@
 			}
 		}
 
+		async function submitContentSupportFeedback(option) {
+			if (!result) {
+				setContentFeedbackStatus({ status: 'error', message: __('Run a content support flow first.', 'npcink-toolbox') });
+				return;
+			}
+			const localProposalId = extractProposalId([metadataHandoffResult, seoHandoffResult, result], 0);
+			const intent = activeFlowIntent || (result && result.intent) || '';
+			setContentFeedbackRunning(option.label);
+			setContentFeedbackStatus(null);
+			try {
+				const receipt = await postJson(
+					'agent-feedback',
+					editorContentSupportFeedbackPayload(result, intent, option.outcome, option.labels, localProposalId)
+				);
+				setContentFeedbackStatus({
+					status: 'success',
+					message: receipt && receipt.accepted_for_eval
+						? __('Feedback accepted for Cloud eval. Core approval and WordPress writes remain local.', 'npcink-toolbox')
+						: __('Feedback sent. Core approval and WordPress writes remain local.', 'npcink-toolbox'),
+				});
+			} catch (requestError) {
+				setContentFeedbackStatus({
+					status: 'error',
+					message: (requestError && requestError.message ? requestError.message : __('Could not send content feedback.', 'npcink-toolbox')) + ' ' + __('Core approval and WordPress writes remain local.', 'npcink-toolbox'),
+				});
+			} finally {
+				setContentFeedbackRunning('');
+			}
+		}
+
+		function submitContentImplicitFeedback(action, outcome, labels) {
+			if (!result) {
+				return;
+			}
+			const localProposalId = extractProposalId([metadataHandoffResult, seoHandoffResult, result], 0);
+			const intent = activeFlowIntent || (result && result.intent) || '';
+			submitImplicitAgentFeedback(
+				editorContentImplicitFeedbackPayload(result, intent, action, outcome, labels, localProposalId)
+			);
+		}
+
+		async function copyInternalLinkCandidate(candidate, key) {
+			const url = String(candidate && candidate.targetUrl ? candidate.targetUrl : '').trim();
+			if (!url) {
+				setInternalLinkStatus({ status: 'error', message: __('This candidate has no URL to copy.', 'npcink-toolbox') });
+				return;
+			}
+			setInternalLinkRunning(String(key || 'link') + ':copy');
+			try {
+				await copyTextToClipboard(url);
+				submitContentImplicitFeedback('internal_link_copy', 'accepted', ['evidence_useful', 'operator_confidence_high']);
+				setInternalLinkStatus({ status: 'success', message: __('Link copied. Paste it where the reviewed anchor belongs.', 'npcink-toolbox') });
+			} catch (copyError) {
+				setInternalLinkStatus({ status: 'error', message: __('Could not copy the link. Open the article and copy it manually.', 'npcink-toolbox') });
+			} finally {
+				setInternalLinkRunning('');
+			}
+		}
+
+		function openInternalLinkCandidate(candidate) {
+			const url = String(candidate && candidate.targetUrl ? candidate.targetUrl : '').trim();
+			if (!url) {
+				setInternalLinkStatus({ status: 'error', message: __('This candidate has no article URL to open.', 'npcink-toolbox') });
+				return;
+			}
+			submitContentImplicitFeedback('internal_link_open', 'accepted', ['evidence_useful', 'operator_confidence_high']);
+			window.open(url, '_blank', 'noopener,noreferrer');
+		}
+
 		function resetImageFeedbackState() {
 			setImageFeedbackRunning('');
 			setImageFeedbackStatus(null);
@@ -3109,27 +3596,28 @@
 		async function runAutoImageRecommendations(modeOverride, contextOverride, pickerOverride) {
 			const activePicker = normalizeImagePickerOptions(pickerOverride || imagePicker || { mode: imageMode });
 			const activeImageMode = modeOverride || activePicker.mode;
-			const imageContext = imageRequestContext(postContext, contextOverride || activePicker.context);
+			const imageContext = imagePickerRequestContext(postContext, activePicker, contextOverride || activePicker.context);
 			const operatorInstruction = String(imageQuery || '').trim();
 			const cacheKey = imageSearchCacheKey('auto', activePicker, operatorInstruction, imageContext);
 			const cachedResult = readCachedImageResult(cacheKey);
-			if (!hasDraftImageContext(imageContext)) {
+			if (!hasScopedImageContext(imageContext, activePicker)) {
 				setImageRunning('');
 				setImageResult(null);
 				setImageError('');
-				setImageGuidance(__('Add a title, excerpt, body text, or select a paragraph to use draft-based image recommendations, or enter a manual search query.', 'npcink-toolbox'));
+				setImageGuidance(imageMissingContextMessage(activePicker));
 				return;
 			}
-			if (cachedResult) {
-				setImageRunning('');
-				setImageError('');
-				setImageGuidance(__('Showing recent image-source results for this context.', 'npcink-toolbox'));
-				setImageResult(cachedResult);
-				setSelectedImage(null);
-				setSelectedImageSeo(null);
-				setImageAdoptionResult(null);
-				setImageAdoptionError('');
-				resetImageFeedbackState();
+				if (cachedResult) {
+					setImageRunning('');
+					setImageError('');
+					setImageGuidance(__('Showing recent image-source results for this context.', 'npcink-toolbox'));
+					setImageResult(cachedResult);
+					setSelectedImage(null);
+					setSelectedImageSeo(null);
+					setImagePreviewLightbox(null);
+					setImageAdoptionResult(null);
+					setImageAdoptionError('');
+					resetImageFeedbackState();
 				return;
 			}
 			setImageRunning('auto');
@@ -3138,21 +3626,24 @@
 			setImageResult(null);
 			setSelectedImage(null);
 			setSelectedImageSeo(null);
+			setImagePreviewLightbox(null);
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 			resetImageFeedbackState();
 			try {
-				const payload = Object.assign({}, imageContext, {
-					intent: 'image_candidates',
+				const query = imageFastSearchQuery(postContext, operatorInstruction, activePicker.context, activePicker);
+				const result = await postJson('image-candidates', {
+					query,
+					provider: 'auto',
+					per_page: 8,
+					latency_mode: 'fast_first',
 					image_mode: activePicker.imageUse,
 					user_instruction: operatorInstruction,
-					visual_context: buildImageVisualContext(postContext, activeImageMode, operatorInstruction, activePicker.context, activePicker.imageUse),
-					category_ids: Array.isArray(imageContext.category_ids) ? imageContext.category_ids.join(',') : '',
-					tag_ids: Array.isArray(imageContext.tag_ids) ? imageContext.tag_ids.join(',') : '',
+					visual_context: buildImageVisualContext(postContext, activeImageMode, operatorInstruction, imagePickerContextOverride(activePicker), activePicker.imageUse),
 				});
-				const result = await postJson('editor/content-support', payload);
 				writeCachedImageResult(cacheKey, result);
 				setImageResult(result);
+				setImageGuidance(__('Showing fast image-source candidates. SEO details may be refined after selecting an image.', 'npcink-toolbox'));
 			} catch (requestError) {
 				setImageError(formatImageErrorMessage(requestError, __('Cloud image recommendation failed.', 'npcink-toolbox')));
 			} finally {
@@ -3170,18 +3661,19 @@
 				runAutoImageRecommendations(activePicker.mode, activePicker.context, activePicker);
 				return;
 			}
-			const imageContext = imageRequestContext(postContext, activePicker.context);
+			const imageContext = imagePickerRequestContext(postContext, activePicker);
 			const cacheKey = imageSearchCacheKey('manual', activePicker, query, imageContext);
 			const cachedResult = readCachedImageResult(cacheKey);
 			setImageQuery(query);
-			if (cachedResult) {
-				setImageRunning('');
-				setImageError('');
-				setImageGuidance(__('Showing recent image-source results for this query.', 'npcink-toolbox'));
-				setImageResult(cachedResult);
-				setSelectedImage(null);
-				setSelectedImageSeo(null);
-				setImageAdoptionResult(null);
+				if (cachedResult) {
+					setImageRunning('');
+					setImageError('');
+					setImageGuidance(__('Showing recent image-source results for this query.', 'npcink-toolbox'));
+					setImageResult(cachedResult);
+					setSelectedImage(null);
+					setSelectedImageSeo(null);
+					setImagePreviewLightbox(null);
+					setImageAdoptionResult(null);
 				setImageAdoptionError('');
 				resetImageFeedbackState();
 				return;
@@ -3192,6 +3684,7 @@
 			setImageResult(null);
 			setSelectedImage(null);
 			setSelectedImageSeo(null);
+			setImagePreviewLightbox(null);
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 			resetImageFeedbackState();
@@ -3200,11 +3693,13 @@
 					query,
 					provider: 'auto',
 					per_page: 8,
+					latency_mode: 'fast_first',
 					image_mode: activePicker.imageUse,
-					visual_context: buildImageVisualContext(postContext, activePicker.mode, query, activePicker.context, activePicker.imageUse),
+					visual_context: buildImageVisualContext(postContext, activePicker.mode, query, imagePickerContextOverride(activePicker), activePicker.imageUse),
 				});
 				writeCachedImageResult(cacheKey, result);
 				setImageResult(result);
+				setImageGuidance(__('Showing fast image-source candidates. SEO details may be refined after selecting an image.', 'npcink-toolbox'));
 			} catch (requestError) {
 				setImageError(formatImageErrorMessage(requestError, __('Cloud image search failed.', 'npcink-toolbox')));
 			} finally {
@@ -3224,6 +3719,7 @@
 			setImageResult(null);
 			setSelectedImage(null);
 			setSelectedImageSeo(null);
+			setImagePreviewLightbox(null);
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 			resetImageFeedbackState();
@@ -3245,7 +3741,12 @@
 				event.preventDefault();
 			}
 			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
-			const context = imageRequestContext(postContext || {}, activePicker.context);
+			if (!activePicker.allowGeneration) {
+				setImageSearchMode('source');
+				setImageError(__('AI image generation is available from the featured image entry. Paragraph image suggestions use the selected paragraph to find source images.', 'npcink-toolbox'));
+				return;
+			}
+			const context = imagePickerRequestContext(postContext || {}, activePicker);
 			const override = promptOverride && typeof promptOverride === 'object' ? promptOverride : {};
 			const prompt = String(override.prompt || defaultAiImageGenerationPrompt(postContext, activePicker, imageQuery, aiImageAspectRatio)).trim();
 			if (!prompt) {
@@ -3258,6 +3759,7 @@
 			setImageResult(null);
 			setSelectedImage(null);
 			setSelectedImageSeo(null);
+			setImagePreviewLightbox(null);
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 			resetImageFeedbackState();
@@ -3314,6 +3816,9 @@
 				return;
 			}
 			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
+			submitImplicitAgentFeedback(
+				editorImageImplicitFeedbackPayload(imageResult || {}, selectedImage, activePicker, 'regenerate_' + sanitizeFeedbackAction(revisionMode), 'edited_before_accept', ['good_but_needs_human_draft'])
+			);
 			const currentPrompt = selectedImage.generation_prompt || selectedImage.prompt || imageQuery || '';
 			const prompt = aiImageRevisionPrompt(postContext, activePicker, selectedImage, currentPrompt, aiImageAspectRatio, revisionMode);
 			if (!prompt) {
@@ -3336,6 +3841,9 @@
 		}
 
 		function useSuggestedImageQuery(query) {
+			submitImplicitAgentFeedback(
+				editorImageImplicitFeedbackPayload(imageResult || {}, selectedImage, imagePicker || { mode: imageMode }, 'suggested_query_click', 'edited_before_accept', ['good_but_needs_human_draft'])
+			);
 			runImageSearch(null, query);
 		}
 
@@ -3348,6 +3856,7 @@
 			setImageQuery(reviewedPrompt);
 			setSelectedImage(null);
 			setSelectedImageSeo(null);
+			setImagePreviewLightbox(null);
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 			resetImageFeedbackState();
@@ -3373,7 +3882,7 @@
 
 		function openImageSourcePicker(options) {
 			const activePicker = normalizeImagePickerOptions(options || { mode: 'featured' });
-			const initialSearchMode = activePicker.initialSearchMode || 'source';
+			const initialSearchMode = activePicker.allowGeneration ? (activePicker.initialSearchMode || 'source') : 'source';
 			setImagePicker(activePicker);
 			setImageMode(activePicker.mode);
 			setImageSearchMode(initialSearchMode);
@@ -3382,6 +3891,7 @@
 			setImageGuidance('');
 			setSelectedImage(null);
 			setSelectedImageSeo(null);
+			setImagePreviewLightbox(null);
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 			resetImageFeedbackState();
@@ -3400,12 +3910,15 @@
 
 		function selectImageCandidate(image) {
 			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
-			const seoContext = imageRequestContext(postContext, activePicker.context);
+			const seoContext = imagePickerRequestContext(postContext, activePicker);
 			setSelectedImage(image);
 			setSelectedImageSeo(buildImageSeoFields(image, seoContext));
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 			resetImageFeedbackState();
+			submitImplicitAgentFeedback(
+				editorImageImplicitFeedbackPayload(imageResult || {}, image, activePicker, 'candidate_select', 'accepted', ['evidence_useful', 'operator_confidence_high'])
+			);
 		}
 
 		function updateSelectedImageSeo(field, value) {
@@ -3421,7 +3934,7 @@
 			}
 
 			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
-			const seoContext = imageRequestContext(postContext, activePicker.context);
+			const seoContext = imagePickerRequestContext(postContext, activePicker);
 			const seo = Object.assign({}, buildImageSeoFields(selectedImage, seoContext), selectedImageSeo || {});
 			const detail = {
 				image_candidate: selectedImage,
@@ -3441,6 +3954,9 @@
 				}
 			}
 
+			submitImplicitAgentFeedback(
+				editorImageImplicitFeedbackPayload(imageResult || {}, selectedImage, activePicker, 'select_only', 'accepted', ['evidence_useful', 'operator_confidence_high'])
+			);
 			setImageGuidance(__('Image source selected for the calling field.', 'npcink-toolbox'));
 			setImageAdoptionError('');
 			if (activePicker.closeOnSelect) {
@@ -3502,6 +4018,7 @@
 				return;
 			}
 			editorDispatch.editPost({ title: value });
+			submitContentImplicitFeedback('title_apply', 'accepted', ['evidence_useful', 'operator_confidence_high']);
 			setTitleApplyStatus({
 				status: 'success',
 				title: value,
@@ -3529,6 +4046,7 @@
 				return;
 			}
 			editorDispatch.editPost({ excerpt: value });
+			submitContentImplicitFeedback('excerpt_apply', 'accepted', ['evidence_useful', 'operator_confidence_high']);
 			setExcerptApplyStatus({
 				status: 'success',
 				excerpt: value,
@@ -3659,11 +4177,14 @@
 					const local = await postLocalFeaturedImageConsent(localFeaturedImageConsentInput());
 					syncFeaturedMediaFromCore(local);
 					setImageAdoptionResult({ core: local, local_consent: true, adoption_target: 'featured_image' });
+					submitImplicitAgentFeedback(
+						editorImageImplicitFeedbackPayload(imageResult || {}, selectedImage, imagePicker || { mode: imageMode }, 'local_featured_image_adopt', 'accepted', ['evidence_useful', 'operator_confidence_high'])
+					);
 					return;
 				}
 
 				const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
-				const seoContext = imageRequestContext(postContext, activePicker.context);
+				const seoContext = imagePickerRequestContext(postContext, activePicker);
 				const seo = Object.assign({}, buildImageSeoFields(selectedImage, seoContext), selectedImageSeo || {});
 				const planInput = imageAdoptionPlanInput(seo, setFeaturedImage);
 				const plan = await postJson('flows/image-candidate-adoption-plan', planInput);
@@ -3673,6 +4194,9 @@
 						syncFeaturedMediaFromCore(core);
 					}
 					setImageAdoptionResult({ plan, core, adoption_target: setFeaturedImage ? 'featured_image' : 'media_import' });
+					submitImplicitAgentFeedback(
+						editorImageImplicitFeedbackPayload(imageResult || {}, selectedImage, activePicker, setFeaturedImage ? 'featured_image_adopt' : 'media_import', 'accepted', ['evidence_useful', 'operator_confidence_high'])
+					);
 				} catch (coreError) {
 					setImageAdoptionResult({ plan, core_error: coreError, adoption_target: setFeaturedImage ? 'featured_image' : 'media_import' });
 				}
@@ -3717,13 +4241,9 @@
 			}
 
 			const images = extractImageCandidates(imageResult);
-			const queryLabel = imageResult && (imageResult.query || (imageResult.sections && imageResult.sections.image_candidates && imageResult.sections.image_candidates.query)) ? (imageResult.query || imageResult.sections.image_candidates.query) : '';
 			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
-			const activeInputContext = imageRequestContext(postContext, activePicker.context);
-			const selectedContext = imageResult && imageResult.post_context
-				? (imageResult.post_context.selected_text || imageResult.post_context.selected_block_text || activeInputContext.selected_text || activeInputContext.selected_block_text || '')
-				: (activeInputContext.selected_text || activeInputContext.selected_block_text || '');
-			const inspectorSeoContext = imageRequestContext(postContext, activePicker.context);
+			const activeSearchMode = activePicker.allowGeneration ? imageSearchMode : 'source';
+			const inspectorSeoContext = imagePickerRequestContext(postContext, activePicker);
 			const inspectorSeo = selectedImage ? Object.assign({}, buildImageSeoFields(selectedImage, inspectorSeoContext), selectedImageSeo || {}) : null;
 			const imageRunningLabel = imageRunning === 'generate'
 				? __('Generating AI image candidate...', 'npcink-toolbox')
@@ -3732,7 +4252,10 @@
 				Modal,
 				{
 					title: activePicker.title,
-					onRequestClose: () => setImageModalOpen(false),
+					onRequestClose: () => {
+						setImageModalOpen(false);
+						setImagePreviewLightbox(null);
+					},
 					className: 'npcink-toolbox-editor-support__image-modal',
 				},
 				createElement(
@@ -3741,8 +4264,8 @@
 					createElement('p', { className: 'npcink-toolbox-editor-support__intro' }, activePicker.intro),
 					createElement(
 						'form',
-						{ className: 'npcink-toolbox-editor-support__image-search', onSubmit: imageSearchMode === 'generate' ? runAiImageGeneration : runImageSearch },
-						createElement(
+						{ className: 'npcink-toolbox-editor-support__image-search', onSubmit: activeSearchMode === 'generate' ? runAiImageGeneration : runImageSearch },
+						activePicker.allowGeneration ? createElement(
 							'div',
 							{ className: 'npcink-toolbox-editor-support__image-mode', role: 'group', 'aria-label': __('Image candidate mode', 'npcink-toolbox') },
 							createElement(
@@ -3753,7 +4276,7 @@
 									'aria-pressed': imageSearchMode === 'source' ? 'true' : 'false',
 									onClick: () => setImageSearchMode('source'),
 								},
-								__('Recommended image', 'npcink-toolbox')
+								activePicker.sourceModeLabel
 							),
 							createElement(
 								'button',
@@ -3763,16 +4286,16 @@
 									'aria-pressed': imageSearchMode === 'generate' ? 'true' : 'false',
 									onClick: () => setImageSearchMode('generate'),
 								},
-								__('Manual prompt', 'npcink-toolbox')
+								activePicker.generateModeLabel
 							)
-						),
+						) : null,
 						createElement('input', {
 							type: 'search',
 							value: imageQuery,
-							placeholder: imageSearchMode === 'generate' ? __('Review or enter an AI image prompt', 'npcink-toolbox') : __('Search or describe image needs', 'npcink-toolbox'),
+							placeholder: activeSearchMode === 'generate' ? activePicker.generatePlaceholder : activePicker.searchPlaceholder,
 							onChange: (event) => setImageQuery(event.target.value),
 						}),
-						imageSearchMode === 'generate' ? createElement(
+						activeSearchMode === 'generate' ? createElement(
 							Button,
 							{
 								type: 'submit',
@@ -3780,7 +4303,7 @@
 								isBusy: imageRunning === 'generate',
 								disabled: Boolean(imageRunning),
 							},
-							imageRunning === 'generate' ? __('Generating', 'npcink-toolbox') : __('Generate AI image', 'npcink-toolbox')
+							imageRunning === 'generate' ? __('Generating', 'npcink-toolbox') : activePicker.generateModeLabel
 						) : createElement(
 							Button,
 							{
@@ -3789,7 +4312,7 @@
 								isBusy: imageRunning === 'search',
 								disabled: Boolean(imageRunning),
 							},
-							imageRunning === 'search' ? __('Recommending', 'npcink-toolbox') : __('Recommend images', 'npcink-toolbox')
+							imageRunning === 'search' ? activePicker.searchBusyLabel : activePicker.searchButtonLabel
 						),
 						createElement(
 							Button,
@@ -3799,11 +4322,11 @@
 								className: 'npcink-toolbox-editor-support__article-search-button',
 								isBusy: imageRunning === 'auto',
 								disabled: Boolean(imageRunning),
-								onClick: runAutoImageRecommendations,
+								onClick: () => runAutoImageRecommendations(activePicker.mode, activePicker.context, activePicker),
 							},
-							__('Search from article', 'npcink-toolbox')
+							activePicker.autoButtonLabel
 						),
-						createElement(
+						activePicker.allowImagePlan ? createElement(
 							Button,
 							{
 								type: 'button',
@@ -3813,45 +4336,30 @@
 								disabled: Boolean(imageRunning),
 								onClick: runMediaBrief,
 							},
-							imageRunning === 'brief' ? __('Planning', 'npcink-toolbox') : __('Generate image plan', 'npcink-toolbox')
-						)
+							imageRunning === 'brief' ? __('Planning', 'npcink-toolbox') : activePicker.briefButtonLabel
+						) : null
 					),
-					imageSearchMode === 'generate' ? createElement(
+					activeSearchMode === 'generate' ? createElement(
 						'div',
 						{ className: 'npcink-toolbox-editor-support__image-options' },
-						renderAiImageOption(
-							__('Aspect ratio', 'npcink-toolbox'),
-							aiImageAspectRatio,
-							setAiImageAspectRatio,
-							[
-								{ value: '16:9', label: '16:9' },
-								{ value: '1:1', label: '1:1' },
-								{ value: '4:3', label: '4:3' },
-								{ value: '3:4', label: '3:4' },
-								{ value: '9:16', label: '9:16' },
-							]
-						),
-						renderAiImageOption(
-							__('Quality', 'npcink-toolbox'),
-							aiImageResolution,
-							setAiImageResolution,
-							[
-								{ value: 'high', label: __('High', 'npcink-toolbox') },
-								{ value: 'medium', label: __('Medium', 'npcink-toolbox') },
-								{ value: 'low', label: __('Low', 'npcink-toolbox') },
-							]
-						),
-						renderAiImageOption(
-							__('Candidates', 'npcink-toolbox'),
-							aiImageCandidateCount,
-							setAiImageCandidateCount,
-							[
-								{ value: '1', label: '1' },
-								{ value: '2', label: '2' },
-								{ value: '3', label: '3' },
-								{ value: '4', label: '4' },
-							]
-						)
+						renderAiImageOption(__('Aspect ratio', 'npcink-toolbox'), aiImageAspectRatio, setAiImageAspectRatio, [
+							{ value: '16:9', label: '16:9' },
+							{ value: '1:1', label: '1:1' },
+							{ value: '4:3', label: '4:3' },
+							{ value: '3:4', label: '3:4' },
+							{ value: '9:16', label: '9:16' },
+						]),
+						renderAiImageOption(__('Quality', 'npcink-toolbox'), aiImageResolution, setAiImageResolution, [
+							{ value: 'high', label: __('High', 'npcink-toolbox') },
+							{ value: 'medium', label: __('Medium', 'npcink-toolbox') },
+							{ value: 'low', label: __('Low', 'npcink-toolbox') },
+						]),
+						renderAiImageOption(__('Candidates', 'npcink-toolbox'), aiImageCandidateCount, setAiImageCandidateCount, [
+							{ value: '1', label: '1' },
+							{ value: '2', label: '2' },
+							{ value: '3', label: '3' },
+							{ value: '4', label: '4' },
+						])
 					) : null,
 					imageGuidance ? createElement(Notice, { status: 'info', isDismissible: false }, imageGuidance) : null,
 					imageError ? createElement(Notice, { status: 'error', isDismissible: false }, imageError) : null,
@@ -3861,16 +4369,8 @@
 						createElement(
 							'section',
 							{ className: 'npcink-toolbox-editor-support__image-results' },
-							selectedContext ? createElement(
-								'details',
-								{ className: 'npcink-toolbox-editor-support__selection-context' },
-								createElement('summary', null, __('Input context', 'npcink-toolbox')),
-								createElement('span', null, truncateText(selectedContext, 180))
-							) : null,
-							renderImageResultSummary(imageResult, images, queryLabel, selectedImage),
-							renderImageCloudDetails(imageResult, useAiPromptCandidate),
-								imageRunning ? createElement('div', { className: 'npcink-toolbox-editor-support__running' }, createElement(Spinner, null), createElement('span', null, imageRunningLabel)) : null,
-								imageResult && !imageRunning ? renderImageCandidateCards(images, imageResult, selectedImage, selectImageCandidate, useSuggestedImageQuery, activePicker) : null
+							imageRunning ? createElement('div', { className: 'npcink-toolbox-editor-support__running' }, createElement(Spinner, null), createElement('span', null, imageRunningLabel)) : null,
+							imageResult && !imageRunning ? renderImageCandidateCards(images, imageResult, selectedImage, selectImageCandidate, setImagePreviewLightbox, useSuggestedImageQuery, activePicker) : null
 						),
 						createElement(
 							'section',
@@ -3882,18 +4382,20 @@
 								imageAdoptionResult,
 								imageAdoptionError,
 								activePicker,
-									updateSelectedImageSeo,
-									() => adoptSelectedImage(true),
-									() => adoptSelectedImage(false),
-									dispatchSelectedImageToCaller,
-									imageFeedbackRunning,
-									imageFeedbackStatus,
-									submitSelectedImageFeedback,
-									imageRegenerationRunning || (imageRunning === 'generate' ? 'generate' : ''),
-									regenerateSelectedImage
-								)
-							)
-					)
+								updateSelectedImageSeo,
+								() => adoptSelectedImage(true),
+								() => adoptSelectedImage(false),
+								dispatchSelectedImageToCaller,
+								imageFeedbackRunning,
+								imageFeedbackStatus,
+								submitSelectedImageFeedback,
+								imageRegenerationRunning || (imageRunning === 'generate' ? 'generate' : ''),
+								regenerateSelectedImage
+							),
+							renderImageCloudDetails(imageResult, useAiPromptCandidate)
+						)
+					),
+					renderImagePreviewLightbox(imagePreviewLightbox, () => setImagePreviewLightbox(null))
 				)
 			);
 		}
@@ -3917,15 +4419,25 @@
 			openEvidence: setEvidenceModalBlocks,
 			runIntent: runFlow,
 			runningIntent: running,
-			seoHandoff: {
+			feedbackRunning: contentFeedbackRunning,
+			feedbackStatus: contentFeedbackStatus,
+				submitFeedback: submitContentSupportFeedback,
+				internalLinks: {
+					running: internalLinkRunning,
+					status: internalLinkStatus,
+					copy: copyInternalLinkCandidate,
+					open: openInternalLinkCandidate,
+				},
+				seoHandoff: {
 				submit: submitSeoHandoff,
 				running: seoHandoffRunning,
 				result: seoHandoffResult,
 				error: seoHandoffError,
 			},
 		};
-		const showResultView = supportView === 'result';
-		const rerunInstruction = rerunIntent ? String(flowInstructions[rerunIntent] || '') : '';
+			const showResultView = supportView === 'result';
+			const rerunInstruction = rerunIntent ? String(flowInstructions[rerunIntent] || '') : '';
+			const canAdvancedSummaryRerun = rerunIntent === 'summary_suggestions';
 
 		return createElement(
 			Fragment,
@@ -3981,18 +4493,35 @@
 						rerunIntent ? createElement(
 							'div',
 							{ className: 'npcink-toolbox-editor-support__view-actions' },
-							createElement(
-								Button,
-								{
-									type: 'button',
-									variant: 'secondary',
-									isBusy: Boolean(running),
-									disabled: Boolean(running),
-									onClick: () => runFlow(rerunIntent),
-								},
-								running ? __('Running', 'npcink-toolbox') : __('Run again', 'npcink-toolbox')
-							)
-						) : null,
+								createElement(
+									Button,
+									{
+										type: 'button',
+										variant: 'secondary',
+										isBusy: Boolean(running),
+										disabled: Boolean(running),
+										onClick: () => {
+											submitContentImplicitFeedback('run_again', 'edited_before_accept', ['good_but_needs_human_draft']);
+											runFlow(rerunIntent, rerunIntent === 'summary_suggestions' ? { forceRegenerate: true } : undefined);
+										},
+									},
+									running ? __('Running', 'npcink-toolbox') : (rerunIntent === 'summary_suggestions' ? __('Regenerate', 'npcink-toolbox') : __('Run again', 'npcink-toolbox'))
+								),
+								canAdvancedSummaryRerun ? createElement(
+									Button,
+									{
+										type: 'button',
+										variant: 'tertiary',
+										isBusy: Boolean(running),
+										disabled: Boolean(running),
+										onClick: () => {
+											submitContentImplicitFeedback('advanced_rerun', 'edited_before_accept', ['good_but_needs_human_draft']);
+											runFlow(rerunIntent, { summaryGenerationMode: 'full_context', forceRegenerate: true });
+										},
+									},
+									__('Advanced rerun', 'npcink-toolbox')
+								) : null
+							) : null,
 						running ? createElement(
 							'div',
 							{ className: 'npcink-toolbox-editor-support__running' },
@@ -4079,8 +4608,8 @@
 								{
 									className: 'npcink-toolbox-editor-support__block-toolbar-button',
 									icon: paragraphImageIcon,
-									label: __('Paragraph image suggestions', 'npcink-toolbox'),
-									title: __('Paragraph image suggestions', 'npcink-toolbox'),
+									label: __('Find image for selected paragraph', 'npcink-toolbox'),
+									title: __('Find image for selected paragraph', 'npcink-toolbox'),
 									showTooltip: true,
 									disabled,
 									onClick: () => dispatchParagraphImageRequest({

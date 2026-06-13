@@ -67,7 +67,7 @@ review queues, but the original candidate object remains the source of truth.
 - Internal-link recommendations expose `recommendation_candidates` with
   `kind=internal_link`, but `internal_link_candidates.v1` remains authoritative
   for target post id, target URL, suggested anchor text, placement hints, Site
-  Knowledge evidence, and the no-insert review policy.
+  Knowledge evidence, and the no-background-patch review policy.
 - Image recommendations expose `recommendation_candidates` with `kind=image`,
   but `image_candidate.v1` remains authoritative for provider identity, source
   URL, thumbnail/download URLs, license review, attribution, download tracking,
