@@ -34,8 +34,9 @@ must still behave like a single-action tool.
 3. `category_suggestions` is focused on existing WordPress categories. The
    shortcut should not create categories and should not show a Core handoff
    packet.
-4. `tag_suggestions` prefers existing WordPress tags. New tag gaps may appear
-   as review-only candidates, but Toolbox must not create terms directly.
+4. `tag_suggestions` is focused on existing WordPress tags. It should not show
+   proposed new tags or vocabulary-gap candidates in the first-stage editor
+   shortcut, because vocabulary management is a separate governance task.
 5. `summary_terms_optimization` remains the richer workflow for combined
    summary, taxonomy, Site Knowledge evidence, diagnostics, and Core proposal
    preparation.
@@ -54,7 +55,7 @@ The first editor stage is six focused tools plus a publish preflight package:
 - title and summary suggestions accept one operator instruction, regenerate
   candidates, and may fill the current unsaved editor title or excerpt field;
 - category and tag suggestions accept one operator instruction, regenerate
-  existing-term-first candidates, and expose selected existing terms as a Core
+  existing-term-only candidates, and expose selected existing terms as a Core
   review handoff through `content_metadata_apply_plan`;
 - image recommendations use the current article or selected paragraph plus the
   operator image preference text, then continue through `image_candidate.v1`
@@ -96,7 +97,9 @@ author loop:
   Site Knowledge term evidence. The focused shortcut does not use selected text
   and does not create categories.
 - `tag_suggestions`: Toolbox ranks existing WordPress tags by the same rules.
-  Review-only new tag gaps may be shown, but Toolbox does not create terms.
+  The focused result shows only existing tag recommendations. Proposed new tag
+  gaps are deferred to a later taxonomy governance workflow; Toolbox does not
+  create terms from this panel.
 - `summary_terms_optimization`: the full workflow that may combine summary,
   taxonomy, Site Knowledge, discoverability evidence, diagnostics, and Core
   handoff preparation.
@@ -159,20 +162,22 @@ AI should be more constrained for taxonomy:
 
 - categories represent site structure and should be chosen from existing
   categories by default;
-- tags are lighter, but new tags still need duplicate and vocabulary review;
-- new taxonomy terms are candidates for review, not write operations.
+- tags are lighter, but first-stage tag recommendations still stay within
+  existing WordPress vocabulary;
+- new taxonomy terms are deferred to a later taxonomy governance workflow, not
+  produced by focused editor shortcuts.
 
 This keeps AI useful without allowing it to reshape the site's information
 architecture by accident.
 
 ## New Category Policy
 
-AI may help identify a possible category gap, but new categories are structural
-site changes. They should not appear as one-click focused shortcut output. A
-future implementation may surface AI-proposed category gaps only in the richer
-metadata optimization flow, with duplicate checks against the existing category
-tree, historical usage evidence, and Core strong review before any category is
-created or assigned.
+AI may help identify a possible taxonomy gap in a future governance workflow,
+but new categories are structural site changes and new tags can still create
+vocabulary sprawl. They should not appear as focused shortcut output. A future
+implementation may surface taxonomy-gap rows only in a separate vocabulary
+governance workflow, with duplicate checks against existing terms, historical
+usage evidence, and Core strong review before any term is created or assigned.
 
 ## Batch-Ready Foundation
 
@@ -185,8 +190,10 @@ Expected first batch targets:
 
 - summary candidates for multiple posts;
 - title candidates for multiple posts;
-- existing category and tag candidates with evidence;
-- review-only taxonomy gap candidates.
+- existing category and tag candidates with evidence.
+
+Taxonomy-gap review is a later workflow and should use separate batch rows from
+the focused editor recommendation loop.
 
 Accepted writes still need the normal editor save path, a Core proposal, or a
 future explicitly classified local confirmation path.

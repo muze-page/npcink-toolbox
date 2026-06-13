@@ -11,13 +11,95 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', $root . '/tests/wp-stub/' );
 }
 
+$toolbox_test_options = array(
+	'filter' => '',
+	'quiet'  => false,
+);
+$toolbox_test_counts  = array(
+	'passed'  => 0,
+	'failed'  => 0,
+	'skipped' => 0,
+);
+
+foreach ( array_slice( $_SERVER['argv'] ?? array(), 1 ) as $index => $arg ) {
+	if ( '--quiet' === $arg || '-q' === $arg ) {
+		$toolbox_test_options['quiet'] = true;
+		continue;
+	}
+
+	if ( 0 === strpos( $arg, '--filter=' ) ) {
+		$toolbox_test_options['filter'] = trim( substr( $arg, strlen( '--filter=' ) ) );
+		continue;
+	}
+
+	if ( '--filter' === $arg ) {
+		$next = array_slice( $_SERVER['argv'] ?? array(), 1 )[ $index + 1 ] ?? '';
+		if ( '' === trim( $next ) ) {
+			fwrite( STDERR, "Usage: php tests/run.php [--quiet] [--filter=<text>]\n" );
+			exit( 2 );
+		}
+
+		$toolbox_test_options['filter'] = trim( $next );
+		continue;
+	}
+
+	if ( 0 === $index || '--filter' !== ( array_slice( $_SERVER['argv'] ?? array(), 1 )[ $index - 1 ] ?? '' ) ) {
+		fwrite( STDERR, "Unknown option: {$arg}\nUsage: php tests/run.php [--quiet] [--filter=<text>]\n" );
+		exit( 2 );
+	}
+}
+
+function toolbox_test_matches_filter( string $message ): bool {
+	global $toolbox_test_options;
+
+	if ( '' === $toolbox_test_options['filter'] ) {
+		return true;
+	}
+
+	return false !== stripos( $message, $toolbox_test_options['filter'] );
+}
+
+function toolbox_test_group( string $message ): string {
+	foreach ( array( 'Composer', 'Editor', 'Translation', 'REST', 'Provider', 'Admin', 'README', 'Development workflow', 'Site Knowledge', 'Media', 'OpenClaw', 'Content' ) as $group ) {
+		if ( false !== stripos( $message, $group ) ) {
+			return $group;
+		}
+	}
+
+	$colon = strpos( $message, ':' );
+	if ( false !== $colon ) {
+		return trim( substr( $message, 0, $colon ) );
+	}
+
+	return 'general';
+}
+
 function toolbox_assert( bool $condition, string $message ): void {
+	global $toolbox_test_counts, $toolbox_test_options;
+
+	if ( ! toolbox_test_matches_filter( $message ) ) {
+		++$toolbox_test_counts['skipped'];
+		return;
+	}
+
 	if ( ! $condition ) {
+		++$toolbox_test_counts['failed'];
+		$trace = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 1 );
+		$file  = $trace[0]['file'] ?? __FILE__;
+		$line  = $trace[0]['line'] ?? 0;
 		fwrite( STDERR, "FAIL: {$message}\n" );
+		fwrite( STDERR, 'Group: ' . toolbox_test_group( $message ) . PHP_EOL );
+		fwrite( STDERR, "Location: {$file}:{$line}\n" );
+		if ( '' !== $toolbox_test_options['filter'] ) {
+			fwrite( STDERR, 'Filter: ' . $toolbox_test_options['filter'] . PHP_EOL );
+		}
 		exit( 1 );
 	}
 
-	echo "PASS: {$message}\n";
+	++$toolbox_test_counts['passed'];
+	if ( ! $toolbox_test_options['quiet'] ) {
+		echo "PASS: {$message}\n";
+	}
 }
 
 $main = file_get_contents( $root . '/npcink-toolbox.php' );
@@ -134,6 +216,8 @@ toolbox_assert( false !== $metadata_handoff_summary && false !== strpos( $metada
 toolbox_assert( false !== strpos( $metadata_handoff_summary, '2026-06-09 Editor Content Support Acceptance Closeout' ) && false !== strpos( $metadata_handoff_summary, 'split' ) && false !== strpos( $metadata_handoff_summary, 'metadata editor actions' ) && false !== strpos( $metadata_handoff_summary, 'not a separate default editor button' ) && false !== strpos( $metadata_handoff_summary, 'human editing' ) && false !== strpos( $metadata_handoff_summary, 'responsibility' ), 'Content metadata handoff summary records the editor Content Support acceptance closeout.' );
 
 $composer = file_get_contents( $root . '/composer.json' );
+toolbox_assert( false !== $composer && false !== strpos( $composer, '"test:quiet": "php tests/run.php --quiet"' ) && false !== strpos( $composer, '"test:editor": "php tests/run.php --quiet --filter=Editor"' ) && false !== strpos( $composer, '"test:translations": "php tests/run.php --quiet --filter=translation"' ) && false !== strpos( $composer, '"test:eval-proxy": "php tests/run.php --quiet --filter=\'Eval lab proxy\'"' ), 'Composer exposes focused static contract test shortcuts.' );
+toolbox_assert( false !== strpos( file_get_contents( __FILE__ ), '--filter=' ) && false !== strpos( file_get_contents( __FILE__ ), '--quiet' ) && false !== strpos( file_get_contents( __FILE__ ), 'No static contract checks matched filter' ), 'Static contract runner supports quiet output, focused filters, and empty-filter failure.' );
 toolbox_assert( false !== $composer && false !== strpos( $composer, 'smoke:article-core' ), 'Composer exposes the article draft to Core smoke script.' );
 toolbox_assert( false !== strpos( $composer, 'tests/smoke-article-draft-core-proof.php' ), 'Composer article smoke runs the Toolbox/Core handoff proof.' );
 toolbox_assert( false !== strpos( $composer, 'smoke:article-media-batch-core' ) && false !== strpos( $composer, 'tests/smoke-article-media-batch-core-proof.php' ), 'Composer exposes the high-risk article/media batch Core proposal smoke script.' );
@@ -154,7 +238,8 @@ $recommendation_candidate_doc = file_get_contents( $root . '/docs/recommendation
 toolbox_assert( false !== $recommendation_candidate_doc && false !== strpos( $recommendation_candidate_doc, 'recommendation_candidate.v1' ) && false !== strpos( $recommendation_candidate_doc, 'quality_status' ) && false !== strpos( $recommendation_candidate_doc, 'action_policy' ) && false !== strpos( $recommendation_candidate_doc, 'direct_wordpress_write' ), 'Recommendation candidate contract documents the shared reviewable candidate shape and no-write boundary.' );
 $editor_recommendation_logic_doc = file_get_contents( $root . '/docs/editor-recommendation-logic.md' );
 toolbox_assert( false !== $editor_recommendation_logic_doc && false !== strpos( $editor_recommendation_logic_doc, 'Cloud vectors should remain evidence and ranking input' ) && false !== strpos( $editor_recommendation_logic_doc, 'category_suggestions' ) && false !== strpos( $editor_recommendation_logic_doc, 'tag_suggestions' ), 'Editor recommendation logic documents focused intents and cloud vector boundaries.' );
-toolbox_assert( false !== strpos( $editor_recommendation_logic_doc, 'focused shortcut does not use selected text' ) && false !== strpos( $editor_recommendation_logic_doc, 'AI may help identify a possible category gap' ) && false !== strpos( $editor_recommendation_logic_doc, 'Core strong review' ), 'Editor recommendation logic documents title/category focus and new-category review policy.' );
+toolbox_assert( false !== strpos( $editor_recommendation_logic_doc, 'focused shortcut does not use selected text' ) && false !== strpos( $editor_recommendation_logic_doc, 'taxonomy-gap rows' ) && false !== strpos( $editor_recommendation_logic_doc, 'separate vocabulary' ) && false !== strpos( $editor_recommendation_logic_doc, 'governance workflow' ) && false !== strpos( $editor_recommendation_logic_doc, 'Core strong review' ), 'Editor recommendation logic documents title/category focus and deferred taxonomy-gap governance.' );
+toolbox_assert( false !== strpos( $editor_recommendation_logic_doc, 'focused result shows only existing tag recommendations' ) && false !== strpos( $editor_recommendation_logic_doc, 'deferred to a later taxonomy governance workflow' ) && false !== strpos( $editor_recommendation_logic_doc, 'Toolbox does not' ) && false !== strpos( $editor_recommendation_logic_doc, 'create terms from this panel' ), 'Editor recommendation logic documents existing-tag-only focused recommendations.' );
 toolbox_assert( false !== strpos( $editor_recommendation_logic_doc, 'The second editor stage keeps the same backend contracts' ) && false !== strpos( $editor_recommendation_logic_doc, 'publish preflight renders a suggested handling list' ) && false !== strpos( $editor_recommendation_logic_doc, 'Toolbox must not insert links by' ), 'Editor recommendation logic documents the second-stage focused-tool loop without turning preflight into a parallel workbench.' );
 
 $rest_controller = file_get_contents( $root . '/includes/Rest_Controller.php' );
@@ -446,6 +531,7 @@ toolbox_assert( false !== strpos( $editor_support, "'wp-block-editor'" ), 'Post 
 toolbox_assert( false !== strpos( $editor_support, "'wp-hooks'" ), 'Post editor content support declares the hooks dependency for BlockEdit toolbar registration.' );
 toolbox_assert( false !== strpos( $editor_support, 'asset_version' ) && false !== strpos( $editor_support, 'filemtime' ), 'Post editor content support cache-busts editor assets during active development.' );
 toolbox_assert( false !== strpos( $editor_support, 'NpcinkToolboxEditorSupport' ) && false !== strpos( $editor_support, "wp_create_nonce( 'wp_rest' )" ) && false !== strpos( $editor_support, "'coreRestUrl'" ), 'Post editor content support localizes REST configuration, Core route hints, and nonce.' );
+toolbox_assert( false === strpos( $editor_support, "'canCreateTags'" ) && false === strpos( $editor_support, "current_user_can_taxonomy_capability( 'post_tag', 'edit_terms' )" ), 'Post editor content support does not localize post-tag creation capability for focused recommendations.' );
 toolbox_assert( false !== strpos( $editor_support, "wp_set_script_translations(\n\t\t\t'npcink-toolbox-editor-content-support'" ) && false !== strpos( $editor_support, "NPCINK_TOOLBOX_DIR . 'languages'" ), 'Post editor content support registers the Toolbox script translation path.' );
 
 $zh_cn_po = file_get_contents( $root . '/languages/npcink-toolbox-zh_CN.po' );
@@ -462,7 +548,7 @@ foreach ( array( 'Review SEO meta for the current post', '审阅当前文章的 
 toolbox_assert( file_exists( $root . '/languages/npcink-toolbox-zh_CN.mo' ), 'Bundled zh_CN machine object file is present.' );
 $editor_support_json = file_get_contents( $root . '/languages/npcink-toolbox-zh_CN-npcink-toolbox-editor-content-support.json' );
 toolbox_assert( false !== $editor_support_json && null !== json_decode( $editor_support_json, true ) && false !== strpos( $editor_support_json, '"Publish preflight": ["发布预检"]' ) && false !== strpos( $editor_support_json, '"Writing preparation": ["写作准备"]' ) && false !== strpos( $editor_support_json, '"Title suggestions": ["标题建议"]' ) && false !== strpos( $editor_support_json, '"Outline suggestions": ["大纲建议"]' ) && false !== strpos( $editor_support_json, '"Polish selected text": ["润色选中文本"]' ) && false !== strpos( $editor_support_json, '"AI generate summary": ["AI 生成摘要"]' ) && false !== strpos( $editor_support_json, '"Tag suggestions": ["标签建议"]' ), 'Bundled zh_CN editor script translation JSON is valid and covers fixed-flow labels.' );
-toolbox_assert( false !== strpos( $editor_support_json, '"Recommended existing tags": ["推荐已有标签"]' ) && false !== strpos( $editor_support_json, '"Proposed new tags for review only": ["拟新增标签（仅审查）"]' ) && false !== strpos( $editor_support_json, '"Only consider this as a new tag if no existing WordPress tag is close enough.": ["仅当没有足够接近的已有 WordPress 标签时，才考虑作为新标签。"]' ), 'Bundled zh_CN editor script translation JSON distinguishes existing tags from proposed new tag gaps.' );
+toolbox_assert( false !== strpos( $editor_support_json, '"Recommended existing tags": ["推荐已有标签"]' ) && false !== strpos( $editor_support_json, '"Find matching existing tags without creating new vocabulary.": ["查找匹配的已有标签，不创建新词表。"]' ) && false !== strpos( $editor_support_json, '"No existing tag choices are available for Core review.": ["当前没有可提交到 Core 审核的已有标签。"]' ) && false === strpos( $editor_support_json, '"Proposed new tags for review only"' ), 'Bundled zh_CN editor script translation JSON keeps focused tag recommendations existing-only.' );
 toolbox_assert( false !== strpos( $editor_support_json, '"My request for this suggestion": ["我对这次建议的要求"]' ) && false !== strpos( $editor_support_json, '"Use this title": ["使用此标题"]' ) && false !== strpos( $editor_support_json, '"Common recommendations": ["常用推荐"]' ), 'Bundled zh_CN editor script translation JSON covers recommendation grouping and apply-title controls.' );
 toolbox_assert( false !== strpos( $editor_support_json, '"Internal link candidates": ["内链候选"]' ) && false !== strpos( $editor_support_json, '"Anchor: ": ["锚文本："]' ) && false !== strpos( $editor_support_json, '"Image candidate mode": ["图片候选模式"]' ) && false !== strpos( $editor_support_json, '"AI generated": ["AI 生成"]' ) && false !== strpos( $editor_support_json, '"ALT: ": ["ALT："]' ), 'Bundled zh_CN editor script translation JSON covers internal-link and image recommendation controls.' );
 toolbox_assert( false !== strpos( $editor_support_json, '"Review SEO meta for the current post": ["审阅当前文章的 SEO 元数据"]' ) && false !== strpos( $editor_support_json, '"Single-post SEO title and description candidate prepared by Toolbox for Core-governed review.": ["Toolbox 已为当前单篇文章准备 SEO 标题和描述候选，需交由 Core 治理审核。"]' ), 'Bundled zh_CN editor script translation JSON covers SEO handoff fallback copy.' );
@@ -511,8 +597,8 @@ toolbox_assert( false !== strpos( $editor_js, 'content_metadata_delta_handoff' )
 toolbox_assert( false !== strpos( $editor_js, 'renderCompactMetadataSection' ) && false !== strpos( $editor_js, 'mergeContentSupportResult' ) && false !== strpos( $editor_js, 'AI generate summary' ) && false !== strpos( $editor_js, 'Category suggestions' ) && false !== strpos( $editor_js, 'Tag suggestions' ), 'Editor Content Support keeps split metadata results compact and mergeable.' );
 toolbox_assert( false !== strpos( $editor_js, 'metadataSectionHasSource' ) && false !== strpos( $editor_js, 'item && item.value' ) && false !== strpos( $editor_js, 'metadataHandoffHasChoices' ) && false !== strpos( $editor_js, "['summary_terms_optimization', 'category_suggestions', 'tag_suggestions']" ), 'Editor Content Support keeps metadata Core handoff available for the full metadata flow and focused term shortcuts.' );
 toolbox_assert( false !== strpos( $editor_js, 'metadataHandoffControls.showHandoff && metadataHandoffHasChoices(section)' ), 'Editor Content Support exposes Core review submission inside focused category and tag shortcut results without direct writes.' );
-toolbox_assert( false !== strpos( $editor_js, 'Existing WordPress category. Final assignment requires Core review.' ) && false !== strpos( $editor_js, 'Existing WordPress tag. Final assignment requires Core review.' ) && false !== strpos( $editor_js, 'npcink-toolbox-editor-support__candidate-policy' ), 'Editor Content Support labels focused taxonomy candidates as Core-review selections instead of direct apply actions.' );
-toolbox_assert( false !== strpos( $editor_js, 'Recommended existing tags' ) && false !== strpos( $editor_js, 'Proposed new tags for review only' ) && false !== strpos( $editor_js, 'Only consider this as a new tag if no existing WordPress tag is close enough.' ) && false !== strpos( $editor_js, 'Toolbox does not create or assign new tags from this panel.' ), 'Editor Content Support clearly separates existing tag recommendations from review-only new tag gaps.' );
+toolbox_assert( false !== strpos( $editor_js, 'Existing WordPress categories appear here and can be selected for a Core review proposal.' ) && false !== strpos( $editor_js, 'Existing WordPress tags appear here and can be selected for a Core review proposal.' ) && false !== strpos( $editor_js, 'renderMetadataUnavailableNote' ), 'Editor Content Support labels focused taxonomy candidates as Core-review selections instead of direct apply actions.' );
+toolbox_assert( false !== strpos( $editor_js, 'Recommended existing tags' ) && false !== strpos( $editor_js, 'No existing tag choices are available for Core review.' ) && false === strpos( $editor_js, 'Proposed new tags for review only' ) && false === strpos( $editor_js, 'canCreateTags' ) && false === strpos( $editor_js, 'newTermItems' ), 'Editor Content Support keeps focused tag recommendations existing-only.' );
 toolbox_assert( false !== strpos( $editor_js, 'supportView' ) && false !== strpos( $editor_js, 'Back to tools' ) && false !== strpos( $editor_js, 'dashicons-arrow-left-alt2' ) && false !== strpos( $editor_js, 'npcink-toolbox-editor-support__result-view' ) && false !== strpos( $editor_js, 'npcink-toolbox-editor-support__menu-view' ), 'Editor Content Support switches between the fixed-flow menu and a focused result view with a compact icon back action.' );
 toolbox_assert( false !== strpos( $editor_js, 'activeFlowIntent' ) && false !== strpos( $editor_js, 'rerunIntent' ) && false !== strpos( $editor_js, 'Run again' ) && false !== strpos( $editor_js, 'resultScopeLabel' ) && false !== strpos( $editor_js, 'generation_variant' ) && false !== strpos( $editor_js, 'npcink-toolbox-editor-support__view-title' ), 'Editor Content Support result view keeps the selected task identity, status, and rerun action visible.' );
 toolbox_assert( false !== strpos( $editor_js, 'applyRecommendedExcerpt' ) && false !== strpos( $editor_js, 'editPost({ excerpt: value })' ) && false !== strpos( $editor_js, 'Use this summary' ) && false !== strpos( $editor_js, 'Applied to the current excerpt. Save the draft to persist it.' ), 'Editor Content Support can apply a reviewed summary suggestion to the current editor excerpt without a direct backend write.' );
@@ -545,7 +631,7 @@ if ( preg_match( '/async function submitSeoHandoff\\(\\)(.*?)function imageAdopt
 	$seo_handoff_submit_block = $matches[1];
 }
 toolbox_assert( '' !== $seo_handoff_submit_block && false === strpos( $seo_handoff_submit_block, 'approve-and-execute' ) && false === strpos( $seo_handoff_submit_block, 'commit-preflight' ) && false === strpos( $seo_handoff_submit_block, "adapterRestUrl('proposals/" ), 'Editor SEO handoff creates only a pending proposal and does not call approval or execution routes.' );
-toolbox_assert( false !== strpos( $editor_js, 'Input scope' ) && false !== strpos( $editor_js, 'Proposed new tags for review only' ) && false !== strpos( $editor_js, 'Core handoff candidates' ) && false !== strpos( $editor_js, 'Handoff preview' ), 'Editor Content Support keeps metadata evidence available without making it the default sidebar surface.' );
+toolbox_assert( false !== strpos( $editor_js, 'Input scope' ) && false !== strpos( $editor_js, 'Core handoff candidates' ) && false !== strpos( $editor_js, 'Handoff preview' ) && false === strpos( $editor_js, 'Proposed new tags for review only' ), 'Editor Content Support keeps metadata evidence available without showing new-tag creation in the default sidebar surface.' );
 toolbox_assert( false !== strpos( $editor_js, 'Image source suggestions' ) && false !== strpos( $editor_js, 'openImageRecommendations' ), 'Editor Content Support opens image candidates in a source suggestion modal.' );
 toolbox_assert( false !== strpos( $editor_js, "postJson('image-candidates'" ) && false !== strpos( $editor_js, 'Recommend images' ), 'Editor image recommendation modal supports manual cloud image-source recommendation.' );
 toolbox_assert( false !== strpos( $editor_js, "postJson('flows/media-brief'" ) && false !== strpos( $editor_js, 'Generate image plan' ) && false === strpos( $editor_flow_block, 'media_brief' ), 'Editor image recommendation modal exposes media brief as a secondary image-plan action, not a primary sidebar flow.' );
@@ -728,13 +814,13 @@ toolbox_assert( false !== strpos( $rest, 'editor_ai_summary_excerpt_is_reviewabl
 toolbox_assert( false !== strpos( $rest, 'editor_ai_summary_candidate_quality' ) && false !== strpos( $rest, 'runtime_summary_candidate_rerank' ) && false !== strpos( $rest, 'quality_score_desc_then_model_order' ) && false !== strpos( $rest, 'coverage_check' ), 'REST editor AI summary extraction scores and reranks candidates with a runtime coverage quality gate.' );
 toolbox_assert( false !== strpos( $rest, 'editor_ai_summary_source_named_term_segments' ) && false !== strpos( $rest, '可能只覆盖了正文局部工具、方法或流程分支。' ) && false !== strpos( $rest, '可能遗漏关键工具或方法：%s。' ), 'REST editor summary quality gate flags candidates that cover only part of the source draft named-tool set.' );
 toolbox_assert( false !== strpos( $rest, 'editor_taxonomy_only_suggestion_section' ) && false !== strpos( $rest, "'artifact_type'              => 'article_taxonomy_suggestions.v1'" ) && false !== strpos( $rest, 'runtime_taxonomy_candidate_rerank' ), 'REST editor category and tag shortcuts return focused taxonomy-only artifacts.' );
-toolbox_assert( false !== strpos( $rest, 'editor_taxonomy_recommendation_candidates' ) && false !== strpos( $rest, "'no_toolbox_term_creation'   => true" ) && false !== strpos( $rest, 'operator_review_only_no_insert' ), 'REST editor taxonomy shortcuts expose reviewable recommendation candidates without creating terms.' );
+toolbox_assert( false !== strpos( $rest, 'editor_taxonomy_recommendation_candidates' ) && false !== strpos( $rest, "'no_toolbox_term_creation'   => true" ) && false !== strpos( $rest, "'new_terms_deferred'         => true" ) && false !== strpos( $rest, "'action_policy'  => 'core_proposal_required'" ), 'REST editor taxonomy shortcuts expose existing-term recommendation candidates without creating terms.' );
 toolbox_assert( false !== strpos( $rest, 'editor_content_metadata_delta' ) && false !== strpos( $rest, "'artifact_type'          => 'content_metadata_delta'" ) && false !== strpos( $rest, "'version'                => 1" ), 'REST editor summary/terms optimization embeds the P0 content_metadata_delta artifact.' );
 toolbox_assert( false !== strpos( $rest, "'issue_record'" ) && false !== strpos( $rest, "'diagnosis'" ) && false !== strpos( $rest, "'delta'" ) && false !== strpos( $rest, "'authorization'" ) && false !== strpos( $rest, "'outcome_contract'" ) && false !== strpos( $rest, "'learning_candidates'" ), 'REST content_metadata_delta returns issue, diagnosis, delta, authorization, outcome, and learning sections.' );
 toolbox_assert( false !== strpos( $rest, 'new Operation_Classifier()' ) && false !== strpos( $rest, 'Operation_Classifier::KIND_SUGGEST' ) && false !== strpos( $rest, "'policy_version'" ), 'REST content_metadata_delta uses the shared operation classifier for authorization.' );
-toolbox_assert( false !== strpos( $rest, 'Operation_Classifier::SUGGESTION_ONLY' ) && false !== strpos( $rest, 'core_proposal_required_for_external_batch_new_term_or_incomplete_preview' ) && false !== strpos( $rest, 'local_admin_consent_note' ), 'REST content_metadata_delta classifies the current artifact as suggestion-only while documenting stricter write paths.' );
+toolbox_assert( false !== strpos( $rest, 'Operation_Classifier::SUGGESTION_ONLY' ) && false !== strpos( $rest, 'core_proposal_required_for_incomplete_preview_or_future_taxonomy_governance' ) && false !== strpos( $rest, 'local_admin_consent_note' ), 'REST content_metadata_delta classifies the current artifact as suggestion-only while documenting stricter write paths.' );
 toolbox_assert( false !== strpos( $rest, "'/flows/content-metadata-apply-plan'" ) && false !== strpos( $rest, 'build_content_metadata_apply_plan' ), 'REST metadata handoff uses the dedicated apply-plan route instead of editor-side proposal target scaffolding.' );
-toolbox_assert( false !== strpos( $rest, 'editor_content_metadata_new_term_delta_items' ) && false !== strpos( $rest, "'review_required'        => true" ) && false !== strpos( $rest, "'strong_review_required' => true" ) && false !== strpos( $rest, "'status'                 => 'review_only_vocabulary_gap'" ), 'REST content_metadata_delta keeps new term candidates strong-review vocabulary gaps.' );
+toolbox_assert( false !== strpos( $rest, 'editor_content_metadata_new_term_delta_items' ) && false !== strpos( $rest, "'review_required'        => true" ) && false !== strpos( $rest, "'strong_review_required' => true" ) && false !== strpos( $rest, "'status'                 => 'deferred_taxonomy_gap'" ), 'REST content_metadata_delta defers new term candidates to taxonomy governance.' );
 toolbox_assert( false !== strpos( $rest, 'no_toolbox_direct_wordpress_write' ) && false !== strpos( $rest, 'accepted_write_like_changes_route_through_core_or_future_classified_local_consent' ), 'REST content_metadata_delta outcome contract forbids Toolbox direct metadata writes.' );
 toolbox_assert( false !== strpos( $rest, 'editor_related_content_context_for_ai' ) && false !== strpos( $rest, "'related_content_context'" ) && false !== strpos( $rest, 'related_content_terms_used_for_ranking_only' ) && false !== strpos( $rest, 'ranking_evidence_only_no_term_creation_or_assignment' ) && false !== strpos( $rest, 'related_site_knowledge_term' ), 'REST summary/terms optimization uses related Site Knowledge as ranking evidence only.' );
 toolbox_assert( false !== strpos( $rest, 'editor_summary_layer_candidates' ) && false !== strpos( $rest, "'summary_layers'" ) && false !== strpos( $rest, "'seo_meta_description'" ), 'REST editor summary/terms optimization returns separate summary layer candidates.' );
@@ -742,13 +828,12 @@ toolbox_assert( false !== strpos( $rest, 'editor_summary_layer_candidates( $cont
 toolbox_assert( false !== strpos( $rest, "'optimization_strategy'" ) && false !== strpos( $rest, "'ranking_signals'" ) && false !== strpos( $rest, "'dedupe_policy'" ), 'REST editor summary/terms optimization returns ranking and dedupe strategy.' );
 toolbox_assert( false !== strpos( $rest, "'review_metrics'" ) && false !== strpos( $rest, 'accepted_suggestion_rate' ) && false !== strpos( $rest, 'summary_edit_distance' ), 'REST editor summary/terms optimization returns review metrics for precision feedback.' );
 toolbox_assert( false !== strpos( $rest, 'context_scope' ) && false !== strpos( $rest, 'editor_input_scope' ) && false !== strpos( $rest, "'input_scope'" ) && false !== strpos( $rest, "'topic_only'" ), 'REST editor content support accepts scoped article, selected-text, and topic-only inputs.' );
-toolbox_assert( false !== strpos( $rest, 'editor_proposed_new_terms_review' ) && false !== strpos( $rest, "'proposed_new_terms'" ) && false !== strpos( $rest, "'creation_policy'        => 'core_policy_gated_strong_review'" ) && false !== strpos( $rest, "'strong_review_required' => true" ), 'REST editor summary/terms optimization marks proposed new terms as Core strong-review vocabulary gaps.' );
+toolbox_assert( false !== strpos( $rest, 'empty_proposed_new_terms_review()' ) && false !== strpos( $rest, "'proposed_new_terms'" ) && false !== strpos( $rest, "'creation_policy'        => 'deferred_taxonomy_governance'" ) && false !== strpos( $rest, "'strong_review_required' => true" ), 'REST editor summary/terms optimization defers proposed new terms to later taxonomy governance.' );
 toolbox_assert( false !== strpos( $rest, 'editor_summary_terms_handoff_preview' ) && false !== strpos( $rest, "'summary_terms_handoff_preview.v1'" ) && false !== strpos( $rest, 'no_new_term_creation_in_toolbox' ), 'REST editor summary/terms optimization returns a preview-only Core metadata handoff packet.' );
-toolbox_assert( false !== strpos( $rest, 'editor_summary_terms_core_handoff_candidates' ) && false !== strpos( $rest, "'core_handoff_candidates'" ) && false !== strpos( $rest, "'generate_apply_summary'" ) && false !== strpos( $rest, "'recommend_apply_tags'" ) && false !== strpos( $rest, "'recommend_categories'" ) && false !== strpos( $rest, "'create_new_tags_assign'" ), 'REST editor summary/terms optimization exposes the four metadata apply actions as Core handoff candidates.' );
+toolbox_assert( false !== strpos( $rest, 'editor_summary_terms_core_handoff_candidates' ) && false !== strpos( $rest, "'core_handoff_candidates'" ) && false !== strpos( $rest, "'generate_apply_summary'" ) && false !== strpos( $rest, "'recommend_apply_tags'" ) && false !== strpos( $rest, "'recommend_categories'" ) && false === strpos( $rest, "'create_new_tags_assign'" ), 'REST editor summary/terms optimization exposes only summary and existing-term Core handoff candidates.' );
 toolbox_assert( false === strpos( $rest . $admin_js . $editor_js, 'auto_apply_actions' ), 'Toolbox no longer exposes misleading auto_apply_actions metadata.' );
-toolbox_assert( false !== strpos( $rest, "'core_auto_approval_policy'" ) && false !== strpos( $rest, "'request_supported'          => true" ) && false !== strpos( $rest, "'toolbox_direct_apply'       => false" ) && false !== strpos( $rest, "'core_auto_approval_eligible'" ) && false !== strpos( $rest, "'core_policy_gated'" ), 'REST metadata apply actions can request Core auto-approval without Toolbox direct writes.' );
-toolbox_assert( 1 === preg_match( "/'id'\\s*=>\\s*'create_new_tags_assign'.*?'auto_approval_request'\\s*=>\\s*false/s", $rest ), 'REST new tag creation remains Core policy-gated without requesting auto-approval.' );
-toolbox_assert( 1 === preg_match( "/'id'\\s*=>\\s*'create_new_tags_assign'.*?'authorization_path'\\s*=>\\s*'core_policy_gated_strong_review'/s", $rest ), 'REST new tag creation declares the Core strong-review authorization path.' );
+toolbox_assert( false !== strpos( $rest, "'core_auto_approval_policy'" ) && false !== strpos( $rest, "'request_supported'          => true" ) && false !== strpos( $rest, "'toolbox_direct_apply'       => false" ) && false !== strpos( $rest, "'core_auto_approval_eligible'" ) && false !== strpos( $rest, "'generate_apply_summary'" ) && false !== strpos( $rest, "'recommend_apply_tags'" ) && false !== strpos( $rest, "'recommend_categories'" ), 'REST metadata apply actions can request Core auto-approval without Toolbox direct writes.' );
+toolbox_assert( false === strpos( $rest, "'target_operation'      => 'create_post_tags_and_assign'" ), 'REST does not expose a current create-tags-and-assign handoff candidate.' );
 toolbox_assert( false !== strpos( $rest, "'controlled_vocabulary_status' => 'existing_wordpress_term'" ) && false !== strpos( $rest, "'matched_tokens'" ) && false !== strpos( $rest, "'normalization_key'" ), 'REST taxonomy candidates expose existing-term status, matched tokens, and normalization keys.' );
 toolbox_assert( false !== strpos( $rest, 'editor_taxonomy_term_candidates( $context, $query, $related_content )' ) && false !== strpos( $rest, 'editor_related_content_term_evidence' ) && false !== strpos( $rest, 'related_site_knowledge_term' ) && false !== strpos( $rest, 'ranking_evidence_only_no_term_creation_or_assignment' ), 'REST taxonomy candidates use related Site Knowledge terms as ranking evidence only.' );
 toolbox_assert( false !== strpos( $rest, 'editor_related_content_context_for_ai' ) && false !== strpos( $rest, "'related_content_context' =>" ) && false !== strpos( $rest, 'related_context_for_summary_and_term_review_only_no_new_facts_no_writes' ), 'REST hosted AI content support receives bounded related-content context for summary review.' );
@@ -1215,4 +1300,18 @@ toolbox_assert( false === strpos( $client, 'confirm_token' ), 'Legacy confirm_to
 $uninstall = file_get_contents( $root . '/uninstall.php' );
 toolbox_assert( false !== strpos( $uninstall, 'npcink_toolbox_content_context' ), 'Uninstall removes content context option.' );
 
-echo "Static contract checks passed.\n";
+if ( '' !== $toolbox_test_options['filter'] && 0 === $toolbox_test_counts['passed'] ) {
+	fwrite( STDERR, 'No static contract checks matched filter: ' . $toolbox_test_options['filter'] . PHP_EOL );
+	exit( 1 );
+}
+
+$summary = sprintf(
+	'Static contract checks passed. %d passed',
+	$toolbox_test_counts['passed']
+);
+if ( $toolbox_test_counts['skipped'] > 0 ) {
+	$summary .= sprintf( ', %d skipped', $toolbox_test_counts['skipped'] );
+}
+$summary .= '.';
+
+echo $summary . PHP_EOL;

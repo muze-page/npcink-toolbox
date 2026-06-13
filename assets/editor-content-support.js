@@ -144,7 +144,7 @@
 		{
 			intent: 'tag_suggestions',
 			label: __('Tag suggestions', 'npcink-toolbox'),
-			description: __('Find existing tag matches and review-only new tag gaps.', 'npcink-toolbox'),
+			description: __('Find matching existing tags without creating new vocabulary.', 'npcink-toolbox'),
 			group: 'common_recommendations',
 		},
 		{
@@ -2362,7 +2362,7 @@
 		const actionNote = options && options.actionNote ? options.actionNote : '';
 		const description = options && options.description ? options.description : '';
 		const badgeLabel = options && options.badgeLabel ? options.badgeLabel : '';
-		const detailFallback = options && options.detailFallback ? options.detailFallback : '';
+		const hideDetails = Boolean(options && options.hideDetails);
 		return createElement(
 			'section',
 			{ className: 'npcink-toolbox-editor-support__metadata-compact-section' },
@@ -2374,7 +2374,7 @@
 					{ className: 'npcink-toolbox-editor-support__metadata-compact-list' },
 					candidates.slice(0, 5).map((item, index) => {
 						const titleText = readableItemText(item && (item.name || item.title || item.label || item.value || item.term_id || item.id), __('Candidate', 'npcink-toolbox'));
-						const detailText = truncateText(detailFallback || readableItemText(item && (item.detail || item.reason || item.excerpt || item.description || item.taxonomy || item.status), ''), 140);
+						const detailText = hideDetails ? '' : truncateText(readableItemText(item && (item.detail || item.reason || item.excerpt || item.description || item.taxonomy || item.status), ''), 140);
 						return createElement(
 							'li',
 							{ key: String(index) + '-' + titleText },
@@ -2386,6 +2386,14 @@
 					})
 				)
 				: createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, emptyLabel || __('No candidates returned.', 'npcink-toolbox'))
+		);
+	}
+
+	function renderMetadataUnavailableNote(message) {
+		return createElement(
+			'p',
+			{ className: 'npcink-toolbox-editor-support__muted' },
+			message || __('No Core review choices are available.', 'npcink-toolbox')
 		);
 	}
 
@@ -2676,7 +2684,6 @@
 		const summaryItems = metadataSummaryItems(section, (section.summary_candidates && section.summary_candidates.output_text) || '');
 		const categoryItems = Array.isArray(section.category_candidates) && section.category_candidates.length ? section.category_candidates : metadataDeltaTermItems(section, 'categories');
 		const tagItems = Array.isArray(section.tag_candidates) && section.tag_candidates.length ? section.tag_candidates : metadataDeltaTermItems(section, 'tags');
-		const newTermItems = section.proposed_new_terms && Array.isArray(section.proposed_new_terms.items) ? section.proposed_new_terms.items : [];
 		const fullMetadataRun = metadataSectionHasSource(section, 'summary_terms_optimization');
 		const mergedMetadataRun = metadataSectionHasSource(section, 'metadata_suggestions');
 		const summary = section.summary_candidates && typeof section.summary_candidates === 'object' ? section.summary_candidates : {};
@@ -2710,7 +2717,7 @@
 				categoryItems,
 				__('No matching existing categories found.', 'npcink-toolbox'),
 				{
-					actionNote: __('Existing WordPress category. Final assignment requires Core review.', 'npcink-toolbox'),
+					description: __('Existing WordPress categories appear here and can be selected for a Core review proposal.', 'npcink-toolbox'),
 				}
 			));
 			if (metadataHandoffControls && metadataHandoffControls.showHandoff && metadataHandoffHasChoices(section)) {
@@ -2724,23 +2731,13 @@
 				tagItems,
 				__('No matching existing tags found.', 'npcink-toolbox'),
 				{
-					description: __('Use this section for tags that already exist in WordPress.', 'npcink-toolbox'),
-					actionNote: __('Existing WordPress tag. Final assignment requires Core review.', 'npcink-toolbox'),
-				}
-			));
-			blocks.push(renderCompactMetadataSection(
-				__('Proposed new tags for review only', 'npcink-toolbox'),
-				newTermItems,
-				__('No proposed new tag gaps found. Prefer existing tags.', 'npcink-toolbox'),
-				{
-					description: __('These are possible vocabulary gaps, not tags that Toolbox will create.', 'npcink-toolbox'),
-					badgeLabel: __('Review-only', 'npcink-toolbox'),
-					detailFallback: __('Only consider this as a new tag if no existing WordPress tag is close enough.', 'npcink-toolbox'),
-					actionNote: __('Toolbox does not create or assign new tags from this panel.', 'npcink-toolbox'),
+					description: __('Existing WordPress tags appear here and can be selected for a Core review proposal.', 'npcink-toolbox'),
 				}
 			));
 			if (metadataHandoffControls && metadataHandoffControls.showHandoff && metadataHandoffHasChoices(section)) {
 				blocks.push(renderMetadataHandoffControl(section, metadataHandoffControls));
+			} else {
+				blocks.push(renderMetadataUnavailableNote(__('No existing tag choices are available for Core review.', 'npcink-toolbox')));
 			}
 			return createElement('div', { className: 'npcink-toolbox-editor-support__optimization' }, blocks);
 		}
@@ -2762,7 +2759,7 @@
 				__('No matching existing categories found.', 'npcink-toolbox'),
 				{
 					hideHeading: activeIntent === 'category_suggestions',
-					actionNote: __('Existing WordPress category. Final assignment requires Core review.', 'npcink-toolbox'),
+					description: __('Existing WordPress categories appear here and can be selected for a Core review proposal.', 'npcink-toolbox'),
 				}
 			));
 		}
@@ -2773,24 +2770,10 @@
 				__('No matching existing tags found.', 'npcink-toolbox'),
 				{
 					hideHeading: activeIntent === 'tag_suggestions',
-					actionNote: __('Existing WordPress tag. Final assignment requires Core review.', 'npcink-toolbox'),
+					description: __('Existing WordPress tags appear here and can be selected for a Core review proposal.', 'npcink-toolbox'),
 				}
 			));
 		}
-		if (newTermItems.length || metadataSectionHasSource(section, 'tag_suggestions') || fullMetadataRun) {
-			blocks.push(renderCompactMetadataSection(
-				__('Proposed new tags for review only', 'npcink-toolbox'),
-				newTermItems,
-				__('No proposed new tag gaps found. Prefer existing tags.', 'npcink-toolbox'),
-				{
-					description: __('These are possible vocabulary gaps, not tags that Toolbox will create.', 'npcink-toolbox'),
-					badgeLabel: __('Review-only', 'npcink-toolbox'),
-					detailFallback: __('Only consider this as a new tag if no existing WordPress tag is close enough.', 'npcink-toolbox'),
-					actionNote: __('Toolbox does not create or assign new tags from this panel.', 'npcink-toolbox'),
-				}
-			));
-		}
-
 		if (section.optimization_strategy && Array.isArray(section.optimization_strategy.ranking_signals)) {
 			evidenceBlocks.push(createElement('h4', { key: 'summary-strategy-title' }, __('Ranking and dedupe strategy', 'npcink-toolbox')));
 			evidenceBlocks.push(renderItems(section.optimization_strategy.ranking_signals, __('No ranking strategy returned.', 'npcink-toolbox')));
