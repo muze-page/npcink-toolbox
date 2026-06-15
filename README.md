@@ -240,6 +240,8 @@ category, tag, internal-link, image, duplicate-risk, and SEO handoff checks.
 SEO metadata is prepared as a single-post `seo_meta_handoff_preview.v1`
 payload and can be submitted through Adapter as one pending Core review
 proposal; Toolbox does not approve, execute, or mutate SEO fields.
+See [Editor Progressive Recommendations Closeout](docs/editor-progressive-recommendations-closeout.md)
+for the local prefetch contract, quality rules, and verification record.
 Accepted excerpt, existing category, and existing tag choices can be
 converted into a dry-run `content_metadata_apply_plan` through
 `/wp-json/npcink-toolbox/v1/flows/content-metadata-apply-plan` or

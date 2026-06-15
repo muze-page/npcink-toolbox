@@ -203,6 +203,7 @@ toolbox_assert( false !== strpos( $adr_local_admin_consent, 'Future Strong Local
 $readme = file_get_contents( $root . '/README.md' );
 toolbox_assert( false !== strpos( $readme, 'Content Support Product Readiness' ), 'README links the current content support readiness matrix.' );
 toolbox_assert( false !== strpos( $readme, 'Content Support Release And Trial Closeout' ), 'README links the content support release and trial closeout.' );
+toolbox_assert( false !== strpos( $readme, 'Editor Progressive Recommendations Closeout' ), 'README links the editor progressive recommendations closeout.' );
 toolbox_assert( false !== strpos( $readme, 'Cross-Repo Boundary Matrix' ), 'README links the cross-repo boundary matrix.' );
 foreach ( array( 'Toolbox fixed buttons are the operator-click surface for repeatable OpenClaw', 'flows. They should reuse the same ability ids', 'same ability ids, plan artifact shapes, Adapter', 'Core proposal handoff', 'separate approval store, media', 'workflow runtime, prompt/model control plane', 'WordPress write' ) as $required_readme_text ) {
 	toolbox_assert( false !== strpos( $readme, $required_readme_text ), 'README preserves fixed-button positioning: ' . $required_readme_text );
