@@ -81,6 +81,7 @@ Project goals, ownership, and future-session instructions are documented in:
 - [ADR-002: Expose Content Context Through Abilities](docs/decisions/ADR-002-content-context-via-abilities.md)
 - [ADR-003: Local Admin Consent Requires A Separate Write Boundary](docs/decisions/ADR-003-local-admin-consent-boundary.md)
 - [ADR-004: Bundle Local Automation Runtime As An Isolated Module](docs/decisions/ADR-004-bundle-local-automation-runtime-as-isolated-module.md)
+- [ADR-005: Use WP-Cron Local Preview And Cloud Batch Runtime For Nightly Automation](docs/decisions/ADR-005-wp-cron-cloud-batch-orchestration.md)
 
 ## REST Routes
 
@@ -154,6 +155,10 @@ Cloud and disable new submissions when Cloud reports exhausted
 `nightly_site_inspection_runs`; this local display is not billing truth.
 Action Scheduler is reserved as a future local fallback/substrate candidate only
 if a confirmed local-batch requirement justifies the added plugin complexity.
+ADR-005 freezes this current split: WP-Cron is the local fallback preview or
+future bounded local submit trigger, Cloud Batch Runtime is the Pro execution
+path, and neither Toolbox nor Cloud becomes a second WordPress scheduler or
+write owner.
 The Site Knowledge review plan route builds a blocked Core handoff plan from
 Cloud evidence only; it does not approve, preflight, or execute that plan.
 

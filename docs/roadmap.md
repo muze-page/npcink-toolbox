@@ -161,6 +161,11 @@ execution buttons in this stage. The first implementation that adds scheduled
 or supervised execution belongs to the `npcink-local-automation-runtime`
 runtime owner boundary.
 
+Current Nightly Inspection automation should follow ADR-005: no plugin-side
+Action Scheduler for Basic or Pro, WP-Cron only as local fallback preview or
+future bounded local submit trigger, and Cloud Batch Runtime as the Pro
+orchestration path without Cloud scheduler truth or WordPress write authority.
+
 ## Deferred Decisions
 
 - provider connector split;

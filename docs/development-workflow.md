@@ -148,6 +148,7 @@ composer smoke:nightly-inspection-snapshot-preview
 composer smoke:nightly-inspection-basic-cron
 composer smoke:nightly-inspection-cloud-batch-merge
 composer smoke:nightly-inspection-cloud-ui
+composer smoke:nightly-inspection-orchestration-boundary
 ```
 
 This validates the `modules/local-automation-runtime/` dry-run replay fixture
@@ -179,6 +180,10 @@ Start panel's Pro Cloud Runtime quota hooks, short automatic submit/status/resul
 follow-up, not-ready guidance, and no local execution or write ownership. It is
 safe for the default `composer test:all` gate because it does not open a browser
 or require Cloud credentials.
+The orchestration boundary smoke is also source-only. It verifies ADR-005,
+rejects plugin-side Action Scheduler and local runtime tables in production
+code, and keeps WP-Cron as local fallback preview while Cloud Batch Runtime
+stays runtime/detail only.
 
 The current phase acceptance summary is recorded in
 [`Nightly Inspection Pro Cloud Runtime Acceptance`](nightly-inspection-pro-cloud-runtime-acceptance.md).
