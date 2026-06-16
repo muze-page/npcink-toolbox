@@ -64,6 +64,7 @@ Project goals, ownership, and future-session instructions are documented in:
 - [Admin Surface Consolidation Summary](docs/admin-surface-consolidation-summary.md)
 - [Content Support Product Readiness](docs/content-support-product-readiness.md)
 - [Content Support Release And Trial Closeout](docs/content-support-release-trial-closeout.md)
+- [Editor Progressive Recommendations Trial](docs/editor-progressive-recommendations-trial.md)
 - [AI Content Composition Abilities](docs/ai-content-composition-abilities.md)
 - [Local Automation Runtime Module](modules/local-automation-runtime/README.md)
 - [Connector Ability Exposure](docs/connector-ability-exposure.md)

@@ -740,6 +740,40 @@
 		);
 	}
 
+	function recommendationCandidateSourceLabel(item) {
+		const refs = []
+			.concat(Array.isArray(item && item.evidence_refs) ? item.evidence_refs : [])
+			.concat(item && item.source_candidate_ref ? [item.source_candidate_ref] : [])
+			.map((ref) => String(ref || ''));
+		if (refs.some((ref) => ref.indexOf('local_preflight:') === 0)) {
+			return __('Local preflight', 'npcink-toolbox');
+		}
+		if (refs.some((ref) => ref.indexOf('attachment:') === 0)) {
+			return __('Recent media', 'npcink-toolbox');
+		}
+		if (
+			(item && item.controlled_vocabulary_status === 'existing_wordpress_term') ||
+			(item && ['category', 'tag', 'post_tag'].includes(String(item.kind || item.target_field || '')))
+		) {
+			return __('Existing terms', 'npcink-toolbox');
+		}
+		if (refs.some((ref) => ref.indexOf('image_provider:') === 0 || ref.indexOf('image_source_type:') === 0)) {
+			return __('Image source', 'npcink-toolbox');
+		}
+		return __('Current draft', 'npcink-toolbox');
+	}
+
+	function recommendationCandidateActionClassLabel(item) {
+		const policy = String(item && item.action_policy ? item.action_policy : 'suggestion_only');
+		if (policy === 'core_proposal_required' || policy === 'editor_apply_preview_save_required') {
+			return __('Handoffable', 'npcink-toolbox');
+		}
+		if (policy === 'operator_review_only_no_write' || policy === 'operator_review_only_no_insert') {
+			return __('Informational', 'npcink-toolbox');
+		}
+		return __('Copyable', 'npcink-toolbox');
+	}
+
 	function renderItems(items, emptyLabel) {
 		if (!Array.isArray(items) || !items.length) {
 			return createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, emptyLabel || __('No candidates returned.', 'npcink-toolbox'));
@@ -759,7 +793,13 @@
 					'li',
 					{ key: String(index) + '-' + String(title) },
 					createElement('strong', null, title),
-					detail ? createElement('span', null, detail) : null
+					detail ? createElement('span', null, detail) : null,
+					createElement(
+						'div',
+						{ className: 'npcink-toolbox-editor-support__candidate-meta' },
+						createElement('span', null, __('Source: ', 'npcink-toolbox') + recommendationCandidateSourceLabel(item)),
+						createElement('span', null, __('Action: ', 'npcink-toolbox') + recommendationCandidateActionClassLabel(item))
+					)
 				);
 			})
 		);

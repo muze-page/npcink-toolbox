@@ -3887,17 +3887,22 @@ final class Rest_Controller {
 
 			foreach ( $terms as $term ) {
 				$term_key         = sanitize_key( $taxonomy ) . ':' . absint( $term->term_id );
+				$term_text        = $term->name . ' ' . $term->slug . ' ' . $term->description;
 				$related_evidence = is_array( $related_term_evidence[ $term_key ] ?? null ) ? $related_term_evidence[ $term_key ] : array();
-				$draft_score      = $this->editor_contextual_match_score( $term->name . ' ' . $term->slug . ' ' . $term->description, $context, $query );
+				$draft_score      = $this->editor_contextual_match_score( $term_text, $context, $query );
+				$matched_tokens   = $this->editor_taxonomy_evidence_tokens( $this->editor_contextual_match_tokens( $term_text, $context, $query ) );
+				if ( $draft_score > 0 && array() === $matched_tokens ) {
+					$draft_score = 0;
+				}
 				$related_score    = $this->editor_related_term_score( $related_evidence );
 				$score            = $draft_score + $related_score;
 				if ( $score <= 0 ) {
 					continue;
 				}
-				$matched_tokens = $this->editor_contextual_match_tokens( $term->name . ' ' . $term->slug . ' ' . $term->description, $context, $query );
 				$match_signals  = array( 'existing_taxonomy_vocabulary' );
 				if ( $draft_score > 0 ) {
 					$match_signals[] = 'draft_query_overlap';
+					$match_signals[] = 'current_draft_match';
 				}
 				if ( $related_score > 0 ) {
 					$match_signals[] = 'related_site_knowledge_term';
@@ -4047,6 +4052,32 @@ final class Rest_Controller {
 		}
 
 		return array_values( array_unique( array_filter( $tokens ) ) );
+	}
+
+	private function editor_taxonomy_evidence_tokens( array $tokens ): array {
+		return array_values(
+			array_filter(
+				array_unique( array_map( 'strtolower', array_map( 'sanitize_text_field', $tokens ) ) ),
+				function ( string $token ): bool {
+					return ! $this->editor_is_generic_taxonomy_match_token( $token );
+				}
+			)
+		);
+	}
+
+	private function editor_is_generic_taxonomy_match_token( string $token ): bool {
+		$generic_tokens = array(
+			'post'    => true,
+			'posts'   => true,
+			'page'    => true,
+			'pages'   => true,
+			'format'  => true,
+			'formats' => true,
+			'type'    => true,
+			'types'   => true,
+		);
+
+		return ! empty( $generic_tokens[ strtolower( trim( $token ) ) ] );
 	}
 
 	private function term_match_tokens( string $term_text, string $query ): array {

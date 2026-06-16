@@ -250,6 +250,27 @@
 	color: #646970;
 }
 
+.npcink-toolbox-editor-support__candidate-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 6px;
+}
+
+.npcink-toolbox-editor-support__candidate-meta span {
+	display: inline-flex;
+	width: auto;
+	margin-top: 0;
+	padding: 1px 5px;
+	color: #50575e;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
 .npcink-toolbox-editor-support__metadata-compact-section {
 	display: grid;
 	gap: 6px;

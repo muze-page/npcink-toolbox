@@ -143,6 +143,7 @@ function get_terms( array $args ): array {
 			(object) array( 'term_id' => 12, 'name' => 'Operations', 'slug' => 'operations', 'description' => 'Operator process', 'count' => 5 ),
 			(object) array( 'term_id' => 13, 'name' => 'This', 'slug' => 'this', 'description' => 'this', 'count' => 9 ),
 			(object) array( 'term_id' => 14, 'name' => '渐进推荐', 'slug' => 'progressive-recommendation', 'description' => '渐进推荐 系统', 'count' => 6 ),
+			(object) array( 'term_id' => 15, 'name' => 'Post Formats', 'slug' => 'post-formats', 'description' => 'post format archive', 'count' => 12 ),
 		);
 	}
 	if ( 'post_tag' === $taxonomy ) {
@@ -286,6 +287,27 @@ npcink_toolbox_progressive_assert(
 		static fn( array $candidate ): bool => 'This' === (string) ( $candidate['value'] ?? '' )
 	),
 	'Progressive taxonomy ranking ignores English stopword-only matches.'
+);
+
+$generic_taxonomy_section = npcink_toolbox_progressive_section(
+	npcink_toolbox_progressive_request(
+		$controller,
+		array(
+			'intent'    => 'progressive_recommendations',
+			'post_type' => 'post',
+			'title'     => 'WordPress post editor checklist',
+			'excerpt'   => 'A post workflow note.',
+			'content'   => 'The post editor should show local recommendations.',
+		)
+	)
+);
+$generic_taxonomy_categories = npcink_toolbox_progressive_candidates_by_kind( $generic_taxonomy_section, 'category' );
+npcink_toolbox_progressive_assert(
+	! array_filter(
+		$generic_taxonomy_categories,
+		static fn( array $candidate ): bool => 'Post Formats' === (string) ( $candidate['value'] ?? '' )
+	),
+	'Progressive taxonomy ranking ignores generic WordPress taxonomy tokens such as post and format.'
 );
 
 $chinese_section = npcink_toolbox_progressive_section(
