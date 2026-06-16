@@ -32,6 +32,7 @@ final class Replay_Validator {
 		$this->require_value( $replay, 'runtime_owner', self::RUNTIME_OWNER, $errors );
 		$this->require_false( $replay, 'core_runtime_execution', $errors );
 		$this->require_false( $replay, 'background_execution', $errors );
+		$this->reject_forbidden_truthy_flags( $replay, $errors );
 
 		$job = $this->object_at( $replay, 'job', $errors );
 		if ( array() !== $job ) {
@@ -92,6 +93,16 @@ final class Replay_Validator {
 				$this->validate_action( $action, (int) $index, $errors );
 			} else {
 				$errors[] = 'action_' . (int) $index . '_not_object';
+			}
+		}
+
+		$limits = $this->object_at( $job, 'limits', $errors );
+		if ( array() !== $limits ) {
+			if ( 0 !== (int) ( $limits['lease_timeout_seconds'] ?? -1 ) ) {
+				$errors[] = 'lease_timeout_seconds_not_phase_1';
+			}
+			if ( 'none' !== ( $limits['schedule_window'] ?? '' ) ) {
+				$errors[] = 'schedule_window_not_phase_1';
 			}
 		}
 	}
@@ -155,6 +166,41 @@ final class Replay_Validator {
 
 	/**
 	 * @param array<string,mixed> $value Source.
+	 * @param array<int,string>   $errors Errors.
+	 * @param string              $path Current path.
+	 */
+	private function reject_forbidden_truthy_flags( array $value, array &$errors, string $path = '' ): void {
+		$forbidden_truthy_keys = array(
+			'adapter_execution',
+			'background_execution',
+			'cloud_scheduler_truth',
+			'commit_execution',
+			'core_execution',
+			'core_runtime_execution',
+			'core_routes_created',
+			'core_tables_created',
+			'dead_letter_processor_created',
+			'direct_wordpress_write',
+			'lease_store_created',
+			'scheduler_created',
+			'unattended_approval',
+			'worker_created',
+			'wordpress_write_execution',
+		);
+
+		foreach ( $value as $key => $item ) {
+			$current_path = '' === $path ? (string) $key : $path . '.' . (string) $key;
+			if ( in_array( (string) $key, $forbidden_truthy_keys, true ) && true === $item ) {
+				$errors[] = $current_path . '_forbidden_true';
+			}
+			if ( is_array( $item ) ) {
+				$this->reject_forbidden_truthy_flags( $item, $errors, $current_path );
+			}
+		}
+	}
+
+	/**
+	 * @param array<string,mixed> $value Source.
 	 * @param string              $key Key.
 	 * @param array<int,string>   $errors Errors.
 	 * @return array<string,mixed>
@@ -183,4 +229,3 @@ final class Replay_Validator {
 		return array_values( $value[ $key ] );
 	}
 }
-

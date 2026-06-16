@@ -152,9 +152,9 @@ publishing, automatic term creation, or direct WordPress writes.
 
 The first local automation runtime step is Phase 1 only: Toolbox may bundle
 `modules/local-automation-runtime/` for contract docs, a dry-run replay
-validator, and smoke tests. It must not add workers, schedulers, runtime job
-tables, leases, retries, dead-letter processors, unattended approval, or
-execution buttons in this stage.
+validator, positive smoke tests, and negative fail-closed replay tests. It must
+not add workers, schedulers, runtime job tables, leases, retries, dead-letter
+processors, unattended approval, or execution buttons in this stage.
 
 ## Deferred Decisions
 

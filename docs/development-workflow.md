@@ -141,6 +141,7 @@ For the bundled local automation runtime Phase 1 skeleton, run:
 
 ```bash
 composer smoke:local-automation-runtime-replay
+composer smoke:local-automation-runtime-negative-replay
 ```
 
 This validates the `modules/local-automation-runtime/` dry-run replay fixture
@@ -148,6 +149,8 @@ against the `npcink_local_automation_runtime.v1` contract. It does not register
 hooks, create runtime tables, schedule workers, acquire leases, retry actions,
 process dead letters, approve Core proposals, call Adapter execution routes, or
 write WordPress data.
+The negative replay smoke mutates the fixture to prove scheduler, worker,
+lease, direct-write, execution-status, and blocked-count drift fail closed.
 
 For AI-generated image media SEO normalization, run:
 

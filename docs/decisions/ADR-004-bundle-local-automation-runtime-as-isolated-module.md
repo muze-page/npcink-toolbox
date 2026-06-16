@@ -36,6 +36,9 @@ fixture and a validator, but it must not register hooks, create custom runtime
 tables, add REST routes, schedule workers, acquire leases, retry actions,
 process dead letters, approve Core proposals, call Adapter execution routes, or
 write WordPress data.
+The Phase 1 validator and smoke tests must fail closed when replay data claims
+runtime execution, scheduler creation, worker creation, leases, direct
+WordPress writes, execution-status actions, or inconsistent blocked counts.
 
 Toolbox may later host the operator console for this runtime, but Toolbox
 fixed-flow buttons must not become the runtime state machine, scheduler, lease
