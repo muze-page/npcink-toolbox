@@ -15,6 +15,7 @@
 	const Fragment = element.Fragment || 'div';
 	const useState = element.useState;
 	const useEffect = element.useEffect;
+	const useRef = element.useRef;
 	const useSelect = data.useSelect;
 	const __ = i18n.__ || ((value) => value);
 	const sprintf = i18n.sprintf || ((value) => value);
@@ -32,7 +33,7 @@
 	const PluginSidebarComponent = editor.PluginSidebar || editPost.PluginSidebar;
 	const BlockControlsComponent = blockEditor.BlockControls || editor.BlockControls || null;
 
-	if (!createElement || !useState || !useEffect || !useSelect || !plugins.registerPlugin || !PluginSidebarComponent) {
+	if (!createElement || !useState || !useEffect || !useRef || !useSelect || !plugins.registerPlugin || !PluginSidebarComponent) {
 		return;
 	}
 
@@ -102,14 +103,15 @@
 			title: __('AI recommended featured image', 'npcink-toolbox'),
 			intro: __('Uses the current article title, excerpt, and body context to recommend or generate a featured image. Paragraph selection is ignored for this entry.', 'npcink-toolbox'),
 			emptyTitle: __('Select a featured image candidate', 'npcink-toolbox'),
-			sourceModeLabel: __('Image source recommendations', 'npcink-toolbox'),
-			generateModeLabel: __('Generate featured image', 'npcink-toolbox'),
+			sourceModeLabel: __('Image source', 'npcink-toolbox'),
+			generateModeLabel: __('AI generated', 'npcink-toolbox'),
 			searchPlaceholder: __('Enter a scene, or leave blank to use article context', 'npcink-toolbox'),
 			generatePlaceholder: __('Review or enter a featured image prompt', 'npcink-toolbox'),
 			searchButtonLabel: __('Refresh recommendations', 'npcink-toolbox'),
 			searchBusyLabel: __('Recommending', 'npcink-toolbox'),
 			autoButtonLabel: __('Use article context', 'npcink-toolbox'),
-			briefButtonLabel: __('Generate featured image plan', 'npcink-toolbox'),
+			generateButtonLabel: __('Generate AI image', 'npcink-toolbox'),
+			briefButtonLabel: __('Generate prompt plan', 'npcink-toolbox'),
 		},
 		paragraph: {
 			mode: 'paragraph',
@@ -740,6 +742,40 @@
 		);
 	}
 
+	function recommendationCandidateSourceLabel(item) {
+		const refs = []
+			.concat(Array.isArray(item && item.evidence_refs) ? item.evidence_refs : [])
+			.concat(item && item.source_candidate_ref ? [item.source_candidate_ref] : [])
+			.map((ref) => String(ref || ''));
+		if (refs.some((ref) => ref.indexOf('local_preflight:') === 0)) {
+			return __('Local preflight', 'npcink-toolbox');
+		}
+		if (refs.some((ref) => ref.indexOf('attachment:') === 0)) {
+			return __('Recent media', 'npcink-toolbox');
+		}
+		if (
+			(item && item.controlled_vocabulary_status === 'existing_wordpress_term') ||
+			(item && ['category', 'tag', 'post_tag'].includes(String(item.kind || item.target_field || '')))
+		) {
+			return __('Existing terms', 'npcink-toolbox');
+		}
+		if (refs.some((ref) => ref.indexOf('image_provider:') === 0 || ref.indexOf('image_source_type:') === 0)) {
+			return __('Image source', 'npcink-toolbox');
+		}
+		return __('Current draft', 'npcink-toolbox');
+	}
+
+	function recommendationCandidateActionClassLabel(item) {
+		const policy = String(item && item.action_policy ? item.action_policy : 'suggestion_only');
+		if (policy === 'core_proposal_required' || policy === 'editor_apply_preview_save_required') {
+			return __('Handoffable', 'npcink-toolbox');
+		}
+		if (policy === 'operator_review_only_no_write' || policy === 'operator_review_only_no_insert') {
+			return __('Informational', 'npcink-toolbox');
+		}
+		return __('Copyable', 'npcink-toolbox');
+	}
+
 	function renderItems(items, emptyLabel) {
 		if (!Array.isArray(items) || !items.length) {
 			return createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, emptyLabel || __('No candidates returned.', 'npcink-toolbox'));
@@ -759,7 +795,13 @@
 					'li',
 					{ key: String(index) + '-' + String(title) },
 					createElement('strong', null, title),
-					detail ? createElement('span', null, detail) : null
+					detail ? createElement('span', null, detail) : null,
+					createElement(
+						'div',
+						{ className: 'npcink-toolbox-editor-support__candidate-meta' },
+						createElement('span', null, __('Source: ', 'npcink-toolbox') + recommendationCandidateSourceLabel(item)),
+						createElement('span', null, __('Action: ', 'npcink-toolbox') + recommendationCandidateActionClassLabel(item))
+					)
 				);
 			})
 		);
@@ -1093,6 +1135,7 @@
 			searchButtonLabel: source.search_button_label || source.searchButtonLabel || preset.searchButtonLabel || __('Recommend images', 'npcink-toolbox'),
 			searchBusyLabel: source.search_busy_label || source.searchBusyLabel || preset.searchBusyLabel || __('Recommending', 'npcink-toolbox'),
 			autoButtonLabel: source.auto_button_label || source.autoButtonLabel || preset.autoButtonLabel || __('Search from article', 'npcink-toolbox'),
+			generateButtonLabel: source.generate_button_label || source.generateButtonLabel || preset.generateButtonLabel || __('Generate AI image', 'npcink-toolbox'),
 			briefButtonLabel: source.brief_button_label || source.briefButtonLabel || preset.briefButtonLabel || __('Generate image plan', 'npcink-toolbox'),
 			selectionEvent: source.selection_event || source.selectionEvent || IMAGE_SOURCE_PICKER_SELECTED_EVENT,
 			closeOnSelect: source.close_on_select !== undefined ? Boolean(source.close_on_select) : false,
@@ -1618,6 +1661,7 @@
 			{ className: 'npcink-toolbox-editor-support__image-grid' },
 				images.slice(0, 9).map((image, index) => {
 					const previewUrl = imagePreviewUrl(image);
+					const fullPreviewUrl = imageFullPreviewUrl(image);
 					const candidateKey = imageStableKey(image, index);
 					const selected = selectedImage && imageStableKey(selectedImage, index) === candidateKey;
 
@@ -1647,7 +1691,7 @@
 							loading: 'lazy',
 							})
 							: createElement('div', { className: 'npcink-toolbox-editor-support__image-placeholder' }, __('No preview', 'npcink-toolbox')),
-						createElement(
+						fullPreviewUrl ? createElement(
 							'button',
 							{
 								type: 'button',
@@ -1660,7 +1704,7 @@
 								},
 							},
 							createElement('span', { className: 'dashicons dashicons-search', 'aria-hidden': 'true' })
-						)
+						) : null
 					);
 				})
 			);
@@ -1704,6 +1748,22 @@
 					alt: image.alt_description || image.description || imageTitle(image),
 				})
 			)
+		);
+	}
+
+	function renderImagePreviewModal(image, onClose) {
+		const lightbox = renderImagePreviewLightbox(image, onClose);
+		if (!lightbox) {
+			return null;
+		}
+		return createElement(
+			Modal,
+			{
+				title: __('Image preview', 'npcink-toolbox'),
+				onRequestClose: onClose,
+				className: 'npcink-toolbox-editor-support__image-preview-modal',
+			},
+			lightbox
 		);
 	}
 
@@ -1998,13 +2058,9 @@
 		}
 
 		const seo = seoFields || {};
-		const previewUrl = imagePreviewUrl(selectedImage);
 		const sourceUrl = imageSourceUrl(selectedImage);
 		const existingAttachmentId = findAttachmentId(selectedImage, 0);
 		const providerDetails = imageCandidateProviderDetails(selectedImage);
-		const selectedPanelTitle = selectOnlyMode
-			? __('Selected image', 'npcink-toolbox')
-			: (paragraphMode ? __('Selected paragraph image', 'npcink-toolbox') : __('Selected featured image', 'npcink-toolbox'));
 		const selectedBoundaryNote = selectOnlyMode
 			? __('Selection is returned to the calling field. Toolbox does not write settings directly.', 'npcink-toolbox')
 			: (paragraphMode ? __('Uses Adapter/Core for media import and media SEO fields. Toolbox does not insert images into the paragraph directly.', 'npcink-toolbox') : (existingAttachmentId > 0 ? __('Existing media can be set as the featured image through local admin consent with Core audit. External candidates still use Adapter/Core import.', 'npcink-toolbox') : __('Uses Adapter/Core for import, media SEO fields, and featured image changes. Toolbox does not write media directly.', 'npcink-toolbox')));
@@ -2017,16 +2073,6 @@
 		return createElement(
 			'aside',
 			{ className: 'npcink-toolbox-editor-support__selected-image' },
-			createElement(
-				'div',
-				{ className: 'npcink-toolbox-editor-support__selected-title' },
-				createElement('h3', null, selectedPanelTitle)
-			),
-			createElement(
-				'div',
-				{ className: 'npcink-toolbox-editor-support__selected-head' },
-				previewUrl ? createElement('img', { src: previewUrl, alt: seo.alt || imageTitle(selectedImage), loading: 'lazy' }) : null
-			),
 			createElement(
 				'div',
 				{ className: 'npcink-toolbox-editor-support__selected-actions' },
@@ -3591,6 +3637,18 @@
 			const [progressiveStatus, setProgressiveStatus] = useState(null);
 			const [progressiveLoadedKey, setProgressiveLoadedKey] = useState('');
 			const progressiveKey = progressiveRecommendationKey(postContext);
+			const progressiveMountedRef = useRef(false);
+			const progressiveRequestSeqRef = useRef(0);
+			const progressiveCurrentKeyRef = useRef(progressiveKey);
+			progressiveCurrentKeyRef.current = progressiveKey;
+
+			useEffect(() => {
+				progressiveMountedRef.current = true;
+				return () => {
+					progressiveMountedRef.current = false;
+					progressiveRequestSeqRef.current += 1;
+				};
+			}, []);
 
 			useEffect(() => {
 				if (!progressiveKey || progressiveLoadedKey === progressiveKey) {
@@ -3650,6 +3708,9 @@
 				if (!force && progressiveLoadedKey === key) {
 					return;
 				}
+				const requestSeq = progressiveRequestSeqRef.current + 1;
+				progressiveRequestSeqRef.current = requestSeq;
+				const shouldApplyProgressiveResult = () => progressiveMountedRef.current && progressiveRequestSeqRef.current === requestSeq && progressiveCurrentKeyRef.current === key;
 				setProgressiveStatus({ status: 'loading', message: __('Preparing local suggestions...', 'npcink-toolbox') });
 				try {
 					const flowResult = await postJsonWithTimeout(
@@ -3657,6 +3718,9 @@
 						progressiveRecommendationPayload(postContext),
 						PROGRESSIVE_RECOMMENDATION_TIMEOUT_MS
 					);
+					if (!shouldApplyProgressiveResult()) {
+						return;
+					}
 					setProgressiveResult(flowResult);
 					setProgressiveLoadedKey(key);
 					setProgressiveStatus({
@@ -3664,6 +3728,9 @@
 						message: __('Local suggestions are ready.', 'npcink-toolbox'),
 					});
 				} catch (requestError) {
+					if (!shouldApplyProgressiveResult()) {
+						return;
+					}
 					setProgressiveLoadedKey(key);
 					setProgressiveStatus({
 						status: requestError && requestError.code === 'npcink_toolbox_progressive_timeout' ? 'warning' : 'error',
@@ -3843,7 +3910,7 @@
 				if (cachedResult) {
 					setImageRunning('');
 					setImageError('');
-					setImageGuidance(__('Showing recent image-source results for this context.', 'npcink-toolbox'));
+					setImageGuidance('');
 					setImageResult(cachedResult);
 					setSelectedImage(null);
 					setSelectedImageSeo(null);
@@ -3887,14 +3954,10 @@
 					});
 					if (extractImageCandidates(fallbackResult).length) {
 						result = fallbackResult;
-						setImageGuidance(__('Showing image-source candidates from a shorter visual query.', 'npcink-toolbox'));
 					}
 				}
 				writeCachedImageResult(cacheKey, result);
 				setImageResult(result);
-				if (!fallbackQuery || !extractImageCandidates(result).length) {
-					setImageGuidance(__('Showing fast image-source candidates. SEO details may be refined after selecting an image.', 'npcink-toolbox'));
-				}
 			} catch (requestError) {
 				setImageError(formatImageErrorMessage(requestError, __('Cloud image recommendation failed.', 'npcink-toolbox')));
 			} finally {
@@ -3919,7 +3982,7 @@
 				if (cachedResult) {
 					setImageRunning('');
 					setImageError('');
-					setImageGuidance(__('Showing recent image-source results for this query.', 'npcink-toolbox'));
+					setImageGuidance('');
 					setImageResult(cachedResult);
 					setSelectedImage(null);
 					setSelectedImageSeo(null);
@@ -3950,7 +4013,6 @@
 				});
 				writeCachedImageResult(cacheKey, result);
 				setImageResult(result);
-				setImageGuidance(__('Showing fast image-source candidates. SEO details may be refined after selecting an image.', 'npcink-toolbox'));
 			} catch (requestError) {
 				setImageError(formatImageErrorMessage(requestError, __('Cloud image search failed.', 'npcink-toolbox')));
 			} finally {
@@ -4111,7 +4173,7 @@
 			setImageAdoptionResult(null);
 			setImageAdoptionError('');
 			resetImageFeedbackState();
-			setImageGuidance(__('Review the suggested prompt, then generate an AI image candidate.', 'npcink-toolbox'));
+			setImageGuidance('');
 		}
 
 		function renderAiImageOption(label, value, onChange, options) {
@@ -4490,6 +4552,9 @@
 			if (!imageModalOpen) {
 				return null;
 			}
+			if (imagePreviewLightbox) {
+				return renderImagePreviewModal(imagePreviewLightbox, () => setImagePreviewLightbox(null));
+			}
 
 			const images = extractImageCandidates(imageResult);
 			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
@@ -4498,11 +4563,9 @@
 			const sourceSubmitLabel = imageRunning === 'search' || imageRunning === 'auto'
 				? activePicker.searchBusyLabel
 				: (imageQueryText ? __('Search image sources', 'npcink-toolbox') : activePicker.searchButtonLabel);
-			const imageContextStatus = activePicker.contextScope === 'paragraph'
-				? __('Using selected paragraph with article context', 'npcink-toolbox')
-				: (activePicker.contextScope === 'setting' ? __('Using supplied context or manual query', 'npcink-toolbox') : __('Using article context: title, excerpt, and body', 'npcink-toolbox'));
 			const inspectorSeoContext = imagePickerRequestContext(postContext, activePicker);
 			const inspectorSeo = selectedImage ? Object.assign({}, buildImageSeoFields(selectedImage, inspectorSeoContext), selectedImageSeo || {}) : null;
+			const imagePromptId = 'npcink-toolbox-editor-support-image-prompt';
 			const imageRunningLabel = imageRunning === 'generate'
 				? __('Generating AI image candidate...', 'npcink-toolbox')
 				: (imageRunning === 'brief' ? __('Generating image plan...', 'npcink-toolbox') : __('Loading cloud image candidates...', 'npcink-toolbox'));
@@ -4516,11 +4579,10 @@
 					},
 					className: 'npcink-toolbox-editor-support__image-modal',
 				},
-				createElement(
-					'div',
-					{ className: 'npcink-toolbox-editor-support__image-modal-body' },
-					createElement('p', { className: 'npcink-toolbox-editor-support__intro' }, activePicker.intro),
 					createElement(
+						'div',
+						{ className: 'npcink-toolbox-editor-support__image-modal-body' },
+						createElement(
 						'form',
 						{ className: 'npcink-toolbox-editor-support__image-search', onSubmit: activeSearchMode === 'generate' ? runAiImageGeneration : runImageSearch },
 						activePicker.allowGeneration ? createElement(
@@ -4547,25 +4609,84 @@
 								activePicker.generateModeLabel
 							)
 						) : null,
-						createElement(
+						activeSearchMode === 'generate' ? createElement(
+							'div',
+							{ className: 'npcink-toolbox-editor-support__image-prompt-panel' },
+							createElement(
+								'label',
+								{
+									className: 'npcink-toolbox-editor-support__image-prompt-label',
+									htmlFor: imagePromptId,
+								},
+								__('AI image prompt', 'npcink-toolbox')
+							),
+							createElement('textarea', {
+								id: imagePromptId,
+								className: 'npcink-toolbox-editor-support__image-prompt-textarea',
+								value: imageQuery,
+								placeholder: activePicker.generatePlaceholder,
+								rows: 4,
+								disabled: Boolean(imageRunning),
+								onChange: (event) => setImageQuery(event.target.value),
+							}),
+							createElement(
+								'div',
+								{ className: 'npcink-toolbox-editor-support__image-generate-actions' },
+								createElement(
+									Button,
+									{
+										type: 'submit',
+										variant: 'primary',
+										isBusy: imageRunning === 'generate',
+										disabled: Boolean(imageRunning),
+									},
+									imageRunning === 'generate' ? __('Generating', 'npcink-toolbox') : (activePicker.generateButtonLabel || __('Generate AI image', 'npcink-toolbox'))
+								),
+								activePicker.allowImagePlan ? createElement(
+									Button,
+									{
+										type: 'button',
+										variant: 'secondary',
+										className: 'npcink-toolbox-editor-support__article-search-button',
+										isBusy: imageRunning === 'brief',
+										disabled: Boolean(imageRunning),
+										onClick: runMediaBrief,
+									},
+									imageRunning === 'brief' ? __('Planning', 'npcink-toolbox') : activePicker.briefButtonLabel
+								) : null
+							),
+							createElement(
+								'div',
+								{ className: 'npcink-toolbox-editor-support__image-options' },
+								renderAiImageOption(__('Aspect ratio', 'npcink-toolbox'), aiImageAspectRatio, setAiImageAspectRatio, [
+									{ value: '16:9', label: '16:9' },
+									{ value: '1:1', label: '1:1' },
+									{ value: '4:3', label: '4:3' },
+									{ value: '3:4', label: '3:4' },
+									{ value: '9:16', label: '9:16' },
+								]),
+								renderAiImageOption(__('Quality', 'npcink-toolbox'), aiImageResolution, setAiImageResolution, [
+									{ value: 'high', label: __('High', 'npcink-toolbox') },
+									{ value: 'medium', label: __('Medium', 'npcink-toolbox') },
+									{ value: 'low', label: __('Low', 'npcink-toolbox') },
+								]),
+								renderAiImageOption(__('Candidates', 'npcink-toolbox'), aiImageCandidateCount, setAiImageCandidateCount, [
+									{ value: '1', label: '1' },
+									{ value: '2', label: '2' },
+									{ value: '3', label: '3' },
+									{ value: '4', label: '4' },
+								])
+							)
+						) : createElement(
 							'div',
 							{ className: 'npcink-toolbox-editor-support__image-search-row' },
 							createElement('input', {
 								type: 'search',
 								value: imageQuery,
-								placeholder: activeSearchMode === 'generate' ? activePicker.generatePlaceholder : activePicker.searchPlaceholder,
+								placeholder: activePicker.searchPlaceholder,
 								onChange: (event) => setImageQuery(event.target.value),
 							}),
-							activeSearchMode === 'generate' ? createElement(
-								Button,
-								{
-									type: 'submit',
-									variant: 'primary',
-									isBusy: imageRunning === 'generate',
-									disabled: Boolean(imageRunning),
-								},
-								imageRunning === 'generate' ? __('Generating', 'npcink-toolbox') : activePicker.generateModeLabel
-							) : createElement(
+							createElement(
 								Button,
 								{
 									type: 'submit',
@@ -4575,57 +4696,8 @@
 								},
 								sourceSubmitLabel
 							)
-						),
-						activeSearchMode === 'source' ? createElement(
-							'div',
-							{ className: 'npcink-toolbox-editor-support__image-context-status' },
-							createElement('span', null, __('Context', 'npcink-toolbox')),
-							createElement('span', null, imageContextStatus)
-						) : null,
-						activeSearchMode === 'generate' && activePicker.allowImagePlan ? createElement(
-							'div',
-							{ className: 'npcink-toolbox-editor-support__image-plan-actions' },
-							createElement(
-								Button,
-								{
-									type: 'button',
-									variant: 'secondary',
-									className: 'npcink-toolbox-editor-support__article-search-button',
-									isBusy: imageRunning === 'brief',
-									disabled: Boolean(imageRunning),
-									onClick: runMediaBrief,
-								},
-								imageRunning === 'brief' ? __('Planning', 'npcink-toolbox') : activePicker.briefButtonLabel
-							),
-							createElement(
-								'span',
-								null,
-								__('Optional plan before generation', 'npcink-toolbox')
-							)
-						) : null
+						)
 					),
-					activeSearchMode === 'generate' ? createElement(
-						'div',
-						{ className: 'npcink-toolbox-editor-support__image-options' },
-						renderAiImageOption(__('Aspect ratio', 'npcink-toolbox'), aiImageAspectRatio, setAiImageAspectRatio, [
-							{ value: '16:9', label: '16:9' },
-							{ value: '1:1', label: '1:1' },
-							{ value: '4:3', label: '4:3' },
-							{ value: '3:4', label: '3:4' },
-							{ value: '9:16', label: '9:16' },
-						]),
-						renderAiImageOption(__('Quality', 'npcink-toolbox'), aiImageResolution, setAiImageResolution, [
-							{ value: 'high', label: __('High', 'npcink-toolbox') },
-							{ value: 'medium', label: __('Medium', 'npcink-toolbox') },
-							{ value: 'low', label: __('Low', 'npcink-toolbox') },
-						]),
-						renderAiImageOption(__('Candidates', 'npcink-toolbox'), aiImageCandidateCount, setAiImageCandidateCount, [
-							{ value: '1', label: '1' },
-							{ value: '2', label: '2' },
-							{ value: '3', label: '3' },
-							{ value: '4', label: '4' },
-						])
-					) : null,
 					imageGuidance ? createElement(Notice, { status: 'info', isDismissible: false }, imageGuidance) : null,
 					imageError ? createElement(Notice, { status: 'error', isDismissible: false }, imageError) : null,
 					createElement(
@@ -4659,8 +4731,7 @@
 							),
 							renderImageCloudDetails(imageResult, useAiPromptCandidate)
 						)
-					),
-					renderImagePreviewLightbox(imagePreviewLightbox, () => setImagePreviewLightbox(null))
+					)
 				)
 			);
 		}

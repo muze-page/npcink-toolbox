@@ -143,6 +143,7 @@ function get_terms( array $args ): array {
 			(object) array( 'term_id' => 12, 'name' => 'Operations', 'slug' => 'operations', 'description' => 'Operator process', 'count' => 5 ),
 			(object) array( 'term_id' => 13, 'name' => 'This', 'slug' => 'this', 'description' => 'this', 'count' => 9 ),
 			(object) array( 'term_id' => 14, 'name' => '渐进推荐', 'slug' => 'progressive-recommendation', 'description' => '渐进推荐 系统', 'count' => 6 ),
+			(object) array( 'term_id' => 15, 'name' => 'Post Formats', 'slug' => 'post-formats', 'description' => 'post format archive', 'count' => 12 ),
 		);
 	}
 	if ( 'post_tag' === $taxonomy ) {
@@ -261,7 +262,20 @@ npcink_toolbox_progressive_assert( ! empty( $section['recommendation_candidates'
 npcink_toolbox_progressive_assert( ! empty( $section['preflight_candidates'] ), 'Progressive response converts local preflight warnings into candidates.' );
 npcink_toolbox_progressive_assert( ! empty( $section['media_library_candidates'] ), 'Progressive response includes bounded local media-library candidates.' );
 npcink_toolbox_progressive_assert( ! empty( $set['artifacts']['preflight'] ), 'Recommendation set counts preflight candidates.' );
+npcink_toolbox_progressive_assert( ! empty( $set['artifact_counts']['preflight'] ), 'Recommendation set exposes additive artifact_counts metadata.' );
+npcink_toolbox_progressive_assert( true === ( $set['no_write'] ?? false ), 'Recommendation set declares no_write=true.' );
+npcink_toolbox_progressive_assert( 'local' === ( $set['source_layer'] ?? '' ), 'Progressive recommendation set declares the local source layer.' );
+npcink_toolbox_progressive_assert( ! empty( $set['generated_at'] ), 'Recommendation set includes a generated_at timestamp.' );
+npcink_toolbox_progressive_assert( is_array( $set['retrieval_sources'] ?? null ) && in_array( 'current_editor_context', $set['retrieval_sources'], true ), 'Recommendation set exposes retrieval sources at the wrapper level.' );
+npcink_toolbox_progressive_assert( is_array( $set['candidates'] ?? null ) && ! empty( $set['candidates'] ), 'Recommendation set exposes lightweight candidate refs.' );
 npcink_toolbox_progressive_assert( false === ( $set['governance']['direct_wordpress_write'] ?? true ), 'Recommendation set preserves no direct WordPress write posture.' );
+npcink_toolbox_progressive_assert( is_array( $set['proposal_targets'] ?? null ), 'Recommendation set exposes definition-only Core handoff targets.' );
+foreach ( $set['proposal_targets'] as $proposal_target ) {
+	npcink_toolbox_progressive_assert( ! empty( $proposal_target['candidate_id'] ) && ! empty( $proposal_target['required_ability_id'] ), 'Core handoff target links a candidate to a stable ability id.' );
+	npcink_toolbox_progressive_assert( 'definition_only_user_trigger_required' === ( $proposal_target['handoff_status'] ?? '' ), 'Core handoff target remains definition-only.' );
+	npcink_toolbox_progressive_assert( false === ( $proposal_target['direct_wordpress_write'] ?? true ), 'Core handoff target does not authorize Toolbox writes.' );
+	npcink_toolbox_progressive_assert( ! isset( $proposal_target['core_route'] ) && ! isset( $proposal_target['rest_route'] ) && ! isset( $proposal_target['execution_status'] ) && ! isset( $proposal_target['approval_status'] ), 'Core handoff target omits raw routes and runtime state.' );
+}
 npcink_toolbox_progressive_assert( 0 === $npcink_toolbox_progressive_cloud_calls, 'Progressive response with draft context still does not touch the Cloud runtime.' );
 
 $empty_section = npcink_toolbox_progressive_section( npcink_toolbox_progressive_request( $controller, array( 'intent' => 'progressive_recommendations' ) ) );
@@ -286,6 +300,27 @@ npcink_toolbox_progressive_assert(
 		static fn( array $candidate ): bool => 'This' === (string) ( $candidate['value'] ?? '' )
 	),
 	'Progressive taxonomy ranking ignores English stopword-only matches.'
+);
+
+$generic_taxonomy_section = npcink_toolbox_progressive_section(
+	npcink_toolbox_progressive_request(
+		$controller,
+		array(
+			'intent'    => 'progressive_recommendations',
+			'post_type' => 'post',
+			'title'     => 'WordPress post editor checklist',
+			'excerpt'   => 'A post workflow note.',
+			'content'   => 'The post editor should show local recommendations.',
+		)
+	)
+);
+$generic_taxonomy_categories = npcink_toolbox_progressive_candidates_by_kind( $generic_taxonomy_section, 'category' );
+npcink_toolbox_progressive_assert(
+	! array_filter(
+		$generic_taxonomy_categories,
+		static fn( array $candidate ): bool => 'Post Formats' === (string) ( $candidate['value'] ?? '' )
+	),
+	'Progressive taxonomy ranking ignores generic WordPress taxonomy tokens such as post and format.'
 );
 
 $chinese_section = npcink_toolbox_progressive_section(

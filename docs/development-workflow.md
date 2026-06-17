@@ -102,14 +102,41 @@ smoke does not mutate the sampled post.
 For the post-editor progressive recommendation surface, run:
 
 ```bash
+composer test:editor-progressive-js
 composer smoke:editor-progressive-recommendations
+composer smoke:editor-progressive-local-matrix
 ```
 
-This dispatches `/wp-json/npcink-toolbox/v1/editor/content-support` with the
-`progressive_recommendations` intent against a local post and verifies the
-local-only recommendation set, 2.5 second UX budget, content fingerprint,
+The source-only JavaScript contract verifies that automatic prefetch sends only
+`progressive_recommendations`, does not trigger Cloud-backed writing support or
+proposal handoff, keeps the 2.5 second fallback, uses the loaded-key cache, does
+not let late responses overwrite newer fingerprints, and invalidates in-flight
+requests on unmount.
+
+The REST smoke dispatches `/wp-json/npcink-toolbox/v1/editor/content-support`
+with the `progressive_recommendations` intent against a local post and verifies
+the local-only recommendation set, 2.5 second UX budget, content fingerprint,
 candidate cap, no empty matched-token copy, no stopword-only taxonomy evidence,
 no direct WordPress writes, and no sampled post mutation.
+
+The local matrix smoke adds a temporary draft fixture for the new-article path,
+checks an existing post without mutating it, verifies title/body/excerpt/selected
+block fingerprint changes, confirms the no-Cloud source layer, and checks that
+Core handoff targets remain definition-only even when Core routes are present.
+
+For a real editor lifecycle smoke with iframe editor and Block API behavior,
+run the optional browser gate:
+
+```bash
+NODE_PATH="${NODE_PATH:-/Users/muze/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules}" composer smoke:editor-progressive-browser
+```
+
+This opens the local editor, opens the Npcink Content Support sidebar, verifies
+the automatic Fast recommendations request, checks candidate source/action
+labels, clicks Refresh, and confirms no Cloud, Adapter, or Core proposal route
+is called. It is intentionally outside `composer test:all` because it depends on
+a running local WordPress site, WP-CLI login-cookie generation, Playwright, and
+a local browser.
 
 For the post-editor review artifact surface, run:
 
@@ -142,6 +169,7 @@ For the bundled local automation runtime Phase 1 skeleton, run:
 ```bash
 composer smoke:local-automation-runtime-replay
 composer smoke:local-automation-runtime-negative-replay
+composer smoke:local-automation-media-conversion-review-set
 composer smoke:nightly-inspection-builder
 composer smoke:nightly-inspection-manual-planner
 composer smoke:nightly-inspection-snapshot-preview
@@ -158,6 +186,9 @@ process dead letters, approve Core proposals, call Adapter execution routes, or
 write WordPress data.
 The negative replay smoke mutates the fixture to prove scheduler, worker,
 lease, direct-write, execution-status, and blocked-count drift fail closed.
+The media conversion review-set smoke validates the first non-nightly governed
+batch contract and proves that local queues and direct WordPress writes fail
+closed.
 The Nightly Inspection builder smoke validates deterministic scoring against a
 fixture snapshot and confirms the `nightly_site_inspection_result.v1` preview
 stays local, review-only, no-write, no-Cloud, and no-copy-generation.
