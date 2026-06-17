@@ -1006,6 +1006,10 @@
 		].join('|');
 	}
 
+	function imageRefreshVariant() {
+		return String(Date.now()) + '-' + String(Math.random()).slice(2, 10);
+	}
+
 	function readCachedImageResult(cacheKey) {
 		const cached = imageResultCache[cacheKey];
 		if (!cached || !cached.timestamp || Date.now() - cached.timestamp > IMAGE_RESULT_CACHE_TTL) {
@@ -1169,9 +1173,9 @@
 		return imageRequestContext(postContext || {}, imagePickerContextOverride(picker, contextOverride));
 	}
 
-	function buildImageVisualContext(postContext, imageMode, manualQuery, contextOverride, imageUse) {
+	function buildImageVisualContext(postContext, imageMode, manualQuery, contextOverride, imageUse, refreshVariant) {
 		const context = imageRequestContext(postContext, contextOverride);
-		return {
+		const visualContext = {
 			image_mode: imageUse || (imageMode === 'paragraph' ? 'paragraph_image' : 'featured_image'),
 			manual_query: String(manualQuery || '').trim(),
 			title: truncateText(context.title, 160),
@@ -1188,6 +1192,10 @@
 				return_alternate_queries: true,
 			},
 		};
+		if (refreshVariant) {
+			visualContext.refresh_variant = refreshVariant;
+		}
+		return visualContext;
 	}
 
 	function imageFastSearchQuery(postContext, manualQuery, contextOverride, picker) {
@@ -3897,13 +3905,13 @@
 			setImageFeedbackStatus(null);
 		}
 
-		async function runAutoImageRecommendations(modeOverride, contextOverride, pickerOverride) {
+		async function runAutoImageRecommendations(modeOverride, contextOverride, pickerOverride, forceRefresh) {
 			const activePicker = normalizeImagePickerOptions(pickerOverride || imagePicker || { mode: imageMode });
 			const activeImageMode = modeOverride || activePicker.mode;
 			const imageContext = imagePickerRequestContext(postContext, activePicker, contextOverride || activePicker.context);
 			const operatorInstruction = String(imageQuery || '').trim();
 			const cacheKey = imageSearchCacheKey('auto', activePicker, operatorInstruction, imageContext);
-			const cachedResult = readCachedImageResult(cacheKey);
+			const cachedResult = forceRefresh ? null : readCachedImageResult(cacheKey);
 			if (!hasScopedImageContext(imageContext, activePicker)) {
 				setImageRunning('');
 				setImageResult(null);
@@ -3936,6 +3944,7 @@
 			resetImageFeedbackState();
 			try {
 				const query = imageFastSearchQuery(postContext, operatorInstruction, activePicker.context, activePicker);
+				const refreshVariant = forceRefresh ? imageRefreshVariant() : '';
 				let result = await postJson('image-candidates', {
 					query,
 					provider: 'auto',
@@ -3943,7 +3952,8 @@
 					latency_mode: 'fast_first',
 					image_mode: activePicker.imageUse,
 					user_instruction: operatorInstruction,
-					visual_context: buildImageVisualContext(postContext, activeImageMode, operatorInstruction, imagePickerContextOverride(activePicker), activePicker.imageUse),
+					refresh_variant: refreshVariant,
+					visual_context: buildImageVisualContext(postContext, activeImageMode, operatorInstruction, imagePickerContextOverride(activePicker), activePicker.imageUse, refreshVariant),
 				});
 				const fallbackQuery = !extractImageCandidates(result).length ? imageAutoFallbackQuery(result, query) : '';
 				if (fallbackQuery) {
@@ -3954,7 +3964,8 @@
 						latency_mode: 'fast_first',
 						image_mode: activePicker.imageUse,
 						user_instruction: operatorInstruction,
-						visual_context: buildImageVisualContext(postContext, activeImageMode, fallbackQuery, imagePickerContextOverride(activePicker), activePicker.imageUse),
+						refresh_variant: refreshVariant,
+						visual_context: buildImageVisualContext(postContext, activeImageMode, fallbackQuery, imagePickerContextOverride(activePicker), activePicker.imageUse, refreshVariant),
 					});
 					if (extractImageCandidates(fallbackResult).length) {
 						result = fallbackResult;
@@ -3969,19 +3980,19 @@
 			}
 		}
 
-		async function runImageSearch(event, suggestedQuery) {
+		async function runImageSearch(event, suggestedQuery, forceRefresh) {
 			if (event && event.preventDefault) {
 				event.preventDefault();
 			}
 			const activePicker = normalizeImagePickerOptions(imagePicker || { mode: imageMode });
 			const query = String(suggestedQuery || imageQuery || '').trim();
 			if (!query) {
-				runAutoImageRecommendations(activePicker.mode, activePicker.context, activePicker);
+				runAutoImageRecommendations(activePicker.mode, activePicker.context, activePicker, forceRefresh);
 				return;
 			}
 			const imageContext = imagePickerRequestContext(postContext, activePicker);
 			const cacheKey = imageSearchCacheKey('manual', activePicker, query, imageContext);
-			const cachedResult = readCachedImageResult(cacheKey);
+			const cachedResult = forceRefresh ? null : readCachedImageResult(cacheKey);
 			setImageQuery(query);
 				if (cachedResult) {
 					setImageRunning('');
@@ -4007,13 +4018,15 @@
 			setImageAdoptionError('');
 			resetImageFeedbackState();
 			try {
+				const refreshVariant = forceRefresh ? imageRefreshVariant() : '';
 				const result = await postJson('image-candidates', {
 					query,
 					provider: 'auto',
 					per_page: 9,
 					latency_mode: 'fast_first',
 					image_mode: activePicker.imageUse,
-					visual_context: buildImageVisualContext(postContext, activePicker.mode, query, imagePickerContextOverride(activePicker), activePicker.imageUse),
+					refresh_variant: refreshVariant,
+					visual_context: buildImageVisualContext(postContext, activePicker.mode, query, imagePickerContextOverride(activePicker), activePicker.imageUse, refreshVariant),
 				});
 				writeCachedImageResult(cacheKey, result);
 				setImageResult(result);
@@ -4161,7 +4174,7 @@
 			submitImplicitAgentFeedback(
 				editorImageImplicitFeedbackPayload(imageResult || {}, selectedImage, imagePicker || { mode: imageMode }, 'suggested_query_click', 'edited_before_accept', ['good_but_needs_human_draft'])
 			);
-			runImageSearch(null, query);
+			runImageSearch(null, query, true);
 		}
 
 		function useAiPromptCandidate(prompt) {
@@ -4599,7 +4612,7 @@
 			) : null;
 			const sourceSearchForm = activeSearchMode === 'source' ? createElement(
 				'form',
-				{ className: 'npcink-toolbox-editor-support__image-search', onSubmit: runImageSearch },
+				{ className: 'npcink-toolbox-editor-support__image-search', onSubmit: (event) => runImageSearch(event, null, true) },
 				createElement(
 					'div',
 					{ className: 'npcink-toolbox-editor-support__image-search-row' },

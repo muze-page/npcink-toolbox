@@ -3893,6 +3893,10 @@ final class Provider_Client {
 			'purpose'            => sanitize_key( (string) ( $options['purpose'] ?? 'image_reference_candidate' ) ),
 			'candidate_contract' => 'image_candidate.v1',
 		);
+		$refresh_variant = sanitize_text_field( (string) ( $options['refresh_variant'] ?? '' ) );
+		if ( '' !== $refresh_variant ) {
+			$input['refresh_variant'] = $refresh_variant;
+		}
 		if ( $fast_first ) {
 			$input['deferred_cloud_ai_steps'] = array(
 				'site_context_vectors',
@@ -3989,6 +3993,7 @@ final class Provider_Client {
 			'latency_budget_seconds' => $fast_first ? 5 : 60,
 			'manual_query'           => sanitize_text_field( (string) ( $context['manual_query'] ?? $options['manual_query'] ?? '' ) ),
 			'fallback_query'         => sanitize_text_field( $query ),
+			'refresh_variant'        => sanitize_text_field( (string) ( $context['refresh_variant'] ?? $options['refresh_variant'] ?? '' ) ),
 			'post_id'                => $post_id,
 			'title'                  => wp_trim_words( $title, 18, '' ),
 			'excerpt'                => wp_trim_words( $excerpt, 36, '' ),

@@ -160,6 +160,7 @@ final class Rest_Controller {
 					'generated_image_url'   => esc_url_raw( (string) $request->get_param( 'generated_image_url' ) ),
 					'model'                 => sanitize_text_field( (string) $request->get_param( 'model' ) ),
 					'manual_query'          => $query,
+					'refresh_variant'       => sanitize_text_field( (string) $request->get_param( 'refresh_variant' ) ),
 					'visual_context'        => $this->image_visual_context_from_request( $request, $query ),
 				)
 			)
@@ -1073,6 +1074,7 @@ final class Rest_Controller {
 		if ( is_array( $context ) ) {
 			$context['manual_query'] = $context['manual_query'] ?? $query;
 			$context['latency_mode'] = $context['latency_mode'] ?? (string) $request->get_param( 'latency_mode' );
+			$context['refresh_variant'] = $context['refresh_variant'] ?? (string) $request->get_param( 'refresh_variant' );
 			return $this->sanitize_image_visual_context( $context );
 		}
 
@@ -1088,6 +1090,7 @@ final class Rest_Controller {
 				'selected_block_name' => (string) $request->get_param( 'selected_block_name' ),
 				'image_mode'          => (string) $request->get_param( 'image_mode' ),
 				'latency_mode'        => (string) $request->get_param( 'latency_mode' ),
+				'refresh_variant'     => (string) $request->get_param( 'refresh_variant' ),
 			)
 		);
 	}
@@ -1140,6 +1143,7 @@ final class Rest_Controller {
 			'selected_block_name' => sanitize_key( (string) ( $context['selected_block_name'] ?? '' ) ),
 			'avoid_brand_logos'   => ! empty( $context['avoid_brand_logos'] ),
 			'latency_mode'        => sanitize_key( (string) ( $context['latency_mode'] ?? '' ) ),
+			'refresh_variant'     => sanitize_text_field( (string) ( $context['refresh_variant'] ?? '' ) ),
 			'query_intent'        => array(
 				'rewrite_abstract_terms'       => ! empty( $context['query_intent']['rewrite_abstract_terms'] ),
 				'prefer_concrete_visual_scene' => ! empty( $context['query_intent']['prefer_concrete_visual_scene'] ),
