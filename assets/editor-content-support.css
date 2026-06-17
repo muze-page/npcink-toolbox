@@ -1347,36 +1347,37 @@
 
 .npcink-toolbox-editor-support__selected-actions {
 	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 8px;
+}
+
+.npcink-toolbox-editor-support__selected-actions.is-single {
+	grid-template-columns: 1fr;
 }
 
 .npcink-toolbox-editor-support__selected-actions .components-button {
 	justify-content: center;
 	min-width: 0;
+	width: 100%;
 }
 
 .npcink-toolbox-editor-support__primary-image-action.components-button {
-	width: 100%;
 	min-height: 40px;
 }
 
 .npcink-toolbox-editor-support__secondary-image-action.components-button {
-	justify-self: start;
-	min-height: 30px;
-	padding-right: 0;
-	padding-left: 0;
+	min-height: 40px;
 	color: #3858e9;
-	background: transparent;
-	border-color: transparent;
-	box-shadow: none;
+	background: #fff;
+	border-color: #3858e9;
 }
 
 .npcink-toolbox-editor-support__secondary-image-action.components-button:hover,
 .npcink-toolbox-editor-support__secondary-image-action.components-button:focus {
-	color: #1d2327;
-	background: transparent;
-	box-shadow: none;
-	text-decoration: underline;
+	color: #2145e6;
+	background: #f6f7ff;
+	border-color: #2145e6;
+	box-shadow: 0 0 0 1px #2145e6;
 }
 
 .npcink-toolbox-editor-support__selected-note {
@@ -1420,30 +1421,6 @@
 	background: #fff;
 	border: 1px solid #b6d6f2;
 	border-radius: 4px;
-}
-
-.npcink-toolbox-editor-support__adoption-advanced {
-	margin-top: 4px;
-}
-
-.npcink-toolbox-editor-support__adoption-advanced summary {
-	cursor: pointer;
-	color: #3858e9;
-	font-size: 12px;
-	line-height: 1.35;
-}
-
-.npcink-toolbox-editor-support__adoption-advanced pre {
-	max-height: 220px;
-	margin: 8px 0 0;
-	overflow: auto;
-	padding: 8px;
-	background: #fff;
-	border: 1px solid #dcdcde;
-	border-radius: 4px;
-	font-size: 11px;
-	line-height: 1.4;
-	white-space: pre-wrap;
 }
 
 .npcink-toolbox-editor-support__empty {

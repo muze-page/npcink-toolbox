@@ -2079,7 +2079,7 @@
 		return /^[a-z0-9_-]+$/i.test(text) ? formatMetaLabel(text) : text;
 	}
 
-	function renderSelectedImagePanel(selectedImage, seoFields, adoptionRunning, adoptionResult, adoptionError, picker, onSeoFieldChange, onAdoptFeatured, onImportOnly, onSelectOnly, feedbackRunning, feedbackStatus, onSubmitFeedback, regenerationRunning, onRegenerate) {
+	function renderSelectedImagePanel(selectedImage, seoFields, adoptionRunning, adoptionAction, adoptionResult, adoptionError, picker, onSeoFieldChange, onAdoptFeatured, onImportOnly, onSelectOnly, feedbackRunning, feedbackStatus, onSubmitFeedback, regenerationRunning, onRegenerate) {
 		const activePicker = normalizeImagePickerOptions(picker || {});
 		const paragraphMode = activePicker.mode === 'paragraph';
 		const selectOnlyMode = activePicker.adoptionMode === 'select_only';
@@ -2105,7 +2105,7 @@
 			{ className: 'npcink-toolbox-editor-support__selected-image' },
 			createElement(
 				'div',
-				{ className: 'npcink-toolbox-editor-support__selected-actions' },
+				{ className: 'npcink-toolbox-editor-support__selected-actions' + (paragraphMode || selectOnlyMode ? ' is-single' : '') },
 				selectOnlyMode ? createElement(
 					Button,
 					{
@@ -2122,22 +2122,22 @@
 						type: 'button',
 						variant: 'primary',
 						className: 'npcink-toolbox-editor-support__primary-image-action',
-						isBusy: adoptionRunning,
+						isBusy: adoptionAction === 'import',
 						disabled: adoptionRunning,
 						onClick: onImportOnly,
 					},
-					adoptionRunning ? __('Importing media', 'npcink-toolbox') : __('Import paragraph image', 'npcink-toolbox')
+					adoptionAction === 'import' ? __('Importing media', 'npcink-toolbox') : __('Import paragraph image', 'npcink-toolbox')
 				) : createElement(
 					Button,
 					{
 						type: 'button',
 						variant: 'primary',
 						className: 'npcink-toolbox-editor-support__primary-image-action',
-						isBusy: adoptionRunning,
+						isBusy: adoptionAction === 'adopt',
 						disabled: adoptionRunning,
 						onClick: onAdoptFeatured,
 					},
-					adoptionRunning ? __('Adopting image', 'npcink-toolbox') : (existingAttachmentId > 0 ? __('Set as featured image', 'npcink-toolbox') : __('Adopt as featured image', 'npcink-toolbox'))
+					adoptionAction === 'adopt' ? __('Adopting image', 'npcink-toolbox') : __('Adopt', 'npcink-toolbox')
 				),
 				paragraphMode ? null : createElement(
 					Button,
@@ -2145,12 +2145,15 @@
 						type: 'button',
 						variant: 'secondary',
 						className: 'npcink-toolbox-editor-support__secondary-image-action',
+						isBusy: adoptionAction === 'import',
 						disabled: adoptionRunning,
 						onClick: onImportOnly,
 					},
-					__('Import media only', 'npcink-toolbox')
+					adoptionAction === 'import' ? __('Importing media', 'npcink-toolbox') : __('Import only', 'npcink-toolbox')
 				)
 			),
+			adoptionError ? createElement(Notice, { status: 'error', isDismissible: false }, adoptionError) : null,
+			renderAdoptionResult(adoptionResult),
 			renderAiImageRegenerationControls(selectedImage, regenerationRunning, onRegenerate),
 			createElement(
 				'div',
@@ -2202,9 +2205,7 @@
 				selectedImage.download_location ? createElement('small', null, __('Download tracking preserved', 'npcink-toolbox')) : null,
 				createElement('small', null, __('Filename: ', 'npcink-toolbox') + (seo.file_name || ''))
 			),
-			renderEditorImageFeedbackControls(selectedImage, feedbackRunning, feedbackStatus, onSubmitFeedback),
-			adoptionError ? createElement(Notice, { status: 'error', isDismissible: false }, adoptionError) : null,
-			renderAdoptionResult(adoptionResult)
+			renderEditorImageFeedbackControls(selectedImage, feedbackRunning, feedbackStatus, onSubmitFeedback)
 		);
 	}
 
@@ -3647,6 +3648,7 @@
 		const [selectedImageSeo, setSelectedImageSeo] = useState(null);
 		const [imagePreviewLightbox, setImagePreviewLightbox] = useState(null);
 		const [imageAdoptionRunning, setImageAdoptionRunning] = useState(false);
+		const [imageAdoptionAction, setImageAdoptionAction] = useState('');
 		const [imageAdoptionResult, setImageAdoptionResult] = useState(null);
 		const [imageAdoptionError, setImageAdoptionError] = useState('');
 		const [imageFeedbackRunning, setImageFeedbackRunning] = useState('');
@@ -4522,6 +4524,7 @@
 			}
 
 			setImageAdoptionRunning(true);
+			setImageAdoptionAction(setFeaturedImage ? 'adopt' : 'import');
 			setImageAdoptionError('');
 			setImageAdoptionResult(null);
 			try {
@@ -4556,6 +4559,7 @@
 				setImageAdoptionError(requestError && requestError.message ? requestError.message : __('Could not adopt the selected image.', 'npcink-toolbox'));
 			} finally {
 				setImageAdoptionRunning(false);
+				setImageAdoptionAction('');
 			}
 		}
 
@@ -4764,6 +4768,7 @@
 								selectedImage,
 								inspectorSeo,
 								imageAdoptionRunning,
+								imageAdoptionAction,
 								imageAdoptionResult,
 								imageAdoptionError,
 								activePicker,
