@@ -2702,7 +2702,7 @@
 			exclude_formats: commaList(excludeFormatsValue),
 			min_width: dimensions.width,
 			min_height: dimensions.height,
-			max_items: parseInt(raw.batch_max_items || '10', 10) || 10,
+			max_items: parseInt(raw.batch_max_items || '5', 10) || 5,
 		};
 		if (scope.date_from) {
 			input.date_from = String(scope.date_from);

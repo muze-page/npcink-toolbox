@@ -33,6 +33,9 @@ The verified loop is:
 
 This is covered by `composer smoke:media-derivative-core` and by the release
 gate in [Media Optimization Release Checklist](media-optimization-release-checklist.md).
+The selected batch path is covered separately by
+`composer smoke:media-derivative-batch-execute`; it proves selected review-set
+execution only, not unattended whole-library automation.
 
 ## Ownership Boundary
 
@@ -60,11 +63,14 @@ The product should continue to present:
 - settings URL repair: separate governed action for theme settings, plugin
   options, and other settings values;
 - batch media optimization: bounded review set, selected previews, selected
-  Core reviews.
+  Core reviews, and explicit selected replacement execution after proposal
+  submission.
 
 Batch work must not be presented as one-click whole-site replacement. Broad
 scopes can find candidates, but visible language should keep the operator in a
-review-set workflow.
+review-set workflow. The default review set should stay small, with an explicit
+upper bound, so the product feels like governed operator work instead of
+background automation.
 
 ## Why Not One-Click Whole-Site Replacement
 
@@ -86,6 +92,7 @@ Before shipping any media optimization change, run:
 ```bash
 php tests/run.php
 composer smoke:media-derivative-core
+composer smoke:media-derivative-batch-execute
 ```
 
 The release checklist must pass the six closed-loop criteria: preview,

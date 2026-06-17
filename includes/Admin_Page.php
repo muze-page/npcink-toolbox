@@ -2485,7 +2485,7 @@ final class Admin_Page {
 					</label>
 					<label>
 						<span><?php esc_html_e( 'Review set size', 'npcink-toolbox' ); ?></span>
-						<input type="number" min="1" max="25" step="1" name="batch_max_items" value="10" />
+						<input type="number" min="1" max="10" step="1" name="batch_max_items" value="5" />
 					</label>
 				</div>
 				<details class="npcink-toolbox__result-details npcink-toolbox__advanced-filters">

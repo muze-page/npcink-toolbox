@@ -12,13 +12,21 @@ Run:
 
 ```bash
 composer smoke:media-derivative-core
+composer smoke:media-derivative-batch-execute
 ```
 
-The smoke must pass end to end on a local WordPress site with Core, Adapter,
-Cloud Addon, Cloud runtime, Toolbox, and Abilities active. It creates a
-temporary image attachment, generates a Cloud derivative, submits a governed
-Core proposal, executes it, verifies the result, restores the backup, and
-cleans test fixtures.
+The single-image smoke must pass end to end on a local WordPress site with
+Core, Adapter, Cloud Addon, Cloud runtime, Toolbox, and Abilities active. It
+creates a temporary image attachment, generates a Cloud derivative, submits a
+governed Core proposal, executes it, verifies the result, restores the backup,
+and cleans test fixtures.
+
+The selected-batch execution smoke must also pass before the fixed batch
+replacement button is treated as release-ready. It creates two temporary JPEG
+attachments, builds a selected review plan, generates selected Cloud derivative
+artifacts, creates selected Core media optimization proposals, calls Adapter
+`approve-and-execute`, verifies execution evidence, and restores the attachments
+through governed rollback proposals.
 
 ## Pass Criteria
 
@@ -56,6 +64,8 @@ Confirm the operator-facing path is still understandable:
   repair, and settings URL repair are separate governed actions;
 - batch flow says bounded review set, selected previews, and selected Core
   reviews, not one-click whole-site replacement;
+- batch flow defaults to a small review set and does not ask operators to run
+  unattended whole-library replacement;
 - the generated preview image loads through the same-origin signed preview
   proxy;
 - no button or success state implies Toolbox or Cloud directly writes
@@ -63,13 +73,15 @@ Confirm the operator-facing path is still understandable:
 
 ## Failure Handling
 
-If `composer smoke:media-derivative-core` fails:
+If either required smoke fails:
 
 - do not ship the media optimization change;
 - check whether Cloud run result polling is still pending before treating a
   transient `409` as a hard failure;
 - inspect Adapter/Core response bodies for proposal, preflight, execution, or
   restore errors;
+- for selected-batch partial failures, keep completed Adapter/Core execution
+  evidence, then create a revised proposal only for unresolved items;
 - keep temporary test attachments and Core proposal fixtures cleaned up before
   rerunning the smoke.
 
