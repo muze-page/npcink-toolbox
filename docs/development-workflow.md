@@ -322,23 +322,21 @@ Adapter `run-read-ability`, generates selected Cloud previews, builds reviewed
 media optimization proposal payloads, and creates two Core review proposals. It
 does not approve, preflight, execute, or replace media files.
 
-Before Toolbox presents batch "replace original image" as a product-ready fixed
-button, the OpenClaw/Adapter layer needs a selected-batch execution smoke that
-extends the single-image `composer smoke:media-derivative-core` proof:
+For the selected batch execution proof behind the fixed "replace original
+image" button, run:
 
-```text
-temporary JPEG attachments
--> selected batch plan
--> selected Cloud derivative artifacts
--> selected Core media optimization proposals
--> Adapter approve-and-execute for each approved proposal
--> file pointer, MIME, backup history, URL repair evidence
--> governed restore proposals
+```bash
+composer smoke:media-derivative-batch-execute
 ```
 
-Toolbox-side work should stay at review-set UI, selected preview generation,
-selected Core proposal submission, and Adapter result rendering until that
-OpenClaw batch execution proof exists.
+This extends the single-image `composer smoke:media-derivative-core` proof:
+it creates two temporary JPEG attachments, builds the selected batch plan,
+generates selected Cloud derivative artifacts, creates selected Core media
+optimization proposals, calls Adapter `approve-and-execute` for each selected
+proposal, verifies file pointer/MIME/ALT/backup evidence, and restores each
+attachment through governed restore proposals. Keep it outside `composer
+test:all` because it performs real local media replacements and requires
+Adapter, Core, Abilities, Cloud Addon, and Cloud runtime availability.
 
 ## Coding Rules
 
