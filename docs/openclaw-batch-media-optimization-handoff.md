@@ -114,6 +114,15 @@ the current Toolbox surface. Broad scopes can produce bounded review sets, but
 the operator must still review selected candidates and see skipped reasons
 before any proposal or execution step.
 
+The fixed Toolbox action may call Adapter `approve-and-execute` for selected
+Core media replacement proposals only after selected previews and proposal ids
+exist. The UI must render Adapter response fields such as
+`selected_count`, `submitted_count`, `executed_count`, `failed_count`,
+`blocked_count`, `partial_success`, `retryable`, `operator_next_action`,
+Core preflight evidence, per-action `execution_profile`, and per-action
+`idempotency_key`. These are operator feedback and audit pointers, not Toolbox
+runtime state.
+
 ## Non-Goals
 
 Do not implement batch media replacement by adding any of the following to

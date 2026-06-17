@@ -3038,6 +3038,12 @@
 	}
 
 	function mediaBatchResultStatus(state) {
+		if (state && state.batchExecutionError) {
+			return 'execution_failed';
+		}
+		if (state && state.batchExecutionResult) {
+			return 'executed';
+		}
 		if (state && state.batchProposalError) {
 			return 'proposal_failed';
 		}
@@ -3048,6 +3054,24 @@
 			return state.batchStatus || 'preview_ready';
 		}
 		return state && state.batchStatus ? state.batchStatus : 'pending';
+	}
+
+	function mediaBatchExecutionPayload(state) {
+		return asObject(state && state.batchExecutionResult ? state.batchExecutionResult : null);
+	}
+
+	function mediaBatchExecutionErrorPayload(state) {
+		return asObject(state && state.batchExecutionError ? state.batchExecutionError : null);
+	}
+
+	function mediaBatchFirstExecutionAction(state) {
+		const payload = mediaBatchExecutionPayload(state);
+		const execution = asObject(payload.execution);
+		const results = asArray(firstFilled([payload.results, execution.results], []));
+		if (results.length) {
+			return asObject(results[0]);
+		}
+		return asObject(firstFilled([payload.result, execution.result], {}));
 	}
 
 	function renderMediaDerivativeRun(form, state, message) {
@@ -3342,7 +3366,15 @@
 		);
 		const failedCount = integerOr(
 			batchContext.failed_count || batchContext.failedCount,
-			states.filter((state) => state && state.batchProposalError).length
+			states.filter((state) => state && (state.batchProposalError || state.batchExecutionError)).length
+		);
+		const executedCount = integerOr(
+			batchContext.executed_count || batchContext.executedCount,
+			states.filter((state) => state && state.batchExecutionResult).length
+		);
+		const blockedCount = integerOr(
+			batchContext.blocked_count || batchContext.blockedCount,
+			0
 		);
 		const result = renderShell(
 			form,
@@ -3358,9 +3390,12 @@
 		appendMeta(meta, 'Selected', selectedCount);
 		appendMeta(meta, 'Previewed', states.length);
 		appendMeta(meta, 'Submitted', submittedCount);
+		appendMeta(meta, 'Executed', executedCount);
 		appendMeta(meta, 'Failed', failedCount);
+		appendMeta(meta, 'Blocked', blockedCount);
+		appendMeta(meta, 'Partial success', batchContext.partial_success ? 'Yes' : 'No');
 		appendMeta(meta, 'Retryable', batchContext.retryable ? 'Yes' : 'No');
-		appendMeta(meta, 'Proposal path', 'Core review');
+		appendMeta(meta, 'Proposal path', 'Core/Adapter governed execution');
 		appendMeta(meta, 'Crop', states.length ? mediaDerivativeCropLabel(states[0].abilityInput) : '');
 		appendMeta(meta, 'Watermark', states.length ? mediaDerivativeWatermarkLabel(states[0].abilityInput) : '');
 		result.appendChild(meta);
@@ -3371,17 +3406,27 @@
 		if (batchContext.retry_guidance) {
 			result.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'Retry guidance: ' + String(batchContext.retry_guidance)));
 		}
+		if (batchContext.core_preflight_evidence) {
+			result.appendChild(createRawDetails(batchContext.core_preflight_evidence, 'Core preflight evidence'));
+		}
 
 		const list = el('div', 'npcink-toolbox__result-list');
 		states.forEach((state) => {
 			const derivative = state.derivative || {};
 			const candidate = asObject(state.batchCandidate);
+			const executionPayload = mediaBatchExecutionPayload(state);
+			const executionError = mediaBatchExecutionErrorPayload(state);
+			const executionAction = mediaBatchFirstExecutionAction(state);
 			const row = el('article', 'npcink-toolbox__result-item');
 			row.appendChild(el('h4', '', '#' + String(state.abilityInput && state.abilityInput.attachment_id ? state.abilityInput.attachment_id : '') + ' ' + String(candidate.title || (derivative.format ? String(derivative.format).toUpperCase() : 'Derivative'))));
 			const itemMeta = el('div', 'npcink-toolbox__result-meta');
 			appendMeta(itemMeta, 'Status', formatLabel(mediaBatchResultStatus(state)));
 			appendMeta(itemMeta, 'Artifact', derivative.artifact_id || derivative.id);
 			appendMeta(itemMeta, 'Proposal', proposalIdFromResponse(state.batchProposalResult));
+			appendMeta(itemMeta, 'Execution profile', executionAction.execution_profile || executionPayload.execution_profile || executionError.failed_execution_profile);
+			appendMeta(itemMeta, 'Idempotency', executionAction.idempotency_key || executionPayload.idempotency_key || executionError.failed_idempotency_key);
+			appendMeta(itemMeta, 'Executed actions', executionPayload.executed_count);
+			appendMeta(itemMeta, 'Operator action', executionPayload.operator_next_action || executionError.operator_next_action);
 			appendMeta(itemMeta, 'Size', derivative.width && derivative.height ? derivative.width + ' x ' + derivative.height : '');
 			appendMeta(itemMeta, 'Expires', formatDateTime(derivative.expires_at));
 			appendMeta(itemMeta, 'Crop', mediaDerivativeCropLabel(state.abilityInput));
@@ -3396,10 +3441,16 @@
 			if (state.batchProposalError) {
 				row.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', formatErrorMessage(state.batchProposalError)));
 			}
+			if (state.batchExecutionError) {
+				row.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', formatErrorMessage(state.batchExecutionError)));
+			}
 			const previewUrl = withRestNonce(derivative.preview_url || '');
 			if (previewUrl) {
 				const link = createLink(previewUrl, 'Open preview');
 				row.appendChild(link);
+			}
+			if (Object.keys(executionPayload).length) {
+				row.appendChild(createRawDetails(executionPayload, 'Adapter execution result'));
 			}
 			list.appendChild(row);
 		});
@@ -3814,11 +3865,15 @@
 		renderTextResult(form, plan.operator_next_action || 'Batch plan ready. Review candidates and generate selected previews.', 'ok');
 		const runButton = form.querySelector('[data-toolbox-run-media-batch-previews]');
 		const submitButton = form.querySelector('[data-toolbox-submit-media-batch-proposals]');
+		const executeButton = form.querySelector('[data-toolbox-execute-media-batch-replacements]');
 		if (runButton instanceof HTMLButtonElement) {
 			runButton.disabled = !(asArray(plan.candidates).length > 0);
 		}
 		if (submitButton instanceof HTMLButtonElement) {
 			submitButton.disabled = true;
+		}
+		if (executeButton instanceof HTMLButtonElement) {
+			executeButton.disabled = true;
 		}
 	}
 
@@ -3850,8 +3905,12 @@
 
 		form.__magickMediaDerivativeBatchStates = states;
 		const submitButton = form.querySelector('[data-toolbox-submit-media-batch-proposals]');
+		const executeButton = form.querySelector('[data-toolbox-execute-media-batch-replacements]');
 		if (submitButton instanceof HTMLButtonElement) {
 			submitButton.disabled = states.length <= 0;
+		}
+		if (executeButton instanceof HTMLButtonElement) {
+			executeButton.disabled = true;
 		}
 		renderMediaDerivativeBatchResults(form, states, '', '', {
 			selected_count: candidates.length,
@@ -3913,6 +3972,78 @@
 		const result = form.querySelector('.npcink-toolbox__result');
 		if (result) {
 			result.appendChild(createRawDetails({ proposals, failed: failed ? formatErrorMessage(failed) : null }, 'Core proposals'));
+		}
+		const executeButton = form.querySelector('[data-toolbox-execute-media-batch-replacements]');
+		if (executeButton instanceof HTMLButtonElement) {
+			executeButton.disabled = proposals.length <= 0;
+		}
+	}
+
+	async function executeMediaDerivativeBatchReplacements(form) {
+		if (!config.adapterRestUrl) {
+			throw { message: 'Npcink Adapter REST URL is unavailable.' };
+		}
+
+		const states = Array.isArray(form.__magickMediaDerivativeBatchStates) ? form.__magickMediaDerivativeBatchStates : [];
+		const executableStates = states.filter((state) => proposalIdFromResponse(state && state.batchProposalResult));
+		if (!executableStates.length) {
+			throw { message: 'Submit selected Core reviews before approving and executing replacements.' };
+		}
+
+		const responses = [];
+		let failed = null;
+		for (let index = 0; index < executableStates.length; index += 1) {
+			const state = executableStates[index];
+			const proposalId = proposalIdFromResponse(state.batchProposalResult);
+			renderTextResult(form, t('Approving and executing replacement ') + String(index + 1) + t(' of ') + String(executableStates.length) + '...', 'pending');
+			try {
+				const response = await postJson(
+					config.adapterRestUrl,
+					'proposals/' + encodeURIComponent(proposalId) + '/approve-and-execute',
+					{
+						note: 'Approved from Toolbox fixed media batch replacement flow.',
+					}
+				);
+				state.batchExecutionResult = response;
+				state.batchExecutionError = null;
+				state.batchStatus = 'executed';
+				responses.push(response);
+			} catch (error) {
+				state.batchExecutionError = error;
+				state.batchStatus = 'execution_failed';
+				failed = error;
+				break;
+			}
+		}
+
+		const failedCount = failed ? 1 : 0;
+		const executedCount = responses.length;
+		const blockedCount = Math.max(0, executableStates.length - executedCount - failedCount);
+		const firstResponse = responses.length ? responses[responses.length - 1] : {};
+		const context = {
+			selected_count: executableStates.length,
+			submitted_count: executableStates.length,
+			executed_count: executedCount,
+			failed_count: failedCount,
+			blocked_count: blockedCount,
+			partial_success: executedCount > 0 && failedCount > 0,
+			retryable: false,
+			operator_next_action: failed
+				? (executedCount > 0 ? 'review_partial_failure_and_create_revised_proposal' : 'review_failed_execution_and_create_revised_proposal')
+				: (firstResponse.operator_next_action || 'review_execution_result'),
+			retry_guidance: failed ? 'Review the failed Adapter/Core evidence and create a revised proposal for remaining items.' : 'Use Core or Adapter execution records for audit and rollback evidence.',
+			core_preflight_evidence: firstResponse.core_preflight_evidence || null,
+		};
+		renderMediaDerivativeBatchResults(
+			form,
+			states,
+			failed ? 'Batch replacement execution stopped' : 'Batch replacements executed',
+			failed ? 'Adapter stopped after the first failed replacement. Completed items keep their Core/Adapter execution records.' : 'Adapter approved, preflighted, and executed the selected media replacement proposals through governed abilities.',
+			context
+		);
+		const result = form.querySelector('.npcink-toolbox__result');
+		if (result) {
+			result.appendChild(createRawDetails({ executions: responses, failed: failed ? failed : null }, 'Adapter approve-and-execute responses'));
 		}
 	}
 
@@ -5936,6 +6067,15 @@
 				if (batchProposalButton && form.contains(batchProposalButton)) {
 					event.preventDefault();
 					submitMediaDerivativeBatchProposals(form).catch((error) => {
+						renderTextResult(form, error && error.message ? error.message : (config.labels && config.labels.error ? config.labels.error : 'Request failed.'), 'error');
+					});
+					return;
+				}
+
+				const batchExecuteButton = event.target.closest('[data-toolbox-execute-media-batch-replacements]');
+				if (batchExecuteButton && form.contains(batchExecuteButton)) {
+					event.preventDefault();
+					executeMediaDerivativeBatchReplacements(form).catch((error) => {
 						renderTextResult(form, error && error.message ? error.message : (config.labels && config.labels.error ? config.labels.error : 'Request failed.'), 'error');
 					});
 					return;

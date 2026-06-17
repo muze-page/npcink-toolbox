@@ -81,8 +81,10 @@ The user-facing flow is deliberately small:
 3. Review the adoption preflight summary, including content URL and settings
    reference signals.
 4. Submit the Core optimization review only after the preview is acceptable.
-5. Approve, execute, audit, and roll back from Core/Adapter surfaces, not from
-   Toolbox.
+5. Approve and execute only through the explicit Adapter
+   `approve-and-execute` action, whether the operator starts that action from
+   OpenClaw, Core/Adapter, or the fixed Toolbox button.
+6. Audit and roll back from Core/Adapter evidence, not from Toolbox state.
 
 Toolbox copy should make clear that preview generation is not a WordPress write.
 The first visible success state is a derivative preview plus evidence. The
@@ -117,8 +119,10 @@ replacement. The default surface should:
    any preview or proposal action;
 3. let the operator generate previews only for selected candidates;
 4. submit only selected Core reviews;
-5. leave Core/Adapter to approve, execute, audit, and roll back each governed
-   proposal.
+5. let the operator explicitly call Adapter `approve-and-execute` for the
+   selected Core review set after preview/proposal review;
+6. render Adapter/Core execution results, audit evidence, and rollback guidance
+   without storing workflow truth in Toolbox.
 
 Batch "direct replacement" is allowed only as a productized result of the
 OpenClaw/Adapter batch contract. The implementation order is:
@@ -142,11 +146,13 @@ stage. Broad scopes may exist as bounded candidate searches, but the visible
 language should keep the operator focused on sampled review sets and selected
 proposal submission.
 
-Batch response payloads should follow
+Batch response and execution payloads should follow
 [Batch Automation Governance Plan](batch-automation-governance-plan.md): include
 `blocked_items[]`, `retryable`, `retry_guidance`, `operator_next_action`,
-selected/submitted counts, and per-item status or result references. Those
-fields are display and handoff evidence, not a Toolbox workflow store.
+selected/submitted/executed/failed/blocked counts, `partial_success`, Core
+preflight evidence, per-action `execution_profile`, per-action
+`idempotency_key`, and per-item status or result references. Those fields are
+display and handoff evidence, not a Toolbox workflow store.
 
 ## Proposal Shape
 
