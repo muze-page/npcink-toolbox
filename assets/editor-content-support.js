@@ -1841,23 +1841,6 @@
 		}
 	}
 
-	function renderAdvancedAdoptionDetails(result) {
-		if (!result || typeof result !== 'object') {
-			return null;
-		}
-		return createElement(
-			'details',
-			{ className: 'npcink-toolbox-editor-support__adoption-advanced' },
-			createElement('summary', null, __('Advanced details', 'npcink-toolbox')),
-			createElement('pre', null, JSON.stringify({
-				plan: result.plan || null,
-				core: result.core || null,
-				local_consent: result.local_consent || null,
-				core_error: result.core_error || null,
-			}, null, 2))
-		);
-	}
-
 	function renderAdoptionResult(result) {
 		if (!result || typeof result !== 'object') {
 			return null;
@@ -1874,20 +1857,19 @@
 		const summary = status === 'adopted'
 			? (localConsent
 				? __('Local admin consent set the existing media item as the featured image and recorded Core audit evidence.', 'npcink-toolbox')
-				: (mediaImportOnly ? __('Adapter approved the Core proposal and executed the media import with SEO fields. Insert or place it from the media library after review.', 'npcink-toolbox') : __('Adapter approved the Core proposal and executed the media import, SEO fields, and featured image action. Refresh the editor if the image does not update immediately.', 'npcink-toolbox')))
+				: (mediaImportOnly ? __('The media item was automatically approved through Core policy and imported with SEO fields. It is ready to use from the media library.', 'npcink-toolbox') : __('Adapter approved the Core proposal and executed the media import, SEO fields, and featured image action. Refresh the editor if the image does not update immediately.', 'npcink-toolbox')))
 			: (status === 'submitted'
 				? __('Core created the adoption proposal. Automatic execution did not return a completed result; check Core for status.', 'npcink-toolbox')
 				: __('Automatic execution was unavailable or blocked by Adapter/Core policy. The Core proposal remains available for review.', 'npcink-toolbox'));
+		const coreLinkLabel = status === 'adopted' ? __('View Core audit record', 'npcink-toolbox') : __('Open in Core', 'npcink-toolbox');
 		return createElement(
 			'div',
 			{ className: 'npcink-toolbox-editor-support__adoption-result is-' + status },
 			createElement('strong', null, title),
 			createElement('span', null, summary),
-			proposalId ? createElement('small', null, __('Proposal: ', 'npcink-toolbox') + String(proposalId)) : null,
 			proposalId && config.coreAdminUrl
-				? createElement('a', { href: config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId), target: '_blank', rel: 'noreferrer' }, __('Open in Core', 'npcink-toolbox'))
-				: null,
-			renderAdvancedAdoptionDetails(result)
+				? createElement('a', { href: config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId), target: '_blank', rel: 'noreferrer' }, coreLinkLabel)
+				: (proposalId ? createElement('small', null, __('Proposal: ', 'npcink-toolbox') + String(proposalId)) : null)
 		);
 	}
 
@@ -2115,7 +2097,7 @@
 						disabled: adoptionRunning,
 						onClick: onAdoptFeatured,
 					},
-					adoptionRunning ? __('Adopting image', 'npcink-toolbox') : (existingAttachmentId > 0 ? __('Set as featured image', 'npcink-toolbox') : __('Adopt as featured image', 'npcink-toolbox'))
+					adoptionRunning ? __('Adopting image', 'npcink-toolbox') : __('Adopt', 'npcink-toolbox')
 				),
 				paragraphMode ? null : createElement(
 					Button,
@@ -2126,9 +2108,11 @@
 						disabled: adoptionRunning,
 						onClick: onImportOnly,
 					},
-					__('Import media only', 'npcink-toolbox')
+					__('Import only', 'npcink-toolbox')
 				)
 			),
+			adoptionError ? createElement(Notice, { status: 'error', isDismissible: false }, adoptionError) : null,
+			renderAdoptionResult(adoptionResult),
 			renderAiImageRegenerationControls(selectedImage, regenerationRunning, onRegenerate),
 			createElement(
 				'div',
@@ -2180,9 +2164,7 @@
 				selectedImage.download_location ? createElement('small', null, __('Download tracking preserved', 'npcink-toolbox')) : null,
 				createElement('small', null, __('Filename: ', 'npcink-toolbox') + (seo.file_name || ''))
 			),
-			renderEditorImageFeedbackControls(selectedImage, feedbackRunning, feedbackStatus, onSubmitFeedback),
-			adoptionError ? createElement(Notice, { status: 'error', isDismissible: false }, adoptionError) : null,
-			renderAdoptionResult(adoptionResult)
+			renderEditorImageFeedbackControls(selectedImage, feedbackRunning, feedbackStatus, onSubmitFeedback)
 		);
 	}
 
