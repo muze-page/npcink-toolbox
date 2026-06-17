@@ -146,6 +146,10 @@ WordPress content. Current Pro planning does not introduce plugin-side Action
 Scheduler; Pro batch processing should use Cloud Batch Runtime, with the plugin
 limited to read-only entitlement detail, batch intent, status/result sync, and
 reviewed Core proposal handoff.
+The runtime module remains bundled with Toolbox for release. It should become a
+separate plugin only after a new ADR proves independent lifecycle needs, real
+runtime state, a stable cross-plugin API, explicit data migration/uninstall
+ownership, and graceful Toolbox degradation when the runtime plugin is inactive.
 The product posture is Cloud-first, not cloud-only: Pro Cloud Batch Runtime is
 the primary commercial path for reliable scoring, entitlement, usage metering,
 queue-backed execution, retry, observability, and result retention, while the

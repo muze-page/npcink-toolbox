@@ -6,6 +6,12 @@ The local automation runtime is independently owned as
 `npcink-local-automation-runtime` and may be bundled in Toolbox for release as
 `modules/local-automation-runtime/`.
 
+The current packaging rule is separate boundary, bundled release. Do not publish
+this module as a separate WordPress plugin until a new ADR proves that the
+runtime needs an independent lifecycle, real local runtime state, a stable
+cross-plugin API, explicit schema/migration/uninstall ownership, and Toolbox
+degradation when the runtime plugin is inactive.
+
 Toolbox may host the module and later expose an operator console, but Toolbox
 fixed-flow buttons must not become the runtime state machine, scheduler, lease
 manager, retry processor, dead-letter processor, approval path, or final write

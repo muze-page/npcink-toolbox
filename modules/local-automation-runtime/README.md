@@ -5,6 +5,11 @@ Status: Phase 1 bundled skeleton plus Phase 2 Basic WP-Cron local fallback previ
 This module carries the future `npcink-local-automation-runtime` contract inside
 the Toolbox release package without making Toolbox a runtime owner.
 
+Release packaging rule: keep this module bundled with Toolbox until a future
+ADR proves that a separate plugin is required. A separate plugin is not justified
+while the module only provides contracts, validators, fixtures, dry-run replay,
+local fallback previews, and review-set projections.
+
 Current scope:
 
 - validate `npcink_local_automation_runtime.v1` dry-run replay fixtures;
@@ -46,6 +51,12 @@ The module namespace is `Npcink\LocalAutomationRuntime`. If later phases add a
 runtime console or worker, they must keep this module isolated from Toolbox
 fixed-flow buttons and must continue to use Core proposal approval and commit
 preflight before any WordPress write.
+
+Extraction gates for a standalone `npcink-local-automation-runtime` plugin are:
+independent release lifecycle, real local runtime state, a stable cross-plugin API,
+explicit schema/migration/uninstall ownership, Toolbox degradation when the plugin
+is inactive, and no ownership of Core approval truth, Adapter execution policy, or
+WordPress final writes.
 
 Nightly Site Inspection Phase 1A is a read-only collector, builder, and
 manual-planner preview. It is not a runtime execution phase. The administrator
