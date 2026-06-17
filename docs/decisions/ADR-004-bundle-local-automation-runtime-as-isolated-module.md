@@ -91,6 +91,31 @@ fixed-flow buttons must not become the runtime state machine, scheduler, lease
 manager, retry processor, dead-letter processor, approval path, or final write
 executor.
 
+### Release Packaging Rule
+
+Current release packaging remains bundled in Toolbox. The module is developed
+with independent namespace, contracts, fixtures, validators, and smoke tests,
+but it is not published as a separate WordPress plugin while it only provides
+review-set contracts, dry-run replay validation, local fallback previews, and
+operator UI projections.
+
+Publishing `npcink-local-automation-runtime` as a separate plugin requires a
+new ADR and all of these extraction gates:
+
+- an independent lifecycle that must be upgraded separately from Toolbox;
+- real local runtime state, such as jobs, pause/resume/cancel, retry, failure
+  recovery, or retained result status;
+- a stable cross-plugin API used by Toolbox or other Npcink plugins;
+- explicit data ownership, schema versioning, migration, and uninstall policy;
+- a graceful Toolbox degradation path when the runtime plugin is inactive;
+- no ownership of Core approval truth, Adapter execution policy, or WordPress
+  final writes.
+
+Until those gates exist, the correct implementation path is "separate boundary,
+bundled release": keep code isolated under `modules/local-automation-runtime/`,
+keep product UI in Toolbox, and keep final writes behind Core, Adapter, and
+Abilities.
+
 ## Alternatives Considered
 
 ### Publish only as a separate plugin
@@ -107,6 +132,9 @@ Cons:
 
 Rejected as a product requirement. Separate development remains useful, but
 release bundling is acceptable when module boundaries are enforced.
+It remains rejected for the current review-set and dry-run preview stage because
+there is no independent runtime lifecycle, no cross-plugin runtime API, and no
+runtime-owned storage that would justify separate installation.
 
 ### Put runtime logic directly into existing Toolbox flows
 

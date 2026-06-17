@@ -2876,6 +2876,98 @@
 		], 'blocked');
 	}
 
+	function mediaBatchRetryGuidanceText(value) {
+		const guidance = asObject(value);
+		return firstFilled([
+			guidance.operator_next_action,
+			guidance.reason,
+			typeof value === 'string' ? value : '',
+		], '');
+	}
+
+	function buildLocalAutomationMediaConversionReviewSet(plan, candidates, blockedItems) {
+		const filters = asObject(plan.filters);
+		const eligibility = asObject(plan.eligibility_summary);
+		const targetFormat = firstFilled([
+			filters.target_format,
+			candidates.length ? candidates[0].target_format : '',
+			candidates.length ? asObject(candidates[0].cloud_request_input).preferred_format : '',
+		], 'webp');
+		const selectedItems = candidates.map((candidate) => {
+			const attachmentId = integerOr(candidate.attachment_id || candidate.id, 0);
+			return {
+				attachment_id: attachmentId,
+				source_mime_type: firstFilled([candidate.mime_type, candidate.source_mime_type], 'image/unknown'),
+				target_format: firstFilled([candidate.target_format, asObject(candidate.cloud_request_input).preferred_format], targetFormat),
+				preview_required: true,
+				target_ability_id: 'npcink-abilities-toolkit/build-media-derivative-cloud-request',
+				proposal_path: 'core_proposal_required',
+				result_ref: firstFilled([candidate.result_ref, candidate.result_reference], 'attachment:' + String(attachmentId)),
+				direct_wordpress_write: false,
+			};
+		});
+		const normalizedBlocked = blockedItems.map((item) => ({
+			attachment_id: integerOr(item.attachment_id || item.id, 0),
+			source_mime_type: firstFilled([item.mime_type, item.source_mime_type], 'image/unknown'),
+			blocked_reason: mediaBatchBlockedReason(item),
+			operator_next_action: firstFilled([item.operator_next_action], 'adjust_filters_or_skip'),
+			retryable: false,
+		}));
+		const retryable = Boolean(plan.retryable);
+		const selectedIds = selectedItems.concat(normalizedBlocked)
+			.map((item) => integerOr(item.attachment_id, 0))
+			.filter(Boolean)
+			.filter((value, index, list) => list.indexOf(value) === index);
+
+		return {
+			contract_version: 'npcink_local_automation_media_conversion_review_set.v1',
+			runtime_owner: 'npcink-local-automation-runtime',
+			operation_family: 'media_conversion',
+			mode: 'governed_review_set',
+			trigger: 'operator_manual_review',
+			scope: {
+				object_type: 'attachment',
+				source: 'media_library',
+				target_format: targetFormat,
+				max_items: integerOr(filters.max_items, candidates.length),
+				selected_attachment_ids: selectedIds,
+			},
+			eligibility_summary: {
+				items_total: integerOr(firstFilled([eligibility.total_count, eligibility.items_total], selectedItems.length + normalizedBlocked.length), selectedItems.length + normalizedBlocked.length),
+				eligible_count: integerOr(eligibility.eligible_count, selectedItems.length),
+				selected_count: selectedItems.length,
+				blocked_count: normalizedBlocked.length,
+				needs_input_count: integerOr(eligibility.needs_input_count, 0),
+				risk_level: 'medium',
+				target_ability_ids: ['npcink-abilities-toolkit/build-media-derivative-cloud-request'],
+			},
+			selected_items: selectedItems,
+			blocked_items: normalizedBlocked,
+			operator_next_action: plan.operator_next_action,
+			retryable: retryable,
+			retry_guidance: {
+				retryable: retryable,
+				reason: retryable ? 'review_set_can_be_rebuilt' : 'review_set_not_execution_state',
+				operator_next_action: mediaBatchRetryGuidanceText(plan.retry_guidance) || (retryable ? 'adjust_filters_or_selection_then_rebuild' : 'adjust_selection_or_generate_selected_previews'),
+			},
+			safety: {
+				dry_run: true,
+				direct_wordpress_write: false,
+				core_proposal_created: false,
+				approval_performed: false,
+				preflight_performed: false,
+				execution_performed: false,
+				action_scheduler_used: false,
+				custom_tables_created: false,
+				local_queue_created: false,
+				lease_store_created: false,
+				retry_worker_created: false,
+				dead_letter_created: false,
+				cloud_scheduler_truth: false,
+			},
+		};
+	}
+
 	function normalizeMediaDerivativeBatchPlan(rawPlan) {
 		const plan = Object.assign({}, asObject(rawPlan));
 		const sourceSummary = asObject(plan.summary);
@@ -2930,6 +3022,7 @@
 			plan.operator_next_action,
 			plan.operatorNextAction,
 		], candidates.length ? 'Review eligible items, then generate selected previews.' : 'Review blocked reasons or adjust filters before rebuilding the plan.');
+		plan.local_automation_review_set = buildLocalAutomationMediaConversionReviewSet(plan, candidates, blockedItems);
 		return plan;
 	}
 
@@ -3046,37 +3139,47 @@
 		}
 		const candidates = asArray(plan.candidates);
 		const skipped = asArray(plan.skipped);
-		const blockedItems = asArray(plan.blocked_items);
+		const reviewSet = asObject(plan.local_automation_review_set);
+		const reviewSetEligibility = asObject(reviewSet.eligibility_summary);
+		const reviewSetScope = asObject(reviewSet.scope);
+		const blockedItems = asArray(firstFilled([reviewSet.blocked_items, plan.blocked_items], []));
 		const summary = asObject(plan.summary);
-		const eligibility = asObject(plan.eligibility_summary);
+		const eligibility = Object.assign({}, asObject(plan.eligibility_summary), reviewSetEligibility);
 		panel.hidden = false;
 		panel.innerHTML = '';
 
 		const heading = el('div', 'npcink-toolbox__batch-heading');
-		heading.appendChild(el('h4', '', 'Batch plan'));
+		heading.appendChild(el('h4', '', 'Media conversion review set'));
 		const meta = el('div', 'npcink-toolbox__result-meta');
 		appendMeta(meta, 'Eligible', eligibility.eligible_count || summary.candidate_count || candidates.length);
 		appendMeta(meta, 'Blocked', eligibility.blocked_count || summary.skipped_count || blockedItems.length || skipped.length);
-		appendMeta(meta, 'Matched', eligibility.total_count || summary.total_matched);
+		appendMeta(meta, 'Matched', eligibility.items_total || eligibility.total_count || summary.total_matched);
 		appendMeta(meta, 'Selected', eligibility.selected_count || candidates.length);
-		appendMeta(meta, 'Retryable', plan.retryable ? 'Yes' : 'No');
-		appendMeta(meta, 'Mode', plan.plan_mode || 'dry_run');
+		appendMeta(meta, 'Retryable', reviewSet.retryable || plan.retryable ? 'Yes' : 'No');
+		appendMeta(meta, 'Mode', reviewSet.mode || plan.plan_mode || 'dry_run');
+		appendMeta(meta, 'Contract', reviewSet.contract_version);
+		appendMeta(meta, 'Target', reviewSetScope.target_format ? String(reviewSetScope.target_format).toUpperCase() : '');
+		appendMeta(meta, 'Runtime owner', reviewSet.runtime_owner);
 		heading.appendChild(meta);
 		panel.appendChild(heading);
 
-		if (plan.operator_next_action) {
-			panel.appendChild(el('div', 'npcink-toolbox__result-notice is-ok', 'Next action: ' + String(plan.operator_next_action)));
+		if (reviewSet.operator_next_action || plan.operator_next_action) {
+			panel.appendChild(el('div', 'npcink-toolbox__result-notice is-ok', 'Next action: ' + String(reviewSet.operator_next_action || plan.operator_next_action)));
 		}
-		if (plan.retry_guidance) {
-			panel.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'Retry guidance: ' + String(plan.retry_guidance)));
+		const retryGuidanceText = mediaBatchRetryGuidanceText(reviewSet.retry_guidance || plan.retry_guidance);
+		if (retryGuidanceText) {
+			panel.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'Retry guidance: ' + retryGuidanceText));
 		}
+		panel.appendChild(el('div', 'npcink-toolbox__result-notice is-ok', 'Toolbox is rendering a governed review set only. Previews and Core proposal submission still require selected operator action.'));
 
 		if (!candidates.length) {
 			panel.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'No candidates are ready for derivative previews. Review skipped reasons or adjust filters.'));
 		}
 
 		const list = el('div', 'npcink-toolbox__batch-list');
+		const selectedItems = asArray(reviewSet.selected_items);
 		candidates.forEach((candidate, index) => {
+			const reviewItem = selectedItems[index] || {};
 			const row = el('label', 'npcink-toolbox__batch-row');
 			const checkbox = document.createElement('input');
 			checkbox.type = 'checkbox';
@@ -3095,7 +3198,8 @@
 			const status = [
 				candidate.status ? formatLabel(candidate.status) : 'Eligible',
 				candidate.reason || candidate.eligibility_reason || '',
-				candidate.result_ref || candidate.result_reference || '',
+				reviewItem.proposal_path ? formatLabel(reviewItem.proposal_path) : '',
+				reviewItem.result_ref || candidate.result_ref || candidate.result_reference || '',
 			].filter(Boolean).join(' · ');
 			if (status) {
 				body.appendChild(el('small', 'npcink-toolbox__batch-status', status));

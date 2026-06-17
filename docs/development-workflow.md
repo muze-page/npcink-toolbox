@@ -296,6 +296,20 @@ and `retry_guidance`, and proves planning does not change the fixture media
 files. It does not call Cloud, create Core proposals, approve, preflight, or
 execute WordPress writes.
 
+For the optional browser check of that review-set UI, run:
+
+```bash
+NODE_PATH="${NODE_PATH:-/Users/muze/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules}" composer smoke:media-conversion-review-set-browser
+```
+
+This opens the Toolbox media derivative surface, builds the read-only batch
+plan, confirms the UI renders
+`npcink_local_automation_media_conversion_review_set.v1`,
+`npcink-local-automation-runtime`, and `governed_review_set`, and verifies the
+browser does not call preview, Core proposal, or execute routes. It is outside
+`composer test:all` because it needs a running local WordPress site, WP-CLI
+login-cookie generation, Playwright, and a local browser.
+
 When Adapter, Cloud Addon, and Core are available, run the selected-preview
 Core proposal smoke:
 
