@@ -1841,6 +1841,36 @@
 		}
 	}
 
+	function renderAdvancedAdoptionDetails(result) {
+		if (!result || typeof result !== 'object') {
+			return null;
+		}
+		const core = adoptionCorePayload(result);
+		const proposalId = extractProposalId(core, 0);
+		if (!proposalId) {
+			return null;
+		}
+		return createElement(
+			'details',
+			{ className: 'npcink-toolbox-editor-support__adoption-advanced' },
+			createElement('summary', null, __('Core audit record', 'npcink-toolbox')),
+			createElement(
+				'p',
+				null,
+				createElement('strong', null, __('Proposal: ', 'npcink-toolbox')),
+				String(proposalId),
+				' ',
+				config.coreAdminUrl
+					? createElement(
+						'a',
+						{ href: config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId), target: '_blank', rel: 'noreferrer' },
+						__('Open in Core', 'npcink-toolbox')
+					)
+					: null
+			)
+		);
+	}
+
 	function renderAdoptionResult(result) {
 		if (!result || typeof result !== 'object') {
 			return null;
@@ -1861,15 +1891,17 @@
 			: (status === 'submitted'
 				? __('Core created the adoption proposal. Automatic execution did not return a completed result; check Core for status.', 'npcink-toolbox')
 				: __('Automatic execution was unavailable or blocked by Adapter/Core policy. The Core proposal remains available for review.', 'npcink-toolbox'));
-		const coreLinkLabel = status === 'adopted' ? __('View Core audit record', 'npcink-toolbox') : __('Open in Core', 'npcink-toolbox');
+		const showPrimaryProposalLink = proposalId && status !== 'adopted';
 		return createElement(
 			'div',
 			{ className: 'npcink-toolbox-editor-support__adoption-result is-' + status },
 			createElement('strong', null, title),
 			createElement('span', null, summary),
-			proposalId && config.coreAdminUrl
-				? createElement('a', { href: config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId), target: '_blank', rel: 'noreferrer' }, coreLinkLabel)
-				: (proposalId ? createElement('small', null, __('Proposal: ', 'npcink-toolbox') + String(proposalId)) : null)
+			showPrimaryProposalLink ? createElement('small', null, __('Proposal: ', 'npcink-toolbox') + String(proposalId)) : null,
+			showPrimaryProposalLink && config.coreAdminUrl
+				? createElement('a', { href: config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId), target: '_blank', rel: 'noreferrer' }, __('Open in Core', 'npcink-toolbox'))
+				: null,
+			renderAdvancedAdoptionDetails(result)
 		);
 	}
 
@@ -2039,12 +2071,7 @@
 		const paragraphMode = activePicker.mode === 'paragraph';
 		const selectOnlyMode = activePicker.adoptionMode === 'select_only';
 		if (!selectedImage) {
-			return createElement(
-				'div',
-				{ className: 'npcink-toolbox-editor-support__selected-image is-empty' },
-				createElement('strong', null, activePicker.emptyTitle),
-				createElement('span', null, __('Choose a source image on the left to review media details and SEO fields here.', 'npcink-toolbox'))
-			);
+			return null;
 		}
 
 		const seo = seoFields || {};
