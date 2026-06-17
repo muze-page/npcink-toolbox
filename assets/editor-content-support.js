@@ -87,7 +87,20 @@
 	const Spinner = components.Spinner || function SpinnerFallback() {
 		return createElement('span', { className: 'npcink-toolbox-editor-support__spinner' }, '...');
 	};
-	const sidebarIcon = createElement('span', { className: 'npcink-toolbox-editor-support__toolbar-icon', 'aria-hidden': 'true' }, 'AI');
+	const sidebarIcon = createElement(
+		'svg',
+		{
+			className: 'npcink-toolbox-editor-support__toolbar-icon',
+			viewBox: '0 0 24 24',
+			width: 24,
+			height: 24,
+			'aria-hidden': 'true',
+			focusable: 'false',
+			role: 'img',
+		},
+		createElement('rect', { x: 2, y: 2, width: 20, height: 20, rx: 5, fill: '#3858e9' }),
+		createElement('text', { x: 12, y: 15, textAnchor: 'middle', fill: '#fff', fontSize: 9, fontWeight: 700, fontFamily: 'Arial, sans-serif' }, 'AI')
+	);
 	const paragraphImageIcon = createElement('span', { className: 'dashicons dashicons-format-image npcink-toolbox-editor-support__block-toolbar-icon', 'aria-hidden': 'true' });
 
 	const imagePickerPresets = {
@@ -1841,36 +1854,6 @@
 		}
 	}
 
-	function renderAdvancedAdoptionDetails(result) {
-		if (!result || typeof result !== 'object') {
-			return null;
-		}
-		const core = adoptionCorePayload(result);
-		const proposalId = extractProposalId(core, 0);
-		if (!proposalId) {
-			return null;
-		}
-		return createElement(
-			'details',
-			{ className: 'npcink-toolbox-editor-support__adoption-advanced' },
-			createElement('summary', null, __('Core audit record', 'npcink-toolbox')),
-			createElement(
-				'p',
-				null,
-				createElement('strong', null, __('Proposal: ', 'npcink-toolbox')),
-				String(proposalId),
-				' ',
-				config.coreAdminUrl
-					? createElement(
-						'a',
-						{ href: config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId), target: '_blank', rel: 'noreferrer' },
-						__('Open in Core', 'npcink-toolbox')
-					)
-					: null
-			)
-		);
-	}
-
 	function renderAdoptionResult(result) {
 		if (!result || typeof result !== 'object') {
 			return null;
@@ -1886,22 +1869,30 @@
 			: (status === 'submitted' ? __('Adoption request sent', 'npcink-toolbox') : __('Automatic adoption not completed', 'npcink-toolbox'));
 		const summary = status === 'adopted'
 			? (localConsent
-				? __('Local admin consent set the existing media item as the featured image and recorded Core audit evidence.', 'npcink-toolbox')
-				: (mediaImportOnly ? __('The media item was automatically approved through Core policy and imported with SEO fields. It is ready to use from the media library.', 'npcink-toolbox') : __('Adapter approved the Core proposal and executed the media import, SEO fields, and featured image action. Refresh the editor if the image does not update immediately.', 'npcink-toolbox')))
+				? __('Existing media is now the featured image.', 'npcink-toolbox')
+				: (mediaImportOnly ? __('Media is imported and ready in the media library.', 'npcink-toolbox') : __('Image is imported and applied as the featured image.', 'npcink-toolbox')))
 			: (status === 'submitted'
-				? __('Core created the adoption proposal. Automatic execution did not return a completed result; check Core for status.', 'npcink-toolbox')
-				: __('Automatic execution was unavailable or blocked by Adapter/Core policy. The Core proposal remains available for review.', 'npcink-toolbox'));
-		const showPrimaryProposalLink = proposalId && status !== 'adopted';
+				? __('Request was sent to Core. Open Core to check the current status.', 'npcink-toolbox')
+				: __('Automatic completion was unavailable. Open Core to review the proposal.', 'npcink-toolbox'));
+		const coreLink = proposalId && config.coreAdminUrl
+			? createElement(
+				'a',
+				{
+					className: 'npcink-toolbox-editor-support__core-record-link',
+					href: config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId),
+					target: '_blank',
+					rel: 'noreferrer'
+				},
+				__('Open Core record', 'npcink-toolbox')
+			)
+			: null;
 		return createElement(
 			'div',
 			{ className: 'npcink-toolbox-editor-support__adoption-result is-' + status },
 			createElement('strong', null, title),
 			createElement('span', null, summary),
-			showPrimaryProposalLink ? createElement('small', null, __('Proposal: ', 'npcink-toolbox') + String(proposalId)) : null,
-			showPrimaryProposalLink && config.coreAdminUrl
-				? createElement('a', { href: config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId), target: '_blank', rel: 'noreferrer' }, __('Open in Core', 'npcink-toolbox'))
-				: null,
-			renderAdvancedAdoptionDetails(result)
+			coreLink ? coreLink : null,
+			proposalId && !coreLink ? createElement('small', null, __('Proposal: ', 'npcink-toolbox') + String(proposalId)) : null
 		);
 	}
 
@@ -2066,7 +2057,7 @@
 		return /^[a-z0-9_-]+$/i.test(text) ? formatMetaLabel(text) : text;
 	}
 
-	function renderSelectedImagePanel(selectedImage, seoFields, adoptionRunning, adoptionResult, adoptionError, picker, onSeoFieldChange, onAdoptFeatured, onImportOnly, onSelectOnly, feedbackRunning, feedbackStatus, onSubmitFeedback, regenerationRunning, onRegenerate) {
+	function renderSelectedImagePanel(selectedImage, seoFields, adoptionRunning, adoptionAction, adoptionResult, adoptionError, picker, onSeoFieldChange, onAdoptFeatured, onImportOnly, onSelectOnly, feedbackRunning, feedbackStatus, onSubmitFeedback, regenerationRunning, onRegenerate) {
 		const activePicker = normalizeImagePickerOptions(picker || {});
 		const paragraphMode = activePicker.mode === 'paragraph';
 		const selectOnlyMode = activePicker.adoptionMode === 'select_only';
@@ -2092,7 +2083,7 @@
 			{ className: 'npcink-toolbox-editor-support__selected-image' },
 			createElement(
 				'div',
-				{ className: 'npcink-toolbox-editor-support__selected-actions' },
+				{ className: 'npcink-toolbox-editor-support__selected-actions' + (paragraphMode || selectOnlyMode ? ' is-single' : '') },
 				selectOnlyMode ? createElement(
 					Button,
 					{
@@ -2109,22 +2100,22 @@
 						type: 'button',
 						variant: 'primary',
 						className: 'npcink-toolbox-editor-support__primary-image-action',
-						isBusy: adoptionRunning,
+						isBusy: adoptionAction === 'import',
 						disabled: adoptionRunning,
 						onClick: onImportOnly,
 					},
-					adoptionRunning ? __('Importing media', 'npcink-toolbox') : __('Import paragraph image', 'npcink-toolbox')
+					adoptionAction === 'import' ? __('Importing media', 'npcink-toolbox') : __('Import paragraph image', 'npcink-toolbox')
 				) : createElement(
 					Button,
 					{
 						type: 'button',
 						variant: 'primary',
 						className: 'npcink-toolbox-editor-support__primary-image-action',
-						isBusy: adoptionRunning,
+						isBusy: adoptionAction === 'adopt',
 						disabled: adoptionRunning,
 						onClick: onAdoptFeatured,
 					},
-					adoptionRunning ? __('Adopting image', 'npcink-toolbox') : (existingAttachmentId > 0 ? __('Set as featured image', 'npcink-toolbox') : __('Adopt as featured image', 'npcink-toolbox'))
+					adoptionAction === 'adopt' ? __('Adopting image', 'npcink-toolbox') : __('Adopt', 'npcink-toolbox')
 				),
 				paragraphMode ? null : createElement(
 					Button,
@@ -2132,10 +2123,11 @@
 						type: 'button',
 						variant: 'secondary',
 						className: 'npcink-toolbox-editor-support__secondary-image-action',
+						isBusy: adoptionAction === 'import',
 						disabled: adoptionRunning,
 						onClick: onImportOnly,
 					},
-					__('Import media only', 'npcink-toolbox')
+					adoptionAction === 'import' ? __('Importing media', 'npcink-toolbox') : __('Import only', 'npcink-toolbox')
 				)
 			),
 			renderAiImageRegenerationControls(selectedImage, regenerationRunning, onRegenerate),
@@ -3634,6 +3626,7 @@
 		const [selectedImageSeo, setSelectedImageSeo] = useState(null);
 		const [imagePreviewLightbox, setImagePreviewLightbox] = useState(null);
 		const [imageAdoptionRunning, setImageAdoptionRunning] = useState(false);
+		const [imageAdoptionAction, setImageAdoptionAction] = useState('');
 		const [imageAdoptionResult, setImageAdoptionResult] = useState(null);
 		const [imageAdoptionError, setImageAdoptionError] = useState('');
 		const [imageFeedbackRunning, setImageFeedbackRunning] = useState('');
@@ -4509,6 +4502,7 @@
 			}
 
 			setImageAdoptionRunning(true);
+			setImageAdoptionAction(setFeaturedImage ? 'adopt' : 'import');
 			setImageAdoptionError('');
 			setImageAdoptionResult(null);
 			try {
@@ -4543,6 +4537,7 @@
 				setImageAdoptionError(requestError && requestError.message ? requestError.message : __('Could not adopt the selected image.', 'npcink-toolbox'));
 			} finally {
 				setImageAdoptionRunning(false);
+				setImageAdoptionAction('');
 			}
 		}
 
@@ -4751,6 +4746,7 @@
 								selectedImage,
 								inspectorSeo,
 								imageAdoptionRunning,
+								imageAdoptionAction,
 								imageAdoptionResult,
 								imageAdoptionError,
 								activePicker,
