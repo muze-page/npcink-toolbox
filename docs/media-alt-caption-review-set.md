@@ -77,6 +77,68 @@ The admin UI renders the review set as:
 - blocked item details;
 - an explicit "No media metadata was changed" notice.
 
+## Stage Closeout Decision
+
+This stage should stop at the review-set layer for now.
+
+The goal is not to make Toolbox automatically batch-edit the media library. The
+goal is to turn media ALT/caption suggestions into a reviewable, governable
+batch candidate surface:
+
+1. Toolbox finds candidates, displays eligibility, selected items, blocked
+   reasons, and review guidance.
+2. Operators visually confirm suggestions against the real image.
+3. Future accepted changes move through Abilities, Core, Adapter, and final
+   WordPress ability callbacks.
+
+The current review set is worth keeping because it is lightweight and useful:
+
+- it gives operators a quick inventory of weak or incomplete media metadata;
+- it proves the batch UX shape for eligibility, blocked reasons, selected
+  items, retry guidance, and operator next action;
+- it keeps AI output suggestion-only and makes sample limitations explicit;
+- it creates a reusable pattern for later taxonomy/tag and internal-link review
+  sets without adding write risk.
+
+Full batch apply is intentionally deferred. Building it now would require a
+cross-repo write path for media metadata updates, including Abilities schemas
+and dry-run previews, Core proposal and preflight handling, Adapter execution
+profile allowlisting, per-action results, and final WordPress callbacks. That
+cost is not justified until real operator usage shows that media ALT/caption
+review sets repeatedly produce enough accepted changes to need batch apply.
+
+The current stage is considered complete when:
+
+- `/ai/site-helpers` returns `media_alt_caption_review_set.v1`;
+- the admin UI renders selected and blocked items;
+- every selected item requires visual review;
+- the result states that no media metadata was changed;
+- direct writes, proposal creation, queues, and derivative replacement runs
+  remain disabled.
+
+Do not add an "apply", "bulk update", "replace", or "submit selected" button
+for ALT/caption metadata in Toolbox until the Future Apply Path below exists.
+
+## Restart Conditions
+
+Restart the write path only when all of these are true:
+
+- real usage shows frequent batches with meaningful selected counts, for
+  example 20 or more reviewable items across ordinary media libraries;
+- operators are accepting or lightly editing a material share of suggestions;
+- `npcink-abilities-toolkit` has a media metadata update ability contract with
+  dry-run preview;
+- `npcink-governance-core` can intake, approve, preflight, and audit the media
+  metadata proposal;
+- `magick-ai-adapter` has an explicit execution profile for the approved media
+  metadata ability;
+- the UI can still present partial failure, retry guidance, and no-write
+  fallback states without becoming a queue or workflow runtime.
+
+Until then, the useful next action is observation: use the review set against
+real media libraries, inspect selected counts, suggestion quality, blocked
+reasons, and manual review cost.
+
 ## Future Apply Path
 
 Applying accepted ALT/caption changes requires a separate governed path:
@@ -102,4 +164,3 @@ description, replacement URLs, or attachment file data from this review set.
 - no final WordPress write;
 - no claim that AI has viewed image pixels;
 - no reuse of media derivative replacement execution for metadata writes.
-
