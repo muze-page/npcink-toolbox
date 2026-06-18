@@ -71,6 +71,11 @@ Confirm the operator-facing path is still understandable:
 - no button or success state implies Toolbox or Cloud directly writes
   WordPress media.
 
+Before expanding the media surface, complete the
+[Media Optimization Operator Trial](media-optimization-operator-trial.md) on a
+small set of real low-risk attachments. Keep selected batch trials at or below
+the visible UI cap of 10 candidates.
+
 ## Failure Handling
 
 If either required smoke fails:

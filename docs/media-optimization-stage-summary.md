@@ -101,8 +101,10 @@ preflight, proposal, execution, evidence, and rollback.
 ## Next Stage
 
 Do not add video transcoding, global search-replace, complex media registry
-features, or more image operations by default. First collect real operator
-feedback on whether the fixed flow is understandable:
+features, unattended whole-library replacement, or more image operations by
+default. First run the
+[Media Optimization Operator Trial](media-optimization-operator-trial.md) and
+collect real operator feedback on whether the fixed flow is understandable:
 
 - Do users know to generate preview before submitting Core review?
 - Do they understand attachment adoption versus content URL repair versus
@@ -111,4 +113,9 @@ feedback on whether the fixed flow is understandable:
 - Do batch controls feel like selected review sets rather than whole-site
   replacement?
 
-Only after that validation should the next media capability be selected.
+Only after that validation should the next media capability be selected. The
+preferred next batch candidates are media ALT/caption review sets first,
+taxonomy/tag review sets second, and internal-link review sets third. Do not
+add old-article source coverage as a local Toolbox batch surface; site-wide or
+multi-article source coverage belongs in Nightly Inspection Cloud Batch result
+detail and reviewed Core handoff.
