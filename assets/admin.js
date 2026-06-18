@@ -4742,9 +4742,10 @@
 				status: 'draft',
 				meta: {
 					nightly_inspection_cloud_run_id: runId,
-					nightly_inspection_selected_review_item_ids: selectedIds,
-					nightly_inspection_evidence_refs: evidenceRefs,
-					nightly_inspection_core_intake_package: coreIntakePackage
+					nightly_inspection_selected_review_item_ids: selectedIds.join(','),
+					nightly_inspection_selected_review_item_count: selectedIds.length,
+					nightly_inspection_evidence_ref_count: evidenceRefs.length,
+					nightly_inspection_source_surface: 'toolbox_morning_brief_completed_draft'
 				},
 				dry_run: true,
 				commit: false,
