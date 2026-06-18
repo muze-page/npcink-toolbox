@@ -4652,6 +4652,7 @@
 			input: {
 				title: fields.title,
 				content: fields.content,
+				content_format: 'html',
 				status: 'draft',
 				meta: {
 					nightly_inspection_cloud_run_id: runId,
@@ -4682,7 +4683,7 @@
 					completed_draft: {
 						title_length: fields.title.length,
 						content_length: fields.content.length,
-						content_format: 'html_or_markdown_textarea',
+						content_format: 'html',
 						submitted_from: 'toolbox_morning_brief'
 					},
 					operator_next_action: 'review_completed_draft_in_core',
