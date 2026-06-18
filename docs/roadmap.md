@@ -137,6 +137,17 @@ Candidate buttons:
   site-context vector rerank, candidate dedupe, quality/watermark filters,
   license evidence, risk tags, and media SEO suggestions.
 
+Next batch candidates should be selected only after the media optimization operator trial accepts the current flow. The preferred order is:
+
+1. media ALT and caption review set;
+2. taxonomy and tag review set;
+3. internal-link review set.
+
+These should remain bounded planning or Core handoff surfaces. Do not add
+another write-like batch surface until `media_optimization_v1` has real
+operator evidence that preview, Core review, execution, partial failure, and
+rollback are understandable.
+
 Rule:
 
 Buttons may run bounded synchronous planning actions. Long-running orchestration,
