@@ -137,16 +137,22 @@ Candidate buttons:
   site-context vector rerank, candidate dedupe, quality/watermark filters,
   license evidence, risk tags, and media SEO suggestions.
 
-Next batch candidates should be selected only after the media optimization operator trial accepts the current flow. The preferred order is:
+The next batch candidate starts with a review-only P0:
+`media_alt_caption_review_set.v1`. It extends the existing AI Site Helpers
+media ALT suggestions response with bounded eligibility, selected items,
+blocked reasons, retry guidance, and an explicit no-write posture. It uses
+media-library metadata only and requires human visual confirmation.
+
+The preferred follow-up order remains:
 
 1. media ALT and caption review set;
 2. taxonomy and tag review set;
 3. internal-link review set.
 
-These should remain bounded planning or Core handoff surfaces. Do not add
-another write-like batch surface until `media_optimization_v1` has real
-operator evidence that preview, Core review, execution, partial failure, and
-rollback are understandable.
+These should remain bounded planning or Core handoff surfaces. The media
+ALT/caption P0 must not become direct media metadata writes, automatic proposal
+creation, or media-library batch execution until Abilities, Core, and Adapter
+have an accepted media metadata update path.
 
 Rule:
 
