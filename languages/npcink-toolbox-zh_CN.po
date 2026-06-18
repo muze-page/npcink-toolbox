@@ -2339,9 +2339,6 @@ msgstr "类型："
 msgid "Review: "
 msgstr "审阅："
 
-msgid "Download tracking preserved"
-msgstr "已保留下载追踪信息"
-
 msgid "No preview"
 msgstr "无预览"
 
