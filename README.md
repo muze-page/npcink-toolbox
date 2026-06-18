@@ -76,6 +76,7 @@ Project goals, ownership, and future-session instructions are documented in:
 - [Article Assistant Workbench](docs/article-assistant-workbench.md)
 - [Media Optimization V1](docs/media-optimization-v1.md)
 - [Batch Automation Governance Plan](docs/batch-automation-governance-plan.md)
+- [Media ALT/Caption Review Set](docs/media-alt-caption-review-set.md)
 - [Media Optimization Stage Summary](docs/media-optimization-stage-summary.md)
 - [Media Optimization Release Checklist](docs/media-optimization-release-checklist.md)
 - [Media Optimization Operator Trial](docs/media-optimization-operator-trial.md)
