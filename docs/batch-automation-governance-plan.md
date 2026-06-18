@@ -155,13 +155,17 @@ implementing it. Do not add it inside Toolbox or Adapter by default.
 5. Extend content metadata only as governed handoff.
    Existing excerpt, category, and tag choices may become Core proposal plans;
    missing term creation and direct local apply remain out of scope.
-6. Add more fixed batch candidates only after the first surface is accepted.
-   Possible follow-ups must start with lower-risk review sets, in this order:
-   media ALT/caption review set, taxonomy/tag review set, then internal-link
-   review set. Do not add old-article source coverage as a separate Toolbox
-   local batch candidate. Nightly Inspection Cloud Batch already owns site-wide
-   article/data analysis; keep source coverage local only for current-post
-   publish preflight or a single operator-triggered review artifact.
+6. Add more fixed batch candidates as lower-risk review sets first.
+   The first follow-up is `media_alt_caption_review_set.v1`, a review-only
+   artifact inside the existing AI Site Helpers media ALT suggestions response.
+   It may expose selected media items, blocked reasons, retry guidance, and
+   operator next actions, but it must not write media metadata, create Core
+   proposals, or reuse media derivative replacement execution. Future follow-up
+   order remains taxonomy/tag review set, then internal-link review set. Do not
+   add old-article source coverage as a separate Toolbox local batch candidate.
+   Nightly Inspection Cloud Batch already owns site-wide article/data analysis;
+   keep source coverage local only for current-post publish preflight or a
+   single operator-triggered review artifact.
 
 Before starting item 6, complete the
 [Media Optimization Operator Trial](media-optimization-operator-trial.md). The

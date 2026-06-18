@@ -1945,6 +1945,8 @@
 
 		renderHostedAiQualityGuardrails(result, payload);
 
+		renderMediaAltCaptionReviewSet(result, payload.media_alt_caption_review_set);
+
 		if (payload.output_text) {
 			const pre = el('pre', 'npcink-toolbox__result-raw');
 			pre.textContent = String(payload.output_text);
@@ -1993,6 +1995,90 @@
 
 		result.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Suggestions only. No media or WordPress content was changed.'));
 		result.appendChild(createRawDetails(payload, 'Complete payload'));
+	}
+
+	function renderMediaAltCaptionReviewSet(container, reviewSet) {
+		reviewSet = asObject(reviewSet);
+		if (!reviewSet.contract_version) {
+			return;
+		}
+
+		const section = createSection('Media ALT/caption review set');
+		const eligibility = asObject(reviewSet.eligibility_summary);
+		const selectedItems = asArray(reviewSet.selected_items);
+		const blockedItems = asArray(reviewSet.blocked_items);
+		const meta = el('div', 'npcink-toolbox__result-meta');
+		appendMeta(meta, 'Eligible', eligibility.eligible_count);
+		appendMeta(meta, 'Selected', eligibility.selected_count || selectedItems.length);
+		appendMeta(meta, 'Blocked', eligibility.blocked_count || blockedItems.length);
+		appendMeta(meta, 'Scanned', eligibility.scanned_count);
+		appendMeta(meta, 'Contract', reviewSet.contract_version);
+		appendMeta(meta, 'Source', reviewSet.source_policy ? formatLabel(reviewSet.source_policy) : '');
+		appendMeta(meta, 'Retryable', reviewSet.retryable === true ? 'Yes' : 'No');
+		if (meta.childNodes.length) {
+			section.appendChild(meta);
+		}
+
+		section.appendChild(el('div', 'npcink-toolbox__result-notice is-ok', 'Review-only. No media metadata was changed.'));
+		if (reviewSet.operator_next_action) {
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Next action: ' + formatLabel(reviewSet.operator_next_action)));
+		}
+
+		if (!selectedItems.length) {
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'No media items were selected for this review set. Check blocked reasons or rebuild with a different sample.'));
+		} else {
+			const list = el('div', 'npcink-toolbox__batch-list');
+			selectedItems.slice(0, 10).forEach((item, index) => {
+				const row = el('div', 'npcink-toolbox__batch-row');
+				const body = el('span', 'npcink-toolbox__batch-row-body');
+				const title = item.title || item.filename || 'Media item ' + (index + 1);
+				body.appendChild(el('strong', '', '#' + String(item.attachment_id || '') + ' ' + String(title)));
+				const detail = [
+					item.current_alt_status ? 'ALT ' + formatLabel(item.current_alt_status) : '',
+					item.current_caption_status ? 'Caption ' + formatLabel(item.current_caption_status) : '',
+					Array.isArray(item.review_reasons) && item.review_reasons.length ? 'Reasons: ' + item.review_reasons.map(formatLabel).join(', ') : '',
+				].filter(Boolean).join(' - ');
+				if (detail) {
+					body.appendChild(el('small', '', detail));
+				}
+				const altCandidates = asArray(item.alt_candidates).filter(Boolean);
+				if (altCandidates.length) {
+					body.appendChild(el('small', '', 'ALT candidates: ' + altCandidates.slice(0, 2).join(' / ')));
+				}
+				if (item.caption_candidate) {
+					body.appendChild(el('small', '', 'Caption candidate: ' + String(item.caption_candidate)));
+				}
+				const itemMeta = el('div', 'npcink-toolbox__result-meta');
+				appendMeta(itemMeta, 'Visual check', item.needs_human_visual_check ? 'Required' : '');
+				appendMeta(itemMeta, 'Final path', item.target_write_path || reviewSet.final_write_path);
+				appendMeta(itemMeta, 'Direct write', item.direct_wordpress_write === false ? 'Disabled' : '');
+				if (itemMeta.childNodes.length) {
+					body.appendChild(itemMeta);
+				}
+				row.appendChild(body);
+				list.appendChild(row);
+			});
+			section.appendChild(list);
+		}
+
+		if (blockedItems.length) {
+			const details = document.createElement('details');
+			details.className = 'npcink-toolbox__result-details';
+			details.appendChild(el('summary', '', 'Blocked items'));
+			const blockedList = el('div', 'npcink-toolbox__batch-list');
+			blockedItems.slice(0, 10).forEach((item) => {
+				const row = el('div', 'npcink-toolbox__batch-row is-skipped');
+				const body = el('span', 'npcink-toolbox__batch-row-body');
+				body.appendChild(el('strong', '', '#' + String(item.attachment_id || '') + ' blocked'));
+				body.appendChild(el('small', '', formatLabel(item.blocked_reason || 'not_selected')));
+				row.appendChild(body);
+				blockedList.appendChild(row);
+			});
+			details.appendChild(blockedList);
+			section.appendChild(details);
+		}
+
+		container.appendChild(section);
 	}
 
 	function supportItems(section) {
@@ -4652,6 +4738,7 @@
 			input: {
 				title: fields.title,
 				content: fields.content,
+				content_format: 'html',
 				status: 'draft',
 				meta: {
 					nightly_inspection_cloud_run_id: runId,
@@ -4682,7 +4769,7 @@
 					completed_draft: {
 						title_length: fields.title.length,
 						content_length: fields.content.length,
-						content_format: 'html_or_markdown_textarea',
+						content_format: 'html',
 						submitted_from: 'toolbox_morning_brief'
 					},
 					operator_next_action: 'review_completed_draft_in_core',
