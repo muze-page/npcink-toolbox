@@ -1265,6 +1265,10 @@
 	width: 100%;
 }
 
+.npcink-toolbox-editor-support__image-generate-main-actions .components-button:only-child {
+	grid-column: 1 / -1;
+}
+
 .npcink-toolbox-editor-support__image-prompt-required {
 	margin: -2px 0 0;
 	color: #646970;
@@ -1442,6 +1446,25 @@
 	padding: 0;
 	background: transparent;
 	border: 0;
+}
+
+.npcink-toolbox-editor-support__visual-brief-head {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	justify-content: space-between;
+	min-width: 0;
+}
+
+.npcink-toolbox-editor-support__visual-brief-head strong {
+	min-width: 0;
+}
+
+.npcink-toolbox-editor-support__direction-refresh.components-button {
+	flex: 0 0 auto;
+	min-height: 28px;
+	padding: 0 6px;
+	font-size: 12px;
 }
 
 .npcink-toolbox-editor-support__visual-brief.is-compact-selector .npcink-toolbox-editor-support__prompt-candidates {

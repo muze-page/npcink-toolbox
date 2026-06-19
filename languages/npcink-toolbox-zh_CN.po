@@ -2903,6 +2903,9 @@ msgstr "生成特色图计划"
 msgid "Generate prompt"
 msgstr "生成提示词"
 
+msgid "Refresh directions"
+msgstr "刷新方向"
+
 msgid "Enter a prompt, or generate one from the article first."
 msgstr "请先输入提示词，或根据文章生成提示词。"
 

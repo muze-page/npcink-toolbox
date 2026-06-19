@@ -16,6 +16,7 @@ Covered:
 - discoverability SEO apply through Adapter/Core `approve-and-execute`;
 - editor browser smoke for the Content Support sidebar and local progressive
   recommendation panel;
+- hosted AI no-result diagnostics for selected-paragraph checks;
 - eval-lab quality posture for the Toolbox project and eval wrapper.
 
 Not covered:
@@ -31,7 +32,9 @@ Not covered:
 ```bash
 composer smoke:editor-seo-apply
 composer smoke:editor-review-artifacts
+composer smoke:editor-hosted-ai-no-result
 NODE_PATH="${NODE_PATH:-/Users/muze/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules}" composer smoke:editor-progressive-browser
+composer eval:editor-followup:trial
 composer eval:lab -- task=project_quality_gate project=/Users/muze/gitee/magick-ai-toolbox mode=head output_json=project-review/generated/toolbox-editor-followup-quality-gate.json output_md=project-review/generated/toolbox-editor-followup-quality-gate.md
 ```
 
@@ -47,7 +50,9 @@ composer test:all
 | --- | --- | --- |
 | SEO apply loop | Pass | `composer smoke:editor-seo-apply` created a temporary post, got `seo_meta_handoff_preview.v1`, created an executable Core proposal, called Adapter `approve-and-execute`, and verified the SEO title and description were written by the Core-approved ability. |
 | Preflight/review boundary | Pass | `composer smoke:editor-review-artifacts` verified publish preflight, internal-link review-only candidates, duplicate evidence, dry-run SEO handoff template, pending Core proposal detail, audit timeline, and no sampled-post mutation. |
+| Hosted AI no-result diagnostics | Pass | `composer smoke:editor-hosted-ai-no-result` simulated Cloud omitted, zero provider-call, and idempotent replay empty responses; selected paragraph checks preserved local fallback items, Cloud runtime diagnostics, and no replacement text. |
 | Browser sidebar path | Pass | `composer smoke:editor-progressive-browser` verified local progressive prefetch, hidden-by-default success state, Refresh behavior, no Cloud/Adapter/Core route calls, candidate source/action labels, and no generic Post Formats noise. |
+| Real article follow-up trial | Pass | `composer eval:editor-followup:trial` evaluated 5 local WordPress posts with 45 pass, 0 warn, 0 fail, `human_review_required=false`, and no WordPress mutation. |
 | Eval-lab project quality gate | Pass | `project_quality_gate` wrote `../magick-ai-eval-lab/project-review/generated/toolbox-editor-followup-quality-gate.{json,md}` with `Human review required: false` and `Checks needing review: 0`. |
 
 Eval-lab checks passed:

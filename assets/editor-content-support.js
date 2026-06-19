@@ -2458,6 +2458,7 @@
 		const settings = Object.assign({
 			actionLabel: __('Use direction', 'npcink-toolbox'),
 			heading: __('Image direction reference', 'npcink-toolbox'),
+			headingAction: null,
 			hideContext: false,
 			compactSelector: false,
 		}, options || {});
@@ -2490,7 +2491,12 @@
 		return createElement(
 			'div',
 			{ className: 'npcink-toolbox-editor-support__visual-brief' + (settings.compactSelector ? ' is-compact-selector' : '') },
-			createElement('strong', null, settings.heading),
+			createElement(
+				'div',
+				{ className: 'npcink-toolbox-editor-support__visual-brief-head' },
+				createElement('strong', null, settings.heading),
+				settings.headingAction
+			),
 			!settings.hideContext && visualIntent ? createElement('span', null, truncateText(visualIntent, 160)) : null,
 			!settings.hideContext && chips.length ? createElement(
 				'div',
@@ -6416,6 +6422,18 @@
 					? renderImageVisualBrief(generationDirectionPayload, useAiPromptCandidate, {
 						actionLabel: __('Use direction', 'npcink-toolbox'),
 						heading: __('Generation direction reference', 'npcink-toolbox'),
+						headingAction: activePicker.allowImagePlan ? createElement(
+							Button,
+							{
+								type: 'button',
+								variant: 'tertiary',
+								className: 'npcink-toolbox-editor-support__direction-refresh',
+								isBusy: imageRunning === 'brief',
+								disabled: Boolean(imageRunning),
+								onClick: runMediaBrief,
+							},
+							imageRunning === 'brief' ? __('Planning', 'npcink-toolbox') : __('Refresh directions', 'npcink-toolbox')
+						) : null,
 						hideContext: true,
 						compactSelector: true,
 					})
@@ -6447,17 +6465,17 @@
 					createElement(
 						'div',
 						{ className: 'npcink-toolbox-editor-support__image-generate-actions npcink-toolbox-editor-support__image-generate-main-actions' },
-						activePicker.allowImagePlan ? createElement(
+						activePicker.allowImagePlan && !generationDirectionsPanel ? createElement(
 							Button,
 							{
 								type: 'button',
-								variant: imageQueryText ? 'secondary' : 'primary',
+								variant: 'secondary',
 								className: 'npcink-toolbox-editor-support__article-search-button',
 								isBusy: imageRunning === 'brief',
 								disabled: Boolean(imageRunning),
 								onClick: runMediaBrief,
 							},
-							imageRunning === 'brief' ? __('Planning', 'npcink-toolbox') : activePicker.briefButtonLabel
+							imageRunning === 'brief' ? __('Planning', 'npcink-toolbox') : __('Refresh directions', 'npcink-toolbox')
 						) : null,
 						createElement(
 							Button,

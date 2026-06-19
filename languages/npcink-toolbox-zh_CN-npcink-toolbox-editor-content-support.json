@@ -519,6 +519,7 @@
 	      "Generate image plan": ["生成图片计划"],
 	      "Generate featured image plan": ["生成特色图计划"],
 	      "Generate prompt": ["生成提示词"],
+	      "Refresh directions": ["刷新方向"],
 	      "Enter a prompt, or generate one from the article first.": ["请先输入提示词，或根据文章生成提示词。"],
 	      "Enter an AI image prompt, or generate one from the article first.": ["请先输入 AI 生图提示词，或根据文章生成一个提示词。"],
 	      "Generated a prompt from the article context. Review it before creating an AI image candidate.": ["已根据文章上下文生成提示词。创建 AI 图片候选前请先审阅。"],

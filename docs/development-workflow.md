@@ -186,6 +186,19 @@ reviewable and the temporary post SEO meta is unchanged. It is intentionally
 outside `composer test:all` because it depends on a running local WordPress site
 with Adapter, Core, and Abilities active.
 
+For hosted AI no-result editor diagnostics, run:
+
+```bash
+composer smoke:editor-hosted-ai-no-result
+```
+
+This dispatches the selected-paragraph check through the editor REST route while
+mocking Cloud omitted, zero provider-call, and idempotent replay empty responses.
+It verifies that the editor keeps the suggestion-only local paragraph-check
+fallback, preserves runtime diagnostics, and does not replace selected text. It
+is intentionally outside `composer test:all` because it depends on a running
+local WordPress site and WP-CLI.
+
 For the post-editor follow-up quality trial through eval-lab, run:
 
 ```bash
