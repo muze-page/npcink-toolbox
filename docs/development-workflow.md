@@ -186,6 +186,19 @@ reviewable and the temporary post SEO meta is unchanged. It is intentionally
 outside `composer test:all` because it depends on a running local WordPress site
 with Adapter, Core, and Abilities active.
 
+For the post-editor follow-up quality trial through eval-lab, run:
+
+```bash
+composer eval:editor-followup:trial
+```
+
+This proxies to the sibling `magick-ai-eval-lab` task registry and runs
+`editor_followup_trial` against recent local WordPress posts. The trial checks
+article checkup, discoverability, publish preflight, SEO handoff preview, slug
+candidate visibility, and no WordPress mutation. It is intentionally outside
+`composer test:all` because it depends on a local WordPress site and the
+development-only eval-lab checkout.
+
 For the Site Knowledge review handoff UI, run:
 
 ```bash

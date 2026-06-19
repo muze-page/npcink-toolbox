@@ -24,6 +24,7 @@
     "eval:recommendation:triad": "sh scripts/eval-lab.sh task=recommendation_triad",
     "eval:recommendation:tag-feedback": "sh scripts/eval-lab.sh task=recommendation_tag_feedback",
     "eval:recommendation:feedback-prefill": "sh scripts/eval-lab.sh task=recommendation_feedback_prefill",
+    "eval:editor-followup:trial": "sh scripts/eval-lab.sh task=editor_followup_trial",
     "eval:summary:export": "sh scripts/eval-lab.sh task=summary_export",
     "eval:summary:generate": "sh scripts/eval-lab.sh task=summary_generate",
     "eval:summary:review": "sh scripts/eval-lab.sh task=summary_review",

@@ -434,6 +434,7 @@ toolbox_assert( false !== strpos( $composer, 'smoke:media-derivative-core' ) && 
 toolbox_assert( false !== strpos( $composer, 'smoke:ai-image-media-seo' ) && false !== strpos( $composer, 'tests/smoke-ai-image-media-seo.php' ), 'Composer exposes the AI image media SEO smoke script.' );
 toolbox_assert( false !== strpos( $composer, 'eval:summary:review' ) && false !== strpos( $composer, 'sh scripts/eval-lab.sh task=summary_review' ), 'Composer proxies summary review worksheet export through the eval lab task registry.' );
 toolbox_assert( false !== strpos( $composer, 'eval:recommendation:triad' ) && false !== strpos( $composer, 'sh scripts/eval-lab.sh task=recommendation_triad' ), 'Composer proxies multi-model recommendation evaluation through the eval lab task registry.' );
+toolbox_assert( false !== strpos( $composer, 'eval:editor-followup:trial' ) && false !== strpos( $composer, 'sh scripts/eval-lab.sh task=editor_followup_trial' ), 'Composer proxies editor follow-up trial through the eval lab task registry.' );
 toolbox_assert( false === strpos( $composer, '@eval:summary' ) || false === strpos( $composer, '"test:all"' ), 'Default Toolbox test gate does not require the development-only eval lab.' );
 $eval_lab_proxy = file_get_contents( $root . '/scripts/eval-lab.sh' );
 toolbox_assert( false !== $eval_lab_proxy && false !== strpos( $eval_lab_proxy, 'MAGICK_AI_EVAL_LAB_PATH' ) && false !== strpos( $eval_lab_proxy, '../magick-ai-eval-lab' ), 'Eval lab proxy supports a sibling checkout and an override path.' );
