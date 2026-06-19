@@ -2448,10 +2448,12 @@
 		if (!payload || typeof payload !== 'object') {
 			return null;
 		}
-		const settings = Object.assign({
-			actionLabel: __('Use direction', 'npcink-toolbox'),
-			heading: __('Image direction reference', 'npcink-toolbox'),
-		}, options || {});
+			const settings = Object.assign({
+				actionLabel: __('Use direction', 'npcink-toolbox'),
+				heading: __('Image direction reference', 'npcink-toolbox'),
+				hideContext: false,
+				compactSelector: false,
+			}, options || {});
 
 		const source = payload.sections && payload.sections.image_candidates ? payload.sections.image_candidates : payload;
 		const brief = source.visual_brief && typeof source.visual_brief === 'object' ? source.visual_brief : {};
@@ -2468,31 +2470,32 @@
 			.filter((candidate) => candidate && String(candidate.prompt || '').trim())
 			.slice(0, 3);
 		const visualIntent = localizedVisualBriefIntent(brief);
-		const chips = []
-			.concat(brief.primary_query ? [brief.primary_query] : [])
-			.concat(Array.isArray(brief.alternate_queries) ? brief.alternate_queries.slice(0, 4) : [])
-			.filter(Boolean);
+			const chips = []
+				.concat(brief.primary_query ? [brief.primary_query] : [])
+				.concat(Array.isArray(brief.alternate_queries) ? brief.alternate_queries.slice(0, 4) : [])
+				.filter(Boolean)
+				.filter((chip, index, all) => all.indexOf(chip) === index)
+				.slice(0, 3);
 		if (!chips.length && !promptCandidates.length && !visualIntent) {
 			return null;
 		}
 
 		return createElement(
-			'div',
-			{ className: 'npcink-toolbox-editor-support__visual-brief' },
-			createElement('strong', null, settings.heading),
-			visualIntent ? createElement('span', null, truncateText(visualIntent, 160)) : null,
-			chips.length ? createElement(
 				'div',
-				{ className: 'npcink-toolbox-editor-support__query-chips' },
-				chips.map((chip, index) => createElement('span', { key: String(index) }, chip))
-			) : null,
-			promptCandidates.length ? createElement(
-				'div',
-				{ className: 'npcink-toolbox-editor-support__prompt-candidates' },
-				createElement('small', null, __('AI prompt directions', 'npcink-toolbox')),
-				promptCandidates.map((candidate, index) => {
-					const prompt = String(candidate.prompt || '');
-					const usePrompt = (event) => {
+				{ className: 'npcink-toolbox-editor-support__visual-brief' + (settings.compactSelector ? ' is-compact-selector' : '') },
+				createElement('strong', null, settings.heading),
+				!settings.hideContext && visualIntent ? createElement('span', null, truncateText(visualIntent, 160)) : null,
+				!settings.hideContext && chips.length ? createElement(
+					'div',
+					{ className: 'npcink-toolbox-editor-support__query-chips' },
+					chips.map((chip, index) => createElement('span', { key: String(index) }, chip))
+				) : null,
+				promptCandidates.length ? createElement(
+					'div',
+					{ className: 'npcink-toolbox-editor-support__prompt-candidates' },
+					promptCandidates.map((candidate, index) => {
+						const prompt = String(candidate.prompt || '');
+						const usePrompt = (event) => {
 						if (event && event.preventDefault) {
 							event.preventDefault();
 						}
@@ -2503,29 +2506,22 @@
 							onUsePrompt(prompt);
 						}
 					};
-					const display = localizedPromptCandidateDisplay(candidate);
-					return createElement(
-						'div',
-						{
-							key: String(candidate.id || index),
-							className: 'npcink-toolbox-editor-support__prompt-card',
-							'data-toolbox-ai-prompt-direction': 'true',
-						},
-						createElement('strong', null, truncateText(display.label, 72)),
-						display.strategy ? createElement('span', null, truncateText(display.strategy, 120)) : null,
-						display.reason ? createElement('small', null, truncateText(display.reason, 180)) : null,
-						createElement(
+						const display = localizedPromptCandidateDisplay(candidate);
+						return createElement(
 							'button',
 							{
+								key: String(candidate.id || index),
+								className: 'npcink-toolbox-editor-support__prompt-card',
 								type: 'button',
-								className: 'npcink-toolbox-editor-support__prompt-card-action',
+								'data-toolbox-ai-prompt-direction': 'true',
 								onClick: usePrompt,
 							},
-							settings.actionLabel
-						)
-					);
-				})
-			) : null
+							createElement('strong', null, truncateText(display.label, 72)),
+							display.strategy ? createElement('span', null, truncateText(display.strategy, 120)) : null,
+							display.reason ? createElement('small', null, truncateText(display.reason, 180)) : null
+						);
+					})
+				) : null
 		);
 	}
 
@@ -2630,6 +2626,96 @@
 			name: __('Hosted AI did not return suggestions', 'npcink-toolbox'),
 			detail: message || __('Cloud status: ', 'npcink-toolbox') + formatMetaLabel(status),
 		}] : []);
+	}
+
+	function hostedAiReturnedText(section) {
+		if (!section || typeof section !== 'object') {
+			return false;
+		}
+		const output = hostedOutputObject(section);
+		if (Object.keys(output).length) {
+			return true;
+		}
+		const result = section.result && typeof section.result === 'object' ? section.result : {};
+		return Boolean(String(section.output_text || section.text || result.output_text || result.text || result.content || (result.message && result.message.content) || '').trim());
+	}
+
+	function hostedAiNoResultReason(section) {
+		if (!section || typeof section !== 'object') {
+			return '';
+		}
+		const fallbackReason = String(section.fallback_reason || '');
+		if (fallbackReason === 'local_paragraph_check_after_hosted_ai_empty') {
+			return __('Hosted AI reached the runtime but returned no paragraph-check text, so Toolbox showed the local no-rewrite fallback.', 'npcink-toolbox');
+		}
+		if (String(section.cloud_status || '').toLowerCase() === 'omitted') {
+			return __('Cloud marked this runtime response as omitted. Review storage mode, provider call count, and replay status below before rerunning.', 'npcink-toolbox');
+		}
+		if (Number(section.cloud_provider_call_count || 0) === 0 && section.cloud_status) {
+			return __('Cloud returned a runtime envelope, but no provider call was recorded for this request.', 'npcink-toolbox');
+		}
+		if (section.status || section.cloud_status) {
+			return __('The runtime returned a status but no displayable suggestion text. Rerun after adjusting the request, or use the local/full-article checks.', 'npcink-toolbox');
+		}
+		return '';
+	}
+
+	function hostedAiDiagnosticItems(section) {
+		if (!section || typeof section !== 'object') {
+			return [];
+		}
+		const items = [];
+		const providerExecution = readableItemText(section.provider_execution, '');
+		const hostedStatus = readableItemText(section.hosted_ai_status || section.status, '');
+		const cloudStatus = readableItemText(section.cloud_status, '');
+		const storageMode = readableItemText(section.cloud_storage_mode, '');
+		const dataClass = readableItemText(section.cloud_data_classification, '');
+		const runId = readableItemText(section.cloud_run_id || section.run_id, '');
+		const fallbackReason = readableItemText(section.fallback_reason, '');
+		const fallbackSource = readableItemText(section.fallback_source, '');
+		const providerCalls = section.cloud_provider_call_count;
+		if (providerExecution) {
+			items.push({ name: __('Runtime path', 'npcink-toolbox'), detail: formatMetaLabel(providerExecution) });
+		}
+		if (hostedStatus) {
+			items.push({ name: __('Hosted status', 'npcink-toolbox'), detail: formatMetaLabel(hostedStatus) });
+		}
+		if (cloudStatus && cloudStatus !== hostedStatus) {
+			items.push({ name: __('Cloud status', 'npcink-toolbox'), detail: formatMetaLabel(cloudStatus) });
+		}
+		if (storageMode || dataClass) {
+			items.push({ name: __('Cloud storage', 'npcink-toolbox'), detail: [storageMode ? formatMetaLabel(storageMode) : '', dataClass ? formatMetaLabel(dataClass) : ''].filter(Boolean).join(' / ') });
+		}
+		if (providerCalls !== undefined && providerCalls !== null && providerCalls !== '') {
+			items.push({ name: __('Provider calls', 'npcink-toolbox'), detail: String(Number(providerCalls || 0)) });
+		}
+		if (section.cloud_idempotent_replay) {
+			items.push({ name: __('Replay status', 'npcink-toolbox'), detail: __('Idempotent replay', 'npcink-toolbox') });
+		}
+		if (fallbackReason || fallbackSource) {
+			items.push({ name: __('Local fallback', 'npcink-toolbox'), detail: [formatMetaLabel(fallbackReason), formatMetaLabel(fallbackSource)].filter(Boolean).join(' / ') });
+		}
+		if (runId) {
+			items.push({ name: __('Run id', 'npcink-toolbox'), detail: runId });
+		}
+		return items;
+	}
+
+	function renderHostedAiDiagnostics(section) {
+		const items = hostedAiDiagnosticItems(section);
+		if (!items.length) {
+			return null;
+		}
+		const hasHostedText = hostedAiReturnedText(section);
+		const reason = (!hasHostedText || section.fallback_reason || String(section.cloud_status || '').toLowerCase() === 'omitted') ? hostedAiNoResultReason(section) : '';
+		const isHighlighted = Boolean(reason || section.fallback_reason || String(section.cloud_status || '').toLowerCase() === 'omitted');
+		return createElement(
+			'details',
+			{ className: 'npcink-toolbox-editor-support__runtime-diagnostics', open: isHighlighted },
+			createElement('summary', null, isHighlighted ? __('Why no AI text appeared', 'npcink-toolbox') : __('Runtime diagnostics', 'npcink-toolbox')),
+			reason ? createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, reason) : null,
+			renderItems(items, __('No runtime diagnostics returned.', 'npcink-toolbox'))
+		);
 	}
 
 	function outlineSuggestionItems(output) {
@@ -4816,21 +4902,24 @@
 			if (sections.article_checkup) {
 				blocks.push(createElement('h4', { key: 'article-checkup-title' }, __('Article checkup', 'npcink-toolbox')));
 				blocks.push(createElement('p', { key: 'article-checkup-help', className: 'npcink-toolbox-editor-support__muted' }, __('Review these full-draft issues manually. Toolbox points to paragraphs and editing direction, but does not rewrite or insert text.', 'npcink-toolbox')));
-				blocks.push(renderItems(articleCheckupItems(sections.article_checkup), __('No article checkup issues found.', 'npcink-toolbox')));
+				blocks.push(renderItems(articleCheckupItems(sections.article_checkup), __('No high-confidence local article checkup issues were found.', 'npcink-toolbox')));
 			}
 
 			if (sections.title_suggestions) {
 				blocks.push(renderTitleSuggestionSection(titleSuggestionItems(sections.title_suggestions), metadataHandoffControls));
+				blocks.push(renderHostedAiDiagnostics(sections.title_suggestions));
 			}
 
 		if (sections.article_outline) {
 			blocks.push(createElement('h4', { key: 'article-outline-title' }, __('Outline suggestions', 'npcink-toolbox')));
 			blocks.push(renderOutlineSuggestionSection(sections.article_outline));
+			blocks.push(renderHostedAiDiagnostics(sections.article_outline));
 		}
 
 			if (sections.polish_notes) {
 				blocks.push(createElement('h4', { key: 'polish-notes-title' }, __('Paragraph check', 'npcink-toolbox')));
 				blocks.push(renderItems(paragraphCheckItems(sections.polish_notes), __('No paragraph check notes returned.', 'npcink-toolbox')));
+				blocks.push(renderHostedAiDiagnostics(sections.polish_notes));
 			}
 
 				const hasPreflightReview = Boolean(sections.pre_publish_review);
@@ -4841,6 +4930,7 @@
 						blocks.push(createElement('h4', { key: 'image-alt-suggestions-title' }, __('Image ALT suggestions', 'npcink-toolbox')));
 					}
 					blocks.push(renderItems(imageAltSuggestionItems(sections.image_alt_suggestions), __('No image ALT suggestions returned.', 'npcink-toolbox')));
+					blocks.push(renderHostedAiDiagnostics(sections.image_alt_suggestions));
 				}
 
 				if (hasPreflightReview) {
@@ -6313,11 +6403,15 @@
 					)
 				)
 			) : null;
-			const generationDirectionsPanel = activeSearchMode === 'generate' && !images.length
-				? renderImageVisualBrief(imageResult, useAiPromptCandidate, {
-					actionLabel: __('Use direction', 'npcink-toolbox'),
-					heading: __('Generation direction reference', 'npcink-toolbox'),
-				})
+				const generationDirectionPayload = imageGenerationResult || imageSourceResult || imageResult;
+				const generatedImages = extractImageCandidates(imageGenerationResult);
+				const generationDirectionsPanel = activeSearchMode === 'generate' && !generatedImages.length
+					? renderImageVisualBrief(generationDirectionPayload, useAiPromptCandidate, {
+						actionLabel: __('Use direction', 'npcink-toolbox'),
+						heading: __('Generation direction reference', 'npcink-toolbox'),
+						hideContext: true,
+						compactSelector: true,
+					})
 				: null;
 			const aiGenerationPanel = activeSearchMode === 'generate' ? createElement(
 				'form',
@@ -6527,15 +6621,15 @@
 									type: 'button',
 									variant: 'tertiary',
 									className: 'npcink-toolbox-editor-support__back-button',
-									'aria-label': __('Back to tools', 'npcink-toolbox'),
-									title: __('Back to tools', 'npcink-toolbox'),
+									'aria-label': __('Return to tool list', 'npcink-toolbox'),
+									title: __('Return to tool list', 'npcink-toolbox'),
 									onClick: () => {
 										setSupportView('menu');
 										setContextualResult(false);
 									},
 								},
 								createElement('span', { className: 'dashicons dashicons-arrow-left-alt2', 'aria-hidden': 'true' }),
-								createElement('span', null, __('Back to tools', 'npcink-toolbox'))
+								createElement('span', null, __('Tool list', 'npcink-toolbox'))
 							)
 						),
 						createElement(
