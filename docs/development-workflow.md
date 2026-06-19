@@ -170,6 +170,22 @@ Cloud Site Knowledge, verifies `internal_link_candidates.v1`,
 through Adapter `/proposals`, purges that fixture, and proves the sampled post
 is not mutated.
 
+For the post-editor SEO apply loop, run:
+
+```bash
+composer smoke:editor-seo-apply
+```
+
+This creates a temporary draft, gets the `discoverability` SEO handoff preview,
+creates an executable `npcink-abilities-toolkit/set-post-seo-meta` Core
+proposal through Adapter `/proposals`, and calls Adapter
+`approve-and-execute`. If local Core policy allows execution, it verifies the
+SEO title and description meta were written by the Core-approved ability. If
+policy blocks automatic execution, it verifies the Core proposal remains
+reviewable and the temporary post SEO meta is unchanged. It is intentionally
+outside `composer test:all` because it depends on a running local WordPress site
+with Adapter, Core, and Abilities active.
+
 For the Site Knowledge review handoff UI, run:
 
 ```bash
