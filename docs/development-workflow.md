@@ -40,6 +40,37 @@ Run when changing Composer metadata:
 composer validate --no-check-publish
 ```
 
+## Commit Scope Gate
+
+Before staging, inspect the worktree:
+
+```bash
+git status --short --branch
+git diff --stat
+```
+
+If unrelated local edits already exist, name them and leave them unstaged. Do
+not use `git add -A` for mixed worktrees. When a file contains both current-task
+and unrelated hunks, stage only the intended hunk with `git add -p` or
+`git apply --cached`.
+
+Before committing, verify the staged scope:
+
+```bash
+git diff --cached --stat
+git diff --cached --name-only
+```
+
+After committing, verify the actual commit:
+
+```bash
+git show --name-status --stat HEAD
+```
+
+If unexpected files or hunks entered the commit, immediately run
+`git reset --mixed HEAD~1` and recommit the correct scope. This keeps the
+working tree changes intact while fixing the commit boundary.
+
 ## Git Remote Gate
 
 Before creating, pushing, or updating a PR branch, verify that local Git can
@@ -56,6 +87,24 @@ This check runs `git ls-remote origin HEAD` with `GIT_TERMINAL_PROMPT=0` and a
 path before creating commits for a PR. Do not use GitHub's Git Data API for
 normal branch publishing; it is only an emergency fallback and can create commit
 objects that do not match the local commit SHA.
+
+## Publication Status Gate
+
+Local commit cleanup is not the same as publishing. Before calling a milestone
+closed, run:
+
+```bash
+git status --short --branch
+```
+
+If the branch is ahead of its upstream, decide one of these outcomes:
+
+- push the branch and open or update the PR;
+- keep the commits local intentionally and record why in the final response;
+- split or move the commits to a dedicated branch before publishing.
+
+Do not report a stage as fully closed while omitting the branch ahead/behind
+state or hiding remaining modified/untracked files.
 
 ## WordPress Smoke Gate
 
