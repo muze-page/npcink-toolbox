@@ -3083,8 +3083,21 @@
 		return {};
 	}
 
+	function localParagraphOverlayItems(section, output) {
+		const overlay = section && section.local_review_overlay && typeof section.local_review_overlay === 'object'
+			? section.local_review_overlay
+			: (output && output.local_review_overlay && typeof output.local_review_overlay === 'object' ? output.local_review_overlay : {});
+		const sourceItems = Array.isArray(overlay.items) ? overlay.items : [];
+		return sourceItems.map((item) => ({
+			name: readableItemText(item.name || item.title || __('Local review signal', 'npcink-toolbox'), __('Local review signal', 'npcink-toolbox')),
+			detail: readableItemText(item.detail || item.issue || item.edit_direction || '', ''),
+			action_policy: item.action_policy || 'operator_review_only_no_insert',
+		})).filter((item) => item.detail);
+	}
+
 	function paragraphCheckItems(section) {
 		const output = hostedOutputObject(section);
+		const localItems = localParagraphOverlayItems(section, output);
 		const fields = [
 			['clarity_check', __('Clarity check', 'npcink-toolbox')],
 			['fact_gaps', __('Fact gaps', 'npcink-toolbox')],
@@ -3098,11 +3111,11 @@
 			action_policy: 'operator_review_only_no_insert',
 		})).filter((item) => item.detail);
 		if (items.length) {
-			return items;
+			return items.concat(localItems);
 		}
 		const generic = hostedWritingSupportItems(section);
 		if (generic.length) {
-			return generic;
+			return generic.concat(localItems);
 		}
 		const nested = section && section.result && typeof section.result === 'object' ? nestedHostedOutputObject(section.result) : {};
 		const nestedText = readableItemText(nested, '');
@@ -3110,7 +3123,7 @@
 			name: __('Paragraph check note', 'npcink-toolbox'),
 			detail: nestedText,
 			action_policy: 'operator_review_only_no_insert',
-		}] : [];
+		}].concat(localItems) : localItems;
 	}
 
 	function articleCheckupItems(section) {

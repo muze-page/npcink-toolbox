@@ -95,6 +95,21 @@ function toolbox_editor_hosted_no_result_cloud_response( string $scenario ): arr
 		return $base;
 	}
 
+	if ( 'ready_with_output' === $scenario ) {
+		$base['status']                                = 'ready';
+		$base['data']['status']                        = 'ready';
+		$base['data']['provider_call_count']           = 1;
+		$base['data']['result']['status']              = 'ready';
+		$base['data']['result']['output_json']         = array(
+			'clarity_check'       => '托管 AI 返回：这段文字整体可读，但需要人工确认结构。',
+			'fact_gaps'           => '托管 AI 返回：未发现需要新增事实。',
+			'tone_consistency'    => '托管 AI 返回：语气中性。',
+			'editing_suggestions' => '托管 AI 返回：只做审阅，不替换正文。',
+		);
+		$base['data']['result']['output_text']         = wp_json_encode( $base['data']['result']['output_json'] );
+		return $base;
+	}
+
 	$base['status']                      = 'ready';
 	$base['data']['status']              = 'ready';
 	$base['data']['provider_call_count'] = 1;
@@ -207,6 +222,40 @@ $glue_profile = is_array( $glue_section['fallback_signal_profile'] ?? null ) ? $
 
 toolbox_editor_hosted_no_result_assert( ! empty( $glue_profile['has_structural_glue'] ), 'Paragraph fallback signal profile detects heading or option-label glue.' );
 toolbox_editor_hosted_no_result_assert( false !== strpos( (string) ( $glue_output['clarity_check'] ?? '' ), '黏连' ), 'Paragraph fallback explains structural glue instead of returning only generic fact checks.' );
+
+$scenario      = 'ready_with_output';
+$overlay_result = toolbox_editor_hosted_no_result_rest(
+	array_merge(
+		$base_params,
+		array(
+			'content'             => $glue_text,
+			'selected_text'       => $glue_text,
+			'selected_block_text' => $glue_text,
+			'generation_variant'  => 'hosted-output-overlay-' . wp_generate_uuid4(),
+		)
+	)
+);
+$overlay_section = is_array( $overlay_result['sections']['polish_notes'] ?? null ) ? $overlay_result['sections']['polish_notes'] : array();
+$overlay_output  = is_array( $overlay_section['output_json'] ?? null ) ? $overlay_section['output_json'] : array();
+$overlay          = is_array( $overlay_section['local_review_overlay'] ?? null ) ? $overlay_section['local_review_overlay'] : array();
+$overlay_profile  = is_array( $overlay['signal_profile'] ?? null ) ? $overlay['signal_profile'] : array();
+$overlay_items    = is_array( $overlay['items'] ?? null ) ? $overlay['items'] : array();
+$overlay_details  = implode(
+	' ',
+	array_map(
+		static function ( $item ): string {
+			return is_array( $item ) ? (string) ( $item['detail'] ?? '' ) : '';
+		},
+		$overlay_items
+	)
+);
+
+toolbox_editor_hosted_no_result_assert( 'hosted_ai' === (string) ( $overlay_section['provider_execution'] ?? '' ), 'Paragraph overlay preserves hosted AI execution when AI returns text.' );
+toolbox_editor_hosted_no_result_assert( empty( $overlay_section['fallback_reason'] ), 'Paragraph overlay does not relabel a valid hosted AI result as fallback.' );
+toolbox_editor_hosted_no_result_assert( false !== strpos( (string) ( $overlay_output['clarity_check'] ?? '' ), '托管 AI 返回' ), 'Paragraph overlay preserves the hosted AI structured output.' );
+toolbox_editor_hosted_no_result_assert( 'paragraph_local_review_overlay.v1' === (string) ( $overlay['artifact_type'] ?? '' ), 'Paragraph overlay returns a local review overlay artifact.' );
+toolbox_editor_hosted_no_result_assert( ! empty( $overlay_profile['has_structural_glue'] ), 'Paragraph overlay runs local structural-glue detection even when hosted AI returns output.' );
+toolbox_editor_hosted_no_result_assert( false !== strpos( $overlay_details, '黏连' ), 'Paragraph overlay adds local structural-glue review details beside hosted AI output.' );
 
 $article_result = toolbox_editor_hosted_no_result_rest(
 	array(

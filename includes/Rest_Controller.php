@@ -2964,8 +2964,12 @@ final class Rest_Controller {
 		if ( 'title_summary' === $provider_intent ) {
 			$section = $this->editor_title_recommendation_section( $section, $context );
 		}
-		if ( 'polish_notes' === $provider_intent && ! $this->editor_paragraph_check_has_output( $section ) ) {
-			$section = $this->editor_paragraph_check_local_fallback_section( $section, $content );
+		if ( 'polish_notes' === $provider_intent ) {
+			if ( ! $this->editor_paragraph_check_has_output( $section ) ) {
+				$section = $this->editor_paragraph_check_local_fallback_section( $section, $content );
+			} else {
+				$section = $this->editor_paragraph_check_local_overlay_section( $section, $content );
+			}
 		}
 
 		return $section;
@@ -3036,6 +3040,84 @@ final class Rest_Controller {
 		return $section;
 	}
 
+	private function editor_paragraph_check_local_overlay_section( array $section, string $selected_text ): array {
+		$output = $this->editor_paragraph_check_local_output( $selected_text, false );
+		$overlay = array(
+			'artifact_type'  => 'paragraph_local_review_overlay.v1',
+			'source'         => 'current_selected_paragraph_only',
+			'write_posture'  => 'suggestion_only_no_replacement_text',
+			'action_policy'  => 'operator_review_only_no_insert',
+			'status'         => 'ready',
+			'provider_execution' => 'local_signal_overlay_after_hosted_ai_output',
+			'signal_profile' => is_array( $output['signal_profile'] ?? null )
+				? array_map( 'boolval', $output['signal_profile'] )
+				: array(),
+			'output_json'    => $output,
+			'items'          => $this->editor_paragraph_check_local_overlay_items( $output ),
+		);
+
+		$section['local_review_overlay'] = $overlay;
+		$section['local_signal_profile'] = $overlay['signal_profile'];
+
+		$output_json = is_array( $section['output_json'] ?? null ) ? $section['output_json'] : array();
+		$output_json['local_review_overlay'] = $overlay;
+		$section['output_json'] = $output_json;
+
+		return $section;
+	}
+
+	private function editor_paragraph_check_local_overlay_items( array $output ): array {
+		$signals = is_array( $output['signal_profile'] ?? null ) ? $output['signal_profile'] : array();
+		$items   = array();
+
+		if ( ! empty( $signals['has_structural_glue'] ) ) {
+			$items[] = array(
+				'name'          => __( 'Local structure cross-check', 'npcink-toolbox' ),
+				'detail'        => (string) ( $output['clarity_check'] ?? '' ),
+				'action_policy' => 'operator_review_only_no_insert',
+				'evidence_refs' => array( 'current_selection:local_overlay' ),
+			);
+			$items[] = array(
+				'name'          => __( 'Local fact-boundary check', 'npcink-toolbox' ),
+				'detail'        => (string) ( $output['fact_gaps'] ?? '' ),
+				'action_policy' => 'operator_review_only_no_insert',
+				'evidence_refs' => array( 'current_selection:local_overlay' ),
+			);
+		} elseif ( ! empty( $signals['has_metric_claim'] ) || ! empty( $signals['has_comparison_claim'] ) || ! empty( $signals['long_or_dense'] ) ) {
+			$items[] = array(
+				'name'          => __( 'Local fact-boundary check', 'npcink-toolbox' ),
+				'detail'        => (string) ( $output['fact_gaps'] ?? '' ),
+				'action_policy' => 'operator_review_only_no_insert',
+				'evidence_refs' => array( 'current_selection:local_overlay' ),
+			);
+		} elseif ( ! empty( $signals['has_scope_claim'] ) || ! empty( $signals['has_causal_transition'] ) ) {
+			$items[] = array(
+				'name'          => __( 'Local scope check', 'npcink-toolbox' ),
+				'detail'        => (string) ( $output['tone_consistency'] ?? '' ),
+				'action_policy' => 'operator_review_only_no_insert',
+				'evidence_refs' => array( 'current_selection:local_overlay' ),
+			);
+		}
+
+		if ( ! empty( $items ) ) {
+			$items[] = array(
+				'name'          => __( 'Local editing guardrail', 'npcink-toolbox' ),
+				'detail'        => (string) ( $output['editing_suggestions'] ?? '' ),
+				'action_policy' => 'operator_review_only_no_insert',
+				'evidence_refs' => array( 'current_selection:local_overlay' ),
+			);
+		}
+
+		return array_values(
+			array_filter(
+				$items,
+				static function ( $item ): bool {
+					return is_array( $item ) && '' !== trim( (string) ( $item['detail'] ?? '' ) );
+				}
+			)
+		);
+	}
+
 	private function editor_paragraph_check_signal_profile( string $text, int $length, int $punctuation_count ): array {
 		$has_metric_claim      = 1 === preg_match( '/(\d|万|倍|%|百分|快|慢|耗时|性能|测试|经测试|同等|相当|无明显|明显)/u', $text );
 		$has_scope_claim       = 1 === preg_match( '/(可用于|适合|场景|条件|范围|限制|边界|因此|所以|由于|因为)/u', $text );
@@ -3052,7 +3134,7 @@ final class Rest_Controller {
 		);
 	}
 
-	private function editor_paragraph_check_local_output( string $selected_text ): array {
+	private function editor_paragraph_check_local_output( string $selected_text, bool $hosted_ai_empty = true ): array {
 		$text     = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( $selected_text ) ) ?: '' );
 		$length   = function_exists( 'mb_strlen' ) ? mb_strlen( $text, 'UTF-8' ) : strlen( $text );
 		$punctuation_count = preg_match_all( '/[。！？!?；;]/u', $text );
@@ -3104,7 +3186,9 @@ final class Rest_Controller {
 			'fact_gaps'           => $fact_gaps,
 			'tone_consistency'    => $tone,
 			'editing_suggestions' => $editing,
-			'assumptions_to_verify' => __( '托管 AI 本次未返回建议，以上为本地兜底检查；仍以人工编辑和原始测试记录为准。', 'npcink-toolbox' ),
+			'assumptions_to_verify' => $hosted_ai_empty
+				? __( '托管 AI 本次未返回建议，以上为本地兜底检查；仍以人工编辑和原始测试记录为准。', 'npcink-toolbox' )
+				: __( '本地复核只检查结构、事实口径和语气风险；托管 AI 建议仍需人工审阅。', 'npcink-toolbox' ),
 			'signal_profile'      => $signals,
 		);
 	}
