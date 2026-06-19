@@ -17,6 +17,7 @@ defined( 'ABSPATH' ) || exit;
 final class Rest_Controller {
 	private const REQUIRED_TEXT_MAX_CHARS = 500;
 	private const EDITOR_SUMMARY_FULL_CONTENT_MAX_CHARS = 30000;
+	private const EDITOR_SELECTED_TEXT_MAX_CHARS = 2000;
 	private const EDITOR_FLOW_CACHE_TTL = 300;
 	private const EDITOR_PROGRESSIVE_TARGET_MS = 2500;
 	private const EDITOR_PROGRESSIVE_CANDIDATE_LIMIT = 8;
@@ -1000,6 +1001,8 @@ final class Rest_Controller {
 			'content_full_text'   => sanitize_textarea_field( $this->editor_trim_chars( $content, self::EDITOR_SUMMARY_FULL_CONTENT_MAX_CHARS ) ),
 			'selected_text'       => wp_trim_words( sanitize_textarea_field( $selected_text ), 110, '' ),
 			'selected_block_text' => wp_trim_words( sanitize_textarea_field( $selected_block_text ), 110, '' ),
+			'selected_text_full'       => sanitize_textarea_field( $this->editor_trim_chars( $selected_text, self::EDITOR_SELECTED_TEXT_MAX_CHARS ) ),
+			'selected_block_text_full' => sanitize_textarea_field( $this->editor_trim_chars( $selected_block_text, self::EDITOR_SELECTED_TEXT_MAX_CHARS ) ),
 			'selected_block_name' => sanitize_text_field( (string) $request->get_param( 'selected_block_name' ) ),
 			'user_instruction'    => wp_trim_words( sanitize_textarea_field( $user_instruction ), 60, '' ),
 			'generation_variant'  => sanitize_text_field( (string) $request->get_param( 'generation_variant' ) ),
@@ -3109,8 +3112,8 @@ final class Rest_Controller {
 								array_map(
 									'trim',
 									array(
-										(string) ( $context['selected_text'] ?? '' ),
-										(string) ( $context['selected_block_text'] ?? '' ),
+										(string) ( $context['selected_text_full'] ?? $context['selected_text'] ?? '' ),
+										(string) ( $context['selected_block_text_full'] ?? $context['selected_block_text'] ?? '' ),
 									)
 								)
 							)
@@ -3298,13 +3301,15 @@ final class Rest_Controller {
 	}
 
 	private function editor_paragraph_check_signal_profile( string $text, int $length, int $punctuation_count ): array {
-		$has_metric_claim      = 1 === preg_match( '/(\d|万|倍|%|百分|快|慢|耗时|性能|测试|经测试|同等|相当|无明显|明显)/u', $text );
+		$has_performance_claim = 1 === preg_match( '/(快|慢|耗时|性能|经测试|同等服务器|相当|无明显|明显性能|读取|保存)/u', $text );
+		$has_metric_claim      = 1 === preg_match( '/(\d|万|倍|%|百分|测试|经测试|数量|规模|id|ID|attachment)/u', $text );
 		$has_scope_claim       = 1 === preg_match( '/(可用于|适合|场景|条件|范围|限制|边界|因此|所以|由于|因为)/u', $text );
 		$has_comparison_claim  = 1 === preg_match( '/(比|相比|对比|相较|优于|弱于|快于|慢于|高于|低于)/u', $text );
 		$has_causal_transition = 1 === preg_match( '/(因此|所以|由于|因为|从而|导致)/u', $text );
 
 		return array(
 			'long_or_dense'          => $length > 150 || $punctuation_count >= 3,
+			'has_performance_claim' => $has_performance_claim,
 			'has_metric_claim'      => $has_metric_claim,
 			'has_scope_claim'       => $has_scope_claim,
 			'has_comparison_claim'  => $has_comparison_claim,
@@ -3330,12 +3335,14 @@ final class Rest_Controller {
 		}
 
 		$fact_gaps = $signals['has_structural_glue']
-			? __( '结构黏连会影响读者判断事实边界；发布前需要确认每个标签、维度、方案或问答对应的正文是否清楚分开。', 'npcink-toolbox' )
-			: ( $signals['has_metric_claim']
-			? __( '包含测试、数量、速度或耗时类结论；发布前需要确认测试条件、数据规模、对比对象和结论来源，避免把单次测试写成通用事实。', 'npcink-toolbox' )
-			: ( $signals['has_comparison_claim']
-				? __( '包含比较性判断；发布前需要确认比较对象、比较条件和依据是否在上下文中明确。', 'npcink-toolbox' )
-				: __( '未发现明显数字或比较结论；仍需人工确认段落中的判断是否有上下文依据。', 'npcink-toolbox' ) ) );
+			? __( '结构黏连会影响读者判断事实边界；发布前需要确认每个标签、维度、方案、ID 或问答对应的正文是否清楚分开。', 'npcink-toolbox' )
+			: ( $signals['has_performance_claim']
+				? __( '包含测试、数量、速度或耗时类结论；发布前需要确认测试条件、数据规模、对比对象和结论来源，避免把单次测试写成通用事实。', 'npcink-toolbox' )
+				: ( $signals['has_metric_claim']
+					? __( '包含数字、ID、数量或范围类表述；发布前需要确认这些数字对应的对象、条件和来源，避免把局部证据写成通用事实。', 'npcink-toolbox' )
+					: ( $signals['has_comparison_claim']
+						? __( '包含比较性判断；发布前需要确认比较对象、比较条件和依据是否在上下文中明确。', 'npcink-toolbox' )
+						: __( '未发现明显数字或比较结论；仍需人工确认段落中的判断是否有上下文依据。', 'npcink-toolbox' ) ) ) );
 
 		$tone = $signals['has_scope_claim']
 			? __( '语气整体偏说明性；涉及“适合/因此/场景”等判断时，建议保持审慎，不要超过已验证范围。', 'npcink-toolbox' )
@@ -3346,8 +3353,10 @@ final class Rest_Controller {
 		$editing_parts = array( __( '不要直接替换正文。', 'npcink-toolbox' ) );
 		if ( $signals['has_structural_glue'] ) {
 			$editing_parts[] = __( '优先拆开标题词、选项标签、短语串和正文说明。', 'npcink-toolbox' );
+		} elseif ( $signals['has_performance_claim'] ) {
+			$editing_parts[] = __( '优先核对测试条件、性能口径和对比对象。', 'npcink-toolbox' );
 		} elseif ( $signals['has_metric_claim'] ) {
-			$editing_parts[] = __( '优先核对测试条件、数量口径和对比对象。', 'npcink-toolbox' );
+			$editing_parts[] = __( '优先核对数字、ID、数量口径和对应对象。', 'npcink-toolbox' );
 		} elseif ( $signals['has_comparison_claim'] ) {
 			$editing_parts[] = __( '优先核对比较对象和比较条件。', 'npcink-toolbox' );
 		} else {

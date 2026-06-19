@@ -204,6 +204,55 @@ toolbox_editor_hosted_no_result_assert( empty( $generic_profile['long_or_dense']
 toolbox_editor_hosted_no_result_assert( 1 !== preg_match( '/性能|耗时|保存耗时/u', $generic_details ), 'Generic paragraph fallback does not project performance or save-time wording onto selected text.' );
 toolbox_editor_hosted_no_result_assert( false !== strpos( (string) ( $generic_output['editing_suggestions'] ?? '' ), '不要直接替换正文' ), 'Generic paragraph fallback keeps the no-replacement editing posture.' );
 
+$media_binding_text   = '这段说明执行后 core/image attachment id 8053 应保留，并要求评价标准先交代清楚。';
+$media_binding_result = toolbox_editor_hosted_no_result_rest(
+	array_merge(
+		$base_params,
+		array(
+			'content'             => $media_binding_text,
+			'selected_text'       => $media_binding_text,
+			'selected_block_text' => $media_binding_text,
+			'generation_variant'  => 'hosted-no-result-media-binding-' . wp_generate_uuid4(),
+		)
+	)
+);
+$media_binding_section = is_array( $media_binding_result['sections']['polish_notes'] ?? null ) ? $media_binding_result['sections']['polish_notes'] : array();
+$media_binding_output  = is_array( $media_binding_section['output_json'] ?? null ) ? $media_binding_section['output_json'] : array();
+$media_binding_profile = is_array( $media_binding_section['fallback_signal_profile'] ?? null ) ? $media_binding_section['fallback_signal_profile'] : array();
+$media_binding_details = implode(
+	' ',
+	array_map(
+		static function ( $item ): string {
+			return is_array( $item ) ? (string) ( $item['detail'] ?? '' ) : '';
+		},
+		is_array( $media_binding_section['items'] ?? null ) ? $media_binding_section['items'] : array()
+	)
+);
+
+toolbox_editor_hosted_no_result_assert( ! empty( $media_binding_profile['has_metric_claim'] ), 'Paragraph fallback detects numeric or ID claims in media-binding selected text.' );
+toolbox_editor_hosted_no_result_assert( empty( $media_binding_profile['has_performance_claim'] ), 'Paragraph fallback does not treat attachment IDs as performance claims.' );
+toolbox_editor_hosted_no_result_assert( false !== strpos( (string) ( $media_binding_output['fact_gaps'] ?? '' ), '数字、ID、数量或范围' ), 'Paragraph fallback gives numeric/ID fact-boundary guidance for media-binding selected text.' );
+toolbox_editor_hosted_no_result_assert( 1 !== preg_match( '/速度|耗时|性能口径/u', $media_binding_details ), 'Media-binding paragraph fallback does not project speed or timing wording onto attachment ID text.' );
+
+$late_glue_text   = '这段先说明媒体绑定、编辑器兼容性、移动端堆叠和治理审批上下文，前半段刻意较长以覆盖截断风险。图片来自已审核 WordPress 媒体库，执行后 attachment id 8053 应保留。核心要点文章计划先生成可审查 Gutenberg 结构。评估维度对比文章应先交代评价标准。';
+$late_glue_result = toolbox_editor_hosted_no_result_rest(
+	array_merge(
+		$base_params,
+		array(
+			'content'             => $late_glue_text,
+			'selected_text'       => $late_glue_text,
+			'selected_block_text' => $late_glue_text,
+			'generation_variant'  => 'hosted-no-result-late-glue-' . wp_generate_uuid4(),
+		)
+	)
+);
+$late_glue_section = is_array( $late_glue_result['sections']['polish_notes'] ?? null ) ? $late_glue_result['sections']['polish_notes'] : array();
+$late_glue_output  = is_array( $late_glue_section['output_json'] ?? null ) ? $late_glue_section['output_json'] : array();
+$late_glue_profile = is_array( $late_glue_section['fallback_signal_profile'] ?? null ) ? $late_glue_section['fallback_signal_profile'] : array();
+
+toolbox_editor_hosted_no_result_assert( ! empty( $late_glue_profile['has_structural_glue'] ), 'Paragraph fallback sees structural glue that appears after the old short selected-text trim window.' );
+toolbox_editor_hosted_no_result_assert( false !== strpos( (string) ( $late_glue_output['clarity_check'] ?? '' ), '黏连' ), 'Paragraph fallback prioritizes late structural glue in selected text.' );
+
 $glue_text   = '方案 A适合追求最小改动和快速上线的场景。常见问题文章会直接发布吗？不会。';
 $glue_result = toolbox_editor_hosted_no_result_rest(
 	array_merge(
