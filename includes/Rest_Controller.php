@@ -2743,7 +2743,7 @@ final class Rest_Controller {
 				);
 			}
 
-			if ( 1 === preg_match( '/(最|绝对|完全|一键|显著|极大|领先|革命性|无敌|完美|保证)/u', $paragraph ) ) {
+			if ( 1 === preg_match( '/(绝对|完全|一键|显著|极大|领先|革命性|无敌|完美|保证)/u', $paragraph ) ) {
 				$items[] = $this->editor_article_checkup_issue(
 					'tone_risk_' . ( $index + 1 ),
 					'tone',
@@ -2753,6 +2753,10 @@ final class Rest_Controller {
 					__( 'Tone may read stronger than the supporting evidence.', 'npcink-toolbox' ),
 					__( 'Review whether the claim should be softened or tied to a specific condition.', 'npcink-toolbox' )
 				);
+			}
+
+			foreach ( $this->editor_article_checkup_structure_glue_issues( $paragraph, $index + 1, $location ) as $structure_issue ) {
+				$items[] = $structure_issue;
 			}
 		}
 
@@ -2839,8 +2843,61 @@ final class Rest_Controller {
 		return $paragraphs;
 	}
 
+	private function editor_article_checkup_structure_glue_issues( string $paragraph, int $paragraph_number, string $location ): array {
+		$signals = array();
+
+		if ( $this->editor_text_has_heading_label_glue( $paragraph ) ) {
+			$signals[] = __( '标题式标签直接黏在正文前', 'npcink-toolbox' );
+		}
+		if ( $this->editor_text_has_phrase_cluster_glue( $paragraph ) ) {
+			$signals[] = __( '短语组之间缺少分隔', 'npcink-toolbox' );
+		}
+		if ( $this->editor_text_has_alnum_cjk_glue( $paragraph ) ) {
+			$signals[] = __( '字母、数字或方案标签与中文黏连', 'npcink-toolbox' );
+		}
+
+		if ( empty( $signals ) ) {
+			return array();
+		}
+
+		return array(
+			$this->editor_article_checkup_issue(
+				'structural_glue_' . $paragraph_number,
+				'format',
+				'warning',
+				$location,
+				$paragraph,
+				__( '标题标签、短语组或方案标签可能与正文黏连。', 'npcink-toolbox' ),
+				sprintf(
+					/* translators: %s: comma-separated structural glue signals. */
+					__( '请检查这些分隔问题：%s。发布前可改为小标题、标点、项目符号或表格行。', 'npcink-toolbox' ),
+					implode( ', ', $signals )
+				)
+			),
+		);
+	}
+
 	private function editor_article_checkup_has_heading_signal( string $text ): bool {
 		return 1 === preg_match( '/(^|\n)\s*(#{2,6}\s+|[一二三四五六七八九十]+[、.．]|\\d+[.．、]|[（(][一二三四五六七八九十\\d]+[）)])|<h[1-6][^>]*>/iu', $text );
+	}
+
+	private function editor_text_has_heading_label_glue( string $text ): bool {
+		return 1 === preg_match( '/(核心要点|评估维度|主要差异|适用建议|常见问题|方案\s*[A-Za-zＡ-Ｚ])(?=[\p{Han}A-Za-z0-9])/u', $text );
+	}
+
+	private function editor_text_has_phrase_cluster_glue( string $text ): bool {
+		return 1 === preg_match( '/可维护性编辑体验响应式表现治理边界/u', $text )
+			|| 1 === preg_match( '/(可维护性|编辑体验|响应式表现|治理边界)(可维护性|编辑体验|响应式表现|治理边界)(可维护性|编辑体验|响应式表现|治理边界)/u', $text );
+	}
+
+	private function editor_text_has_alnum_cjk_glue( string $text ): bool {
+		return 1 === preg_match( '/(?:[A-Za-z0-9][\x{4e00}-\x{9fff}]|[\x{4e00}-\x{9fff}][A-Za-z0-9]{2,})/u', $text );
+	}
+
+	private function editor_text_has_structural_glue( string $text ): bool {
+		return $this->editor_text_has_heading_label_glue( $text )
+			|| $this->editor_text_has_phrase_cluster_glue( $text )
+			|| $this->editor_text_has_alnum_cjk_glue( $text );
 	}
 
 	private function editor_article_checkup_issue( string $id, string $type, string $severity, string $location, string $evidence, string $issue, string $edit_direction ): array {
@@ -2867,10 +2924,17 @@ final class Rest_Controller {
 			$selected = trim(
 				implode(
 					"\n\n",
-					array_filter(
-						array(
-							(string) ( $context['selected_text'] ?? '' ),
-							(string) ( $context['selected_block_text'] ?? '' ),
+					array_values(
+						array_unique(
+							array_filter(
+								array_map(
+									'trim',
+									array(
+										(string) ( $context['selected_text'] ?? '' ),
+										(string) ( $context['selected_block_text'] ?? '' ),
+									)
+								)
+							)
 						)
 					)
 				)
@@ -2938,6 +3002,9 @@ final class Rest_Controller {
 		$section['fallback_reason']        = 'local_paragraph_check_after_hosted_ai_empty';
 		$section['fallback_source']        = 'current_selected_paragraph_only';
 		$section['fallback_write_posture'] = 'suggestion_only_no_replacement_text';
+		$section['fallback_signal_profile'] = is_array( $output['signal_profile'] ?? null )
+			? array_map( 'boolval', $output['signal_profile'] )
+			: array();
 		$section['output_json']            = $output;
 		$section['items']                  = array(
 			array(
@@ -2969,26 +3036,68 @@ final class Rest_Controller {
 		return $section;
 	}
 
+	private function editor_paragraph_check_signal_profile( string $text, int $length, int $punctuation_count ): array {
+		$has_metric_claim      = 1 === preg_match( '/(\d|万|倍|%|百分|快|慢|耗时|性能|测试|经测试|同等|相当|无明显|明显)/u', $text );
+		$has_scope_claim       = 1 === preg_match( '/(可用于|适合|场景|条件|范围|限制|边界|因此|所以|由于|因为)/u', $text );
+		$has_comparison_claim  = 1 === preg_match( '/(比|相比|对比|相较|优于|弱于|快于|慢于|高于|低于)/u', $text );
+		$has_causal_transition = 1 === preg_match( '/(因此|所以|由于|因为|从而|导致)/u', $text );
+
+		return array(
+			'long_or_dense'          => $length > 150 || $punctuation_count >= 3,
+			'has_metric_claim'      => $has_metric_claim,
+			'has_scope_claim'       => $has_scope_claim,
+			'has_comparison_claim'  => $has_comparison_claim,
+			'has_causal_transition' => $has_causal_transition,
+			'has_structural_glue'   => $this->editor_text_has_structural_glue( $text ),
+		);
+	}
+
 	private function editor_paragraph_check_local_output( string $selected_text ): array {
 		$text     = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( $selected_text ) ) ?: '' );
 		$length   = function_exists( 'mb_strlen' ) ? mb_strlen( $text, 'UTF-8' ) : strlen( $text );
 		$punctuation_count = preg_match_all( '/[。！？!?；;]/u', $text );
-		$has_metric_claim  = 1 === preg_match( '/(\d|万|倍|%|百分|快|慢|耗时|性能|测试|经测试|同等|相当|无明显|明显|适合)/u', $text );
-		$has_scope_claim   = 1 === preg_match( '/(可用于|适合|场景|条件|因此|所以|由于|因为)/u', $text );
+		$signals = $this->editor_paragraph_check_signal_profile( $text, $length, (int) $punctuation_count );
 
-		$clarity = $length > 150 || $punctuation_count >= 3
-			? __( '段落信息量偏高，建议人工检查性能结论、保存耗时和适用场景是否需要拆开呈现，避免读者把多个结论混在一起。', 'npcink-toolbox' )
-			: __( '段落结构基本清楚；重点检查比较结论和适用边界是否已经在上下文中交代。', 'npcink-toolbox' );
+		if ( $signals['has_structural_glue'] ) {
+			$clarity = __( '选中段落疑似存在标题词、选项标签或短语串与正文黏连的问题，建议先检查分隔、标点、列表或小标题结构。', 'npcink-toolbox' );
+		} elseif ( $signals['long_or_dense'] && $signals['has_metric_claim'] ) {
+			$clarity = __( '段落信息量偏高，建议人工检查测试条件、对比结论和适用边界是否需要拆开呈现，避免读者把多个结论混在一起。', 'npcink-toolbox' );
+		} elseif ( $signals['long_or_dense'] ) {
+			$clarity = __( '段落信息量偏高，建议人工检查主语、原因、结论和适用边界是否需要拆开呈现，避免读者把多个判断混在一起。', 'npcink-toolbox' );
+		} else {
+			$clarity = __( '段落结构基本清楚；重点检查判断对象、原因和适用边界是否已经在上下文中交代。', 'npcink-toolbox' );
+		}
 
-		$fact_gaps = $has_metric_claim
+		$fact_gaps = $signals['has_structural_glue']
+			? __( '结构黏连会影响读者判断事实边界；发布前需要确认每个标签、维度、方案或问答对应的正文是否清楚分开。', 'npcink-toolbox' )
+			: ( $signals['has_metric_claim']
 			? __( '包含测试、数量、速度或耗时类结论；发布前需要确认测试条件、数据规模、对比对象和结论来源，避免把单次测试写成通用事实。', 'npcink-toolbox' )
-			: __( '未发现明显数字或性能结论；仍需人工确认段落中的判断是否有上下文依据。', 'npcink-toolbox' );
+			: ( $signals['has_comparison_claim']
+				? __( '包含比较性判断；发布前需要确认比较对象、比较条件和依据是否在上下文中明确。', 'npcink-toolbox' )
+				: __( '未发现明显数字或比较结论；仍需人工确认段落中的判断是否有上下文依据。', 'npcink-toolbox' ) ) );
 
-		$tone = $has_scope_claim
+		$tone = $signals['has_scope_claim']
 			? __( '语气整体偏说明性；涉及“适合/因此/场景”等判断时，建议保持审慎，不要超过已验证范围。', 'npcink-toolbox' )
-			: __( '语气整体中性；保持事实说明即可。', 'npcink-toolbox' );
+			: ( $signals['has_causal_transition']
+				? __( '语气整体偏推论式；建议确认原因和结论之间的关系是否足够明确。', 'npcink-toolbox' )
+				: __( '语气整体中性；保持事实说明，并避免加入选中段落没有承载的新判断。', 'npcink-toolbox' ) );
 
-		$editing = __( '不要直接替换正文。优先核对依据，再决定是否补充测试条件、缩小适用范围，或把性能表现和适用场景分开审阅。', 'npcink-toolbox' );
+		$editing_parts = array( __( '不要直接替换正文。', 'npcink-toolbox' ) );
+		if ( $signals['has_structural_glue'] ) {
+			$editing_parts[] = __( '优先拆开标题词、选项标签、短语串和正文说明。', 'npcink-toolbox' );
+		} elseif ( $signals['has_metric_claim'] ) {
+			$editing_parts[] = __( '优先核对测试条件、数量口径和对比对象。', 'npcink-toolbox' );
+		} elseif ( $signals['has_comparison_claim'] ) {
+			$editing_parts[] = __( '优先核对比较对象和比较条件。', 'npcink-toolbox' );
+		} else {
+			$editing_parts[] = __( '优先核对该段判断是否有上下文依据。', 'npcink-toolbox' );
+		}
+		if ( $signals['has_scope_claim'] ) {
+			$editing_parts[] = __( '必要时缩小适用范围，或把原因和边界分开审阅。', 'npcink-toolbox' );
+		} else {
+			$editing_parts[] = __( '必要时补充限定条件，或把原因和结论分开审阅。', 'npcink-toolbox' );
+		}
+		$editing = implode( '', $editing_parts );
 
 		return array(
 			'clarity_check'       => $clarity,
@@ -2996,6 +3105,7 @@ final class Rest_Controller {
 			'tone_consistency'    => $tone,
 			'editing_suggestions' => $editing,
 			'assumptions_to_verify' => __( '托管 AI 本次未返回建议，以上为本地兜底检查；仍以人工编辑和原始测试记录为准。', 'npcink-toolbox' ),
+			'signal_profile'      => $signals,
 		);
 	}
 

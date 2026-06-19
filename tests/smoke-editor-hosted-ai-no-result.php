@@ -159,3 +159,73 @@ foreach ( array( 'omitted', 'zero_provider_call', 'replay_empty' ) as $scenario_
 	}
 }
 
+$scenario       = 'omitted';
+$generic_result = toolbox_editor_hosted_no_result_rest(
+	array_merge(
+		$base_params,
+		array(
+			'content'             => '安装后直接运行，适用于个人博客、作品集和网站内容展示等小型数据使用场景。',
+			'selected_text'       => '安装后直接运行，适用于个人博客、作品集和网站内容展示等小型数据使用场景。',
+			'selected_block_text' => '安装后直接运行，适用于个人博客、作品集和网站内容展示等小型数据使用场景。',
+			'generation_variant'  => 'hosted-no-result-generic-' . wp_generate_uuid4(),
+		)
+	)
+);
+$generic_section = is_array( $generic_result['sections']['polish_notes'] ?? null ) ? $generic_result['sections']['polish_notes'] : array();
+$generic_output  = is_array( $generic_section['output_json'] ?? null ) ? $generic_section['output_json'] : array();
+$generic_details = implode(
+	' ',
+	array_map(
+		static function ( $item ): string {
+			return is_array( $item ) ? (string) ( $item['detail'] ?? '' ) : '';
+		},
+		is_array( $generic_section['items'] ?? null ) ? $generic_section['items'] : array()
+	)
+);
+$generic_profile = is_array( $generic_section['fallback_signal_profile'] ?? null ) ? $generic_section['fallback_signal_profile'] : array();
+
+toolbox_editor_hosted_no_result_assert( empty( $generic_profile['has_metric_claim'] ), 'Paragraph fallback signal profile detects no metric/performance claim for generic selected text.' );
+toolbox_editor_hosted_no_result_assert( empty( $generic_profile['long_or_dense'] ), 'Paragraph fallback does not treat duplicate selected text and selected block text as a dense paragraph.' );
+toolbox_editor_hosted_no_result_assert( 1 !== preg_match( '/性能|耗时|保存耗时/u', $generic_details ), 'Generic paragraph fallback does not project performance or save-time wording onto selected text.' );
+toolbox_editor_hosted_no_result_assert( false !== strpos( (string) ( $generic_output['editing_suggestions'] ?? '' ), '不要直接替换正文' ), 'Generic paragraph fallback keeps the no-replacement editing posture.' );
+
+$glue_text   = '方案 A适合追求最小改动和快速上线的场景。常见问题文章会直接发布吗？不会。';
+$glue_result = toolbox_editor_hosted_no_result_rest(
+	array_merge(
+		$base_params,
+		array(
+			'content'             => $glue_text,
+			'selected_text'       => $glue_text,
+			'selected_block_text' => $glue_text,
+			'generation_variant'  => 'hosted-no-result-glue-' . wp_generate_uuid4(),
+		)
+	)
+);
+$glue_section = is_array( $glue_result['sections']['polish_notes'] ?? null ) ? $glue_result['sections']['polish_notes'] : array();
+$glue_output  = is_array( $glue_section['output_json'] ?? null ) ? $glue_section['output_json'] : array();
+$glue_profile = is_array( $glue_section['fallback_signal_profile'] ?? null ) ? $glue_section['fallback_signal_profile'] : array();
+
+toolbox_editor_hosted_no_result_assert( ! empty( $glue_profile['has_structural_glue'] ), 'Paragraph fallback signal profile detects heading or option-label glue.' );
+toolbox_editor_hosted_no_result_assert( false !== strpos( (string) ( $glue_output['clarity_check'] ?? '' ), '黏连' ), 'Paragraph fallback explains structural glue instead of returning only generic fact checks.' );
+
+$article_result = toolbox_editor_hosted_no_result_rest(
+	array(
+		'post_id'     => 0,
+		'post_type'   => 'post',
+		'post_status' => 'draft',
+		'title'       => 'Article checkup glue smoke',
+		'excerpt'     => '',
+		'content'     => '核心要点文章计划先生成可审查 Gutenberg 结构。可维护性编辑体验响应式表现治理边界主要差异把差异写进段落和对比卡片。方案 A适合追求最小改动和快速上线的场景。',
+		'intent'      => 'article_checkup',
+	)
+);
+$article_checkup = is_array( $article_result['sections']['article_checkup'] ?? null ) ? $article_result['sections']['article_checkup'] : array();
+$article_items   = is_array( $article_checkup['items'] ?? null ) ? $article_checkup['items'] : array();
+$article_ids     = array_map(
+	static function ( $item ): string {
+		return is_array( $item ) ? (string) ( $item['id'] ?? '' ) : '';
+	},
+	$article_items
+);
+
+toolbox_editor_hosted_no_result_assert( in_array( 'structural_glue_1', $article_ids, true ), 'Article checkup detects glued heading labels, phrase groups, or option labels as one scannable issue.' );
