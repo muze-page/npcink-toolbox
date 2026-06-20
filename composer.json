@@ -52,6 +52,7 @@
     "smoke:editor-progressive-browser": "node tests/smoke-editor-progressive-browser.mjs",
     "smoke:media-conversion-review-set-browser": "node tests/smoke-media-conversion-review-set-browser.mjs",
     "smoke:site-knowledge-review-ui": "php tests/smoke-site-knowledge-review-ui.php",
+    "smoke:site-knowledge-cloud-addon-bridge": "sh scripts/smoke-site-knowledge-cloud-addon-bridge.sh",
     "smoke:local-automation-runtime-replay": "php tests/smoke-local-automation-runtime-replay.php",
     "smoke:local-automation-runtime-negative-replay": "php tests/smoke-local-automation-runtime-negative-replay.php",
     "smoke:local-automation-media-conversion-review-set": "php tests/smoke-local-automation-media-conversion-review-set.php",

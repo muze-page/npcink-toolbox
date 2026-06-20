@@ -273,6 +273,19 @@ keeps review proposals operator-triggered, routes the handoff through
 evidence refs, keeps Agent feedback as Cloud eval metadata, and does not call
 REST, Adapter, Core proposal intake, or WordPress write paths.
 
+For the Cloud Addon-owned Site Knowledge change bridge, run:
+
+```bash
+composer smoke:site-knowledge-cloud-addon-bridge
+```
+
+This is a local WordPress smoke. It temporarily activates Cloud Addon before
+Toolbox, verifies Toolbox reports `owner=cloud_addon`, confirms the Cloud Addon
+public post hook is registered, confirms the Toolbox legacy auto-sync cron hook
+is not registered, and then restores the original plugin activation state. It is
+intentionally outside `composer test:all` because it depends on a local
+WordPress site with both plugins symlinked or installed.
+
 For the bundled local automation runtime Phase 1 skeleton, run:
 
 ```bash
