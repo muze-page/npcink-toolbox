@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $npcink_toolbox_progressive_cloud_calls = 0;
+$npcink_toolbox_progressive_taxonomy_inputs = array();
 
 if ( ! class_exists( 'WP_Error' ) ) {
 	class WP_Error {
@@ -154,6 +155,86 @@ function get_terms( array $args ): array {
 		);
 	}
 	return array();
+}
+
+function npcink_abilities_toolkit_get_registered(): array {
+	return array(
+		'npcink-abilities-toolkit/suggest-post-taxonomy-terms' => array(
+			'execute_callback' => 'npcink_toolbox_progressive_taxonomy_suggestions',
+		),
+	);
+}
+
+function npcink_toolbox_progressive_taxonomy_suggestion_item( string $taxonomy, int $term_id, string $name, string $slug, array $signals, string $reason ): array {
+	return array(
+		'taxonomy'        => $taxonomy,
+		'term_id'         => $term_id,
+		'name'            => $name,
+		'slug'            => $slug,
+		'score'           => 4.5,
+		'confidence'      => 0.9,
+		'match_signals'   => $signals,
+		'reason'          => $reason,
+		'evidence_refs'   => array( 'toolkit_stub' ),
+		'related_context' => array(
+			'source_count' => in_array( 'related_site_knowledge_term', $signals, true ) ? 1 : 0,
+		),
+	);
+}
+
+function npcink_toolbox_progressive_taxonomy_suggestions( array $input ): array {
+	global $npcink_toolbox_progressive_taxonomy_inputs;
+	$npcink_toolbox_progressive_taxonomy_inputs[] = $input;
+
+	$title = (string) ( $input['title'] ?? '' );
+	$items = array();
+	if ( false !== stripos( $title, 'AI Workflow' ) || false !== stripos( $title, 'Fast AI recommendation workflow' ) ) {
+		$items[] = npcink_toolbox_progressive_taxonomy_suggestion_item(
+			'category',
+			11,
+			'AI Workflow',
+			'ai-workflow',
+			array( 'current_draft_match', 'title_term_name_match' ),
+			'Matched tokens: ai, workflow.'
+		);
+		$items[] = npcink_toolbox_progressive_taxonomy_suggestion_item(
+			'post_tag',
+			21,
+			'recommendation',
+			'recommendation',
+			array( 'current_draft_match' ),
+			'Matched tokens: recommendation.'
+		);
+	}
+	if ( false !== strpos( $title, '渐进推荐' ) ) {
+		$items[] = npcink_toolbox_progressive_taxonomy_suggestion_item(
+			'category',
+			14,
+			'渐进推荐',
+			'progressive-recommendation',
+			array( 'current_draft_match', 'title_term_name_match' ),
+			'Matched tokens: 渐进推荐.'
+		);
+	}
+
+	return array(
+		'success' => true,
+		'data'    => array(
+			'artifact_type'          => 'article_taxonomy_suggestions.v1',
+			'write_posture'          => 'suggestion_only',
+			'final_write_path'       => 'core_proposal_required',
+			'direct_wordpress_write' => false,
+			'taxonomy_terms'         => array(
+				'candidate_type'         => 'taxonomy_tag_candidates',
+				'write_posture'          => 'suggestion_only',
+				'direct_wordpress_write' => false,
+				'ranking_context'        => array(
+					'related_term_policy' => 'ranking_evidence_only_no_term_creation_or_assignment',
+				),
+				'items'                  => $items,
+			),
+		),
+	);
 }
 
 function get_posts( array $args ): array {
@@ -309,7 +390,7 @@ npcink_toolbox_progressive_assert(
 		$stopword_categories,
 		static fn( array $candidate ): bool => 'This' === (string) ( $candidate['value'] ?? '' )
 	),
-	'Progressive taxonomy ranking ignores English stopword-only matches.'
+	'Progressive taxonomy delegation does not locally add English stopword-only matches.'
 );
 
 $generic_taxonomy_section = npcink_toolbox_progressive_section(
@@ -330,7 +411,7 @@ npcink_toolbox_progressive_assert(
 		$generic_taxonomy_categories,
 		static fn( array $candidate ): bool => 'Post Formats' === (string) ( $candidate['value'] ?? '' )
 	),
-	'Progressive taxonomy ranking ignores generic WordPress taxonomy tokens such as post and format.'
+	'Progressive taxonomy delegation does not locally add generic WordPress taxonomy tokens such as post and format.'
 );
 
 $exact_title_section = npcink_toolbox_progressive_section(
@@ -352,7 +433,16 @@ $exact_title_category = npcink_toolbox_progressive_candidate_by_value(
 npcink_toolbox_progressive_assert(
 	! empty( $exact_title_category )
 	&& in_array( '词条名称在标题中完整出现，优先级更高。', $exact_title_category['quality_issues'] ?? array(), true ),
-	'Progressive taxonomy ranking boosts exact title term-name matches with explainable evidence.'
+	'Progressive taxonomy delegation displays Toolkit exact title term-name evidence.'
+);
+global $npcink_toolbox_progressive_taxonomy_inputs;
+$latest_taxonomy_input = end( $npcink_toolbox_progressive_taxonomy_inputs );
+npcink_toolbox_progressive_assert(
+	is_array( $latest_taxonomy_input )
+	&& 'both' === ( $latest_taxonomy_input['taxonomy'] ?? '' )
+	&& 'AI Workflow for editors' === ( $latest_taxonomy_input['title'] ?? '' )
+	&& 'post' === ( $latest_taxonomy_input['post_type'] ?? '' ),
+	'Progressive taxonomy delegation passes draft context to the Toolkit ability.'
 );
 
 $single_token_section = npcink_toolbox_progressive_section(
@@ -370,7 +460,7 @@ $single_token_section = npcink_toolbox_progressive_section(
 $single_token_categories = npcink_toolbox_progressive_candidates_by_kind( $single_token_section, 'category' );
 npcink_toolbox_progressive_assert(
 	! npcink_toolbox_progressive_candidate_by_value( $single_token_categories, 'AI Workflow' ),
-	'Progressive taxonomy ranking keeps single-token weak matches out of high-confidence candidates.'
+	'Progressive taxonomy delegation does not locally add single-token weak matches.'
 );
 
 $description_only_section = npcink_toolbox_progressive_section(
@@ -388,7 +478,7 @@ $description_only_section = npcink_toolbox_progressive_section(
 $description_only_categories = npcink_toolbox_progressive_candidates_by_kind( $description_only_section, 'category' );
 npcink_toolbox_progressive_assert(
 	! npcink_toolbox_progressive_candidate_by_value( $description_only_categories, 'Editorial Ops' ),
-	'Progressive taxonomy ranking keeps description-only matches out of high-confidence candidates.'
+	'Progressive taxonomy delegation does not locally add description-only matches.'
 );
 
 $chinese_section = npcink_toolbox_progressive_section(
@@ -409,7 +499,7 @@ npcink_toolbox_progressive_assert(
 		$chinese_categories,
 		static fn( array $candidate ): bool => '渐进推荐' === (string) ( $candidate['value'] ?? '' )
 	),
-	'Progressive taxonomy ranking supports Chinese title taxonomy matches.'
+	'Progressive taxonomy delegation displays Toolkit Chinese title taxonomy matches.'
 );
 
 $preflight_candidates = npcink_toolbox_progressive_candidates_by_kind( $section, 'preflight' );

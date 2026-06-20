@@ -2315,6 +2315,7 @@ final class Rest_Controller {
 					'excerpt_reviewed_with_no_unsupported_claims',
 					'existing_categories_or_tags_reused_when_possible',
 					'related_content_terms_used_for_ranking_only',
+					'related_content_ranking_evidence_only',
 					'new_term_candidates_deferred_to_taxonomy_governance',
 					'no_toolbox_direct_wordpress_write',
 					'accepted_write_like_changes_route_through_core_or_future_classified_local_consent',
@@ -4816,183 +4817,107 @@ final class Rest_Controller {
 	}
 
 	private function editor_taxonomy_term_candidates( array $context, string $query, array $related_content = array() ): array {
-		$post_type  = sanitize_key( (string) ( $context['post_type'] ?? 'post' ) );
-		$taxonomies = array_values(
-			array_intersect(
-				get_object_taxonomies( $post_type ),
-				array( 'category', 'post_tag' )
-			)
+		$input = array(
+			'post_id'         => absint( $context['post_id'] ?? 0 ),
+			'post_type'       => sanitize_key( (string) ( $context['post_type'] ?? 'post' ) ),
+			'taxonomy'        => 'both',
+			'query'           => sanitize_textarea_field( $query ),
+			'title'           => sanitize_text_field( (string) ( $context['title'] ?? '' ) ),
+			'excerpt'         => sanitize_textarea_field( (string) ( $context['excerpt'] ?? '' ) ),
+			'content_text'    => sanitize_textarea_field( (string) ( $context['content_text'] ?? '' ) ),
+			'selected_text'   => sanitize_textarea_field( (string) ( $context['selected_text'] ?? '' ) ),
+			'selected_block_text' => sanitize_textarea_field( (string) ( $context['selected_block_text'] ?? '' ) ),
+			'user_instruction' => sanitize_textarea_field( (string) ( $context['user_instruction'] ?? '' ) ),
+			'category_limit'  => 5,
+			'tag_limit'       => 8,
+			'candidate_limit' => 10,
 		);
-		$related_term_evidence = $this->editor_related_content_term_evidence( $related_content );
-
-		$candidates = array();
-		foreach ( $taxonomies as $taxonomy ) {
-			$terms = get_terms(
-				array(
-					'taxonomy'   => $taxonomy,
-					'hide_empty' => false,
-					'number'     => 60,
-				)
-			);
-			if ( is_wp_error( $terms ) || ! is_array( $terms ) ) {
-				continue;
-			}
-
-			foreach ( $terms as $term ) {
-				$term_key         = sanitize_key( $taxonomy ) . ':' . absint( $term->term_id );
-				$term_text        = $term->name . ' ' . $term->slug . ' ' . $term->description;
-				$related_evidence = is_array( $related_term_evidence[ $term_key ] ?? null ) ? $related_term_evidence[ $term_key ] : array();
-				$draft_score      = $this->editor_contextual_match_score( $term_text, $context, $query );
-				$matched_tokens   = $this->editor_taxonomy_evidence_tokens( $this->editor_contextual_match_tokens( $term_text, $context, $query ) );
-				if ( $draft_score > 0 && array() === $matched_tokens ) {
-					$draft_score = 0;
-				}
-				$match_profile    = $this->editor_taxonomy_match_profile( $term, $context, $query, $draft_score, $matched_tokens );
-				$draft_score      = (int) $match_profile['score'];
-				$matched_tokens   = is_array( $match_profile['matched_tokens'] ?? null ) ? $match_profile['matched_tokens'] : $matched_tokens;
-				$related_score    = $this->editor_related_term_score( $related_evidence );
-				$score            = $draft_score + $related_score;
-				if ( $score <= 0 ) {
-					continue;
-				}
-				$match_signals  = array( 'existing_taxonomy_vocabulary' );
-				if ( $draft_score > 0 ) {
-					$match_signals[] = 'draft_query_overlap';
-					$match_signals[] = 'current_draft_match';
-				}
-				if ( $related_score > 0 ) {
-					$match_signals[] = 'related_site_knowledge_term';
-				}
-				$match_signals = array_merge( $match_signals, is_array( $match_profile['signals'] ?? null ) ? $match_profile['signals'] : array() );
-
-				$candidates[] = array(
-					'term_id'                      => (int) $term->term_id,
-					'taxonomy'                     => sanitize_key( $taxonomy ),
-					'name'                         => sanitize_text_field( $term->name ),
-					'slug'                         => sanitize_title( $term->slug ),
-					'score'                        => $score,
-					'status'                       => 'existing_term',
-					'controlled_vocabulary_status' => 'existing_wordpress_term',
-					'normalization_key'            => sanitize_title( $term->name ),
-					'matched_tokens'               => $matched_tokens,
-					'match_signals'                => array_values( array_unique( $match_signals ) ),
-					'related_context'              => $this->editor_related_term_context_summary( $related_evidence ),
-					'evidence_refs'                => is_array( $related_evidence['source_refs'] ?? null ) ? array_values( array_unique( $related_evidence['source_refs'] ) ) : array(),
-					'reason'                       => $this->editor_taxonomy_candidate_reason( $matched_tokens, $related_evidence ),
-				);
-			}
+		if ( 0 >= (int) $input['post_id'] ) {
+			unset( $input['post_id'] );
 		}
 
-		usort(
-			$candidates,
-			static function ( array $left, array $right ): int {
-				return (int) $right['score'] <=> (int) $left['score'];
-			}
-		);
+		$related_term_evidence = $this->editor_related_content_term_evidence( $related_content );
+		if ( array() !== $related_term_evidence ) {
+			$input['related_term_evidence'] = array_values( $related_term_evidence );
+		}
 
+		$result = $this->editor_toolkit_taxonomy_suggestions( $input );
+		if ( is_wp_error( $result ) ) {
+			return $this->empty_toolkit_taxonomy_term_candidates( $result, $related_term_evidence );
+		}
+
+		$data = is_array( $result['data'] ?? null ) ? $result['data'] : $result;
+		$taxonomy_terms = is_array( $data['taxonomy_terms'] ?? null ) ? $data['taxonomy_terms'] : array();
+		if ( empty( $taxonomy_terms['candidate_type'] ) || 'taxonomy_tag_candidates' !== (string) $taxonomy_terms['candidate_type'] ) {
+			return $this->empty_toolkit_taxonomy_term_candidates(
+				new WP_Error(
+					'npcink_toolbox_taxonomy_toolkit_invalid_artifact',
+					__( 'The Toolkit taxonomy suggestion ability returned an invalid artifact.', 'npcink-toolbox' ),
+					array( 'status' => 500 )
+				),
+				$related_term_evidence
+			);
+		}
+
+		$taxonomy_terms['source_ability_id'] = 'npcink-abilities-toolkit/suggest-post-taxonomy-terms';
+		$taxonomy_terms['ranking_context']['related_term_policy'] = 'ranking_evidence_only_no_term_creation_or_assignment';
+
+		return $taxonomy_terms;
+	}
+
+	private function editor_toolkit_taxonomy_suggestions( array $input ) {
+		$ability_id = 'npcink-abilities-toolkit/suggest-post-taxonomy-terms';
+		if ( ! function_exists( 'npcink_abilities_toolkit_get_registered' ) ) {
+			return new WP_Error(
+				'npcink_toolbox_taxonomy_toolkit_unavailable',
+				__( 'Npcink Abilities Toolkit is required to build taxonomy suggestions.', 'npcink-toolbox' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		$registered = npcink_abilities_toolkit_get_registered();
+		$definition = is_array( $registered[ $ability_id ] ?? null ) ? $registered[ $ability_id ] : array();
+		$callback   = $definition['execute_callback'] ?? null;
+		if ( ! is_callable( $callback ) ) {
+			return new WP_Error(
+				'npcink_toolbox_taxonomy_toolkit_unavailable',
+				__( 'The Toolkit taxonomy suggestion ability is not currently callable.', 'npcink-toolbox' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		$result = call_user_func( $callback, $input );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		if ( ! is_array( $result ) ) {
+			return new WP_Error(
+				'npcink_toolbox_taxonomy_toolkit_invalid_response',
+				__( 'The Toolkit taxonomy suggestion ability returned an invalid response.', 'npcink-toolbox' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return $result;
+	}
+
+	private function empty_toolkit_taxonomy_term_candidates( WP_Error $error, array $related_term_evidence ): array {
 		return array(
 			'candidate_type'         => 'taxonomy_tag_candidates',
 			'write_posture'          => 'suggestion_only',
 			'direct_wordpress_write' => false,
+			'source_ability_id'      => 'npcink-abilities-toolkit/suggest-post-taxonomy-terms',
+			'toolkit_required'       => true,
+			'error_code'             => sanitize_key( $error->get_error_code() ),
+			'error_message'          => sanitize_text_field( $error->get_error_message() ),
 			'ranking_context'        => array(
 				'draft_query_overlap'          => true,
 				'related_content_terms'        => array() !== $related_term_evidence,
 				'related_term_evidence_count' => count( $related_term_evidence ),
 				'related_term_policy'         => 'ranking_evidence_only_no_term_creation_or_assignment',
 			),
-			'items'                  => array_slice( $candidates, 0, 10 ),
+			'items'                  => array(),
 		);
-	}
-
-	private function editor_taxonomy_match_profile( object $term, array $context, string $query, int $draft_score, array $matched_tokens ): array {
-		$name        = sanitize_text_field( (string) ( $term->name ?? '' ) );
-		$slug        = sanitize_title( (string) ( $term->slug ?? '' ) );
-		$description = sanitize_text_field( (string) ( $term->description ?? '' ) );
-		$name_tokens = $this->support_tokens( $name );
-		$slug_tokens = $this->support_tokens( str_replace( '-', ' ', $slug ) );
-		$description_tokens = $this->support_tokens( $description );
-		$name_slug_tokens   = array_values( array_unique( array_merge( $name_tokens, $slug_tokens ) ) );
-		$signals            = array();
-		$score              = max( 0, $draft_score );
-
-		$title = trim( (string) ( $context['title'] ?? '' ) );
-		if ( array() !== $name_tokens && '' !== $title && $this->editor_text_contains_phrase( $title, $name ) ) {
-			$score    += 6;
-			$signals[] = 'title_term_name_match';
-		}
-
-		foreach ( array( 'excerpt', 'selected_text', 'selected_block_text' ) as $field ) {
-			$value = trim( (string) ( $context[ $field ] ?? '' ) );
-			if ( array() !== $name_tokens && '' !== $value && $this->editor_text_contains_phrase( $value, $name ) ) {
-				$score    += 4;
-				$signals[] = $field . '_term_name_match';
-				break;
-			}
-		}
-
-		$content = trim( (string) ( $context['content_text'] ?? '' ) );
-		if ( array() !== $name_tokens && '' !== $content && $this->editor_text_contains_phrase( $content, $name ) ) {
-			$score    += 2;
-			$signals[] = 'body_term_name_match';
-		}
-
-		$context_tokens = $this->support_tokens(
-			implode(
-				' ',
-				array(
-					(string) ( $context['title'] ?? '' ),
-					(string) ( $context['excerpt'] ?? '' ),
-					(string) ( $context['selected_text'] ?? '' ),
-					(string) ( $context['selected_block_text'] ?? '' ),
-					'' !== trim( $query ) ? $query : '',
-				)
-			)
-		);
-		$slug_overlap = array_intersect( $slug_tokens, $context_tokens );
-		$required_slug_overlap = count( $slug_tokens ) > 1 ? 2 : 1;
-		if ( count( $slug_overlap ) >= $required_slug_overlap ) {
-			$score    += 2;
-			$signals[] = 'slug_alias_match';
-		}
-
-		if ( $score > 0 && array() !== $matched_tokens && array() === array_intersect( $matched_tokens, $name_slug_tokens ) && array() !== array_intersect( $matched_tokens, $description_tokens ) ) {
-			$score    = min( $score, 2 );
-			$signals[] = 'description_only_match';
-		}
-
-		$has_exact_name_signal = (bool) array_filter(
-			$signals,
-			static fn( string $signal ): bool => false !== strpos( $signal, '_term_name_match' )
-		);
-		if ( $score > 0 && 1 === count( $matched_tokens ) && ! $has_exact_name_signal && ! in_array( 'slug_alias_match', $signals, true ) ) {
-			$score    = min( $score, 2 );
-			$signals[] = 'low_specificity_match';
-		}
-
-		return array(
-			'score'          => max( 0, min( 40, $score ) ),
-			'matched_tokens' => array_values( array_unique( $matched_tokens ) ),
-			'signals'        => array_values( array_unique( $signals ) ),
-		);
-	}
-
-	private function editor_text_contains_phrase( string $haystack, string $needle ): bool {
-		$needle = trim( $needle );
-		if ( '' === $needle ) {
-			return false;
-		}
-		return false !== strpos( strtolower( $haystack ), strtolower( $needle ) );
-	}
-
-	private function editor_related_term_score( array $related_evidence ): int {
-		if ( array() === $related_evidence ) {
-			return 0;
-		}
-
-		$source_count   = absint( $related_evidence['source_count'] ?? 0 );
-		$max_similarity = is_numeric( $related_evidence['max_similarity'] ?? null ) ? (float) $related_evidence['max_similarity'] : 0.0;
-
-		return max( 1, min( 5, $source_count + (int) ceil( max( 0.0, $max_similarity ) * 2 ) ) );
 	}
 
 	private function empty_summary_layer_candidates(): array {
@@ -5002,45 +4927,6 @@ final class Rest_Controller {
 			'direct_wordpress_write'  => false,
 			'related_context_summary' => array(),
 			'items'                   => array(),
-		);
-	}
-
-	private function editor_taxonomy_candidate_reason( array $matched_tokens, array $related_evidence ): string {
-		$has_related = array() !== $related_evidence;
-		if ( $has_related && array() !== $matched_tokens ) {
-			return sprintf(
-				/* translators: %s: comma-separated matched words. */
-				__( 'Existing term matched the draft and appears on related Site Knowledge posts. Matched tokens: %s.', 'npcink-toolbox' ),
-				implode( ', ', array_slice( $matched_tokens, 0, 6 ) )
-			);
-		}
-
-		if ( $has_related ) {
-			return __( 'Existing term appears on related Site Knowledge posts and should be reviewed as a proven site taxonomy pattern.', 'npcink-toolbox' );
-		}
-
-		if ( array() === $matched_tokens ) {
-			return __( 'Existing term has local taxonomy evidence but no concise matched token could be displayed. Review it against the current draft before applying.', 'npcink-toolbox' );
-		}
-
-		return sprintf(
-			/* translators: %s: comma-separated matched words. */
-			__( 'Existing term matched against the current title, excerpt, or draft body. Matched tokens: %s.', 'npcink-toolbox' ),
-			implode( ', ', array_slice( $matched_tokens, 0, 6 ) )
-		);
-	}
-
-	private function editor_related_term_context_summary( array $related_evidence ): array {
-		if ( array() === $related_evidence ) {
-			return array();
-		}
-
-		return array(
-			'source_count'    => absint( $related_evidence['source_count'] ?? 0 ),
-			'source_post_ids' => is_array( $related_evidence['source_post_ids'] ?? null ) ? array_values( array_map( 'absint', $related_evidence['source_post_ids'] ) ) : array(),
-			'source_titles'   => is_array( $related_evidence['source_titles'] ?? null ) ? array_slice( array_values( array_map( 'sanitize_text_field', $related_evidence['source_titles'] ) ), 0, 5 ) : array(),
-			'max_similarity'  => is_numeric( $related_evidence['max_similarity'] ?? null ) ? (float) $related_evidence['max_similarity'] : null,
-			'policy'          => 'related_content_ranking_evidence_only',
 		);
 	}
 
@@ -5072,49 +4958,6 @@ final class Rest_Controller {
 		}
 
 		return max( 0, min( 30, $weighted_score ) );
-	}
-
-	private function editor_contextual_match_tokens( string $candidate_text, array $context, string $query ): array {
-		$tokens = array();
-		foreach ( array( 'title', 'excerpt', 'selected_text', 'selected_block_text', 'content_text', 'user_instruction' ) as $field ) {
-			$value = trim( (string) ( $context[ $field ] ?? '' ) );
-			if ( '' === $value ) {
-				continue;
-			}
-			$tokens = array_merge( $tokens, $this->term_match_tokens( $candidate_text, $value ) );
-		}
-
-		if ( array() === $tokens && '' !== trim( $query ) ) {
-			$tokens = $this->term_match_tokens( $candidate_text, $query );
-		}
-
-		return array_values( array_unique( array_filter( $tokens ) ) );
-	}
-
-	private function editor_taxonomy_evidence_tokens( array $tokens ): array {
-		return array_values(
-			array_filter(
-				array_unique( array_map( 'strtolower', array_map( 'sanitize_text_field', $tokens ) ) ),
-				function ( string $token ): bool {
-					return ! $this->editor_is_generic_taxonomy_match_token( $token );
-				}
-			)
-		);
-	}
-
-	private function editor_is_generic_taxonomy_match_token( string $token ): bool {
-		$generic_tokens = array(
-			'post'    => true,
-			'posts'   => true,
-			'page'    => true,
-			'pages'   => true,
-			'format'  => true,
-			'formats' => true,
-			'type'    => true,
-			'types'   => true,
-		);
-
-		return ! empty( $generic_tokens[ strtolower( trim( $token ) ) ] );
 	}
 
 	private function term_match_tokens( string $term_text, string $query ): array {

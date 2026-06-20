@@ -359,7 +359,8 @@ prompt/router truth, local indexing ownership, or a new write path.
 The split metadata intents return the same
 `article_discoverability_optimization.v1` section shape through lighter
 draft/taxonomy fast paths, while the full `summary_terms_optimization` intent
-still combines hosted AI summary suggestions, existing category/tag candidates,
+still combines hosted AI summary suggestions, existing category/tag candidates
+ranked by `npcink-abilities-toolkit/suggest-post-taxonomy-terms`,
 Cloud-managed Site Knowledge related-content evidence, Cloud-managed web-search
 evidence, and saved content-context guidance. It is not a term assignment,
 excerpt update, SEO mutation, content indexing, or local RAG/index lifecycle
@@ -368,8 +369,9 @@ keeps summary candidates split by use case, annotates them with related-content
 context for duplicate/topic-fit review, marks WordPress taxonomy candidates as
 existing terms with match tokens and normalization keys, and boosts existing
 categories or tags that already appear on related Site Knowledge posts. That
-related-term evidence is ranking context only: it must not create terms, assign
-terms, persist feedback, or become an index lifecycle signal. The section also
+related-term evidence is passed to Toolkit as ranking context only: it must not
+create terms, assign terms, persist feedback, or become an index lifecycle
+signal. The section also
 returns suggestion-only ranking, dedupe, and review-metric guidance so editors
 can judge precision without creating a Toolbox audit store. It also includes a
 `content_metadata_delta` P0 artifact for one current post: issue record,

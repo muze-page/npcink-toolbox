@@ -312,12 +312,14 @@ converted into a dry-run `content_metadata_apply_plan` through
 `/wp-json/npcink-toolbox/v1/flows/content-metadata-apply-plan`; the plan uses
 `npcink-abilities-toolkit/build-content-metadata-apply-plan` as its Core
 handoff ability so third-party plugins do not need to depend on Toolbox. Core still owns proposal
-approval and final execution remains outside Toolbox. That packet exposes four proposal-ready action
+approval and final execution remains outside Toolbox. Existing category/tag
+candidates are ranked by `npcink-abilities-toolkit/suggest-post-taxonomy-terms`
+and presented by Toolbox for review. That packet exposes proposal-ready action
 labels: Generate and apply summary, Recommend and apply tags, Recommend
-categories, and Create new tags and assign. Summary application and existing
+categories. Summary application and existing
 tag assignment can request Core auto-approval when policy allows; category
 changes stay recommendation-first by default, and new tag creation remains
-Core policy-gated under strong review after duplicate-term review. The panel returns suggestions
+deferred to a later taxonomy governance workflow. The panel returns suggestions
 only; it does not
 insert links, assign terms, create terms, update excerpts or SEO fields, import
 media, publish content, store acceptance/audit truth, or write WordPress data.

@@ -220,6 +220,9 @@ candidates or apply-plan inputs. The only apply-oriented local Toolbox surface i
 returns read-only planning output: it packages reviewed excerpt, existing
 category, and existing tag choices into dry-run Core handoff actions and rejects
 missing term creation by keeping `create_missing=false`.
+Existing category/tag candidate ranking is sourced from
+`npcink-abilities-toolkit/suggest-post-taxonomy-terms`; Toolbox only supplies
+editor context, related-term evidence, and the review UI.
 Internal-link support returns `internal_link_candidates.v1` with reviewable
 targets, anchor suggestions, and placement hints. The REST route must not
 insert links, patch post content, or submit a post-content patch on the

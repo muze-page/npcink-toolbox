@@ -105,14 +105,14 @@ author loop:
   full-context rerun that keeps the richer quality contract as a slower fallback.
   Toolbox strips meta wording, enforces length limits, reranks by coverage, and
   lets the editor copy one candidate into the current unsaved excerpt field.
-- `category_suggestions`: Toolbox ranks existing WordPress categories by
-  current draft token matches and, when supplied by the richer flow, related
-  Site Knowledge term evidence. The focused shortcut does not use selected text
-  and does not create categories.
-- `tag_suggestions`: Toolbox ranks existing WordPress tags by the same rules.
-  The focused result shows only existing tag recommendations. Proposed new tag
-  gaps are deferred to a later taxonomy governance workflow; Toolbox does not
-  create terms from this panel.
+- `category_suggestions`: Toolbox presents existing WordPress category
+  candidates ranked by `npcink-abilities-toolkit/suggest-post-taxonomy-terms`.
+  Current draft text and, when supplied by the richer flow, related Site
+  Knowledge term evidence are passed to Toolkit as ranking context. The focused
+  shortcut does not use selected text and does not create categories.
+- `tag_suggestions`: Toolbox presents existing WordPress tag candidates from
+  the same Toolkit ability. Proposed new tag gaps are deferred to a later
+  taxonomy governance workflow; Toolbox does not create terms from this panel.
 - `summary_terms_optimization`: the full workflow that may combine summary,
   taxonomy, Site Knowledge, discoverability evidence, diagnostics, and Core
   handoff preparation.
