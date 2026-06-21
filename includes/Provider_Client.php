@@ -3039,6 +3039,81 @@ final class Provider_Client {
 			);
 		}
 
+		return $this->normalize_content_metadata_apply_plan_contract( $data );
+	}
+
+	/**
+	 * Normalizes delegated Toolkit content metadata plans for Core from-plan intake.
+	 *
+	 * @param array<string,mixed> $data Toolkit plan data.
+	 * @return array<string,mixed>
+	 */
+	private function normalize_content_metadata_apply_plan_contract( array $data ): array {
+		$authorization = is_array( $data['authorization'] ?? null ) ? $data['authorization'] : array();
+		$classification = sanitize_key( (string) ( $authorization['classification'] ?? Operation_Classifier::CORE_PROPOSAL_REQUIRED ) );
+		if ( '' === $classification ) {
+			$classification = Operation_Classifier::CORE_PROPOSAL_REQUIRED;
+		}
+
+		$reasons = $this->sanitize_string_list( $authorization['reasons'] ?? array() );
+		if ( empty( $reasons ) ) {
+			$reasons = array( 'excerpt_or_taxonomy_mutation', 'core_proposal_required' );
+		}
+
+		$required_evidence = $this->sanitize_string_list( $authorization['required_evidence'] ?? array() );
+		if ( empty( $required_evidence ) ) {
+			$required_evidence = array(
+				'target_ability_id',
+				'target_input_or_safe_summary',
+				'before_after_or_dry_run_evidence',
+				'reason_risk_required_scopes',
+				'caller_source_metadata',
+				'batch_item_details_when_applicable',
+			);
+		}
+
+		$decision_version = sanitize_text_field(
+			(string) (
+				$authorization['decision_version']
+				?? ( $authorization['policy_version'] ?? 'operation-classification-v1' )
+			)
+		);
+		if ( '' === $decision_version ) {
+			$decision_version = 'operation-classification-v1';
+		}
+
+		$decision_envelope = is_array( $authorization['decision_envelope'] ?? null ) ? $authorization['decision_envelope'] : array();
+		$decision_envelope = array_merge(
+			array(
+				'decision_version'  => $decision_version,
+				'classification'    => $classification,
+				'reasons'           => $reasons,
+				'required_evidence' => $required_evidence,
+			),
+			$decision_envelope
+		);
+		$decision_envelope['decision_version']       = $decision_version;
+		$decision_envelope['classification']         = $classification;
+		$decision_envelope['reasons']                = $reasons;
+		$decision_envelope['required_evidence']      = $required_evidence;
+		$decision_envelope['final_write_path']       = 'core_proposal_required';
+		$decision_envelope['direct_wordpress_write'] = false;
+
+		$authorization['classification']    = $classification;
+		$authorization['requires_proposal'] = true;
+		$authorization['requires_approval'] = true;
+		$authorization['policy_version']    = $decision_version;
+		$authorization['decision_version']  = $decision_version;
+		$authorization['reasons']           = $reasons;
+		$authorization['required_evidence'] = $required_evidence;
+		$authorization['decision_envelope'] = $this->sanitize_payload( $decision_envelope );
+		$data['authorization']             = $authorization;
+		$data['classification_evidence']   = $authorization;
+		$data['direct_wordpress_write']     = false;
+		$data['requires_approval']          = true;
+		$data['dry_run']                    = true;
+		$data['commit_execution']           = false;
+
 		return $data;
 	}
 
