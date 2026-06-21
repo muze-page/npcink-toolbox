@@ -497,6 +497,19 @@ work stays at or below the UI cap of 10 candidates, and verifies that operators
 understand preview, Core review, execution, partial failure recovery, and
 governed restore.
 
+For the media ALT/caption Toolkit extraction gate, run:
+
+```bash
+composer smoke:media-alt-caption-trial
+```
+
+This uses real local image attachments and the existing `/ai/site-helpers`
+route to validate `media_alt_caption_review_set.v1` as a metadata-only
+review-set artifact. It uses a local host filter for the site-helper runtime
+response, stays outside `composer test:all`, creates no fixture media, creates
+no Core proposal, does not call a Cloud runtime, and verifies attachment
+metadata snapshots remain unchanged.
+
 ## Coding Rules
 
 - Keep admin UI server-rendered unless a real build need appears.
