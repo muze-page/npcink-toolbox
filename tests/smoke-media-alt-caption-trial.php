@@ -30,6 +30,20 @@ function toolbox_media_alt_trial_assert( bool $condition, string $message ): voi
 	toolbox_media_alt_trial_pass( $message );
 }
 
+function toolbox_media_alt_trial_arg_map( array $script_args ): array {
+	$parsed = array();
+	foreach ( $script_args as $arg ) {
+		$arg = (string) $arg;
+		if ( ! str_contains( $arg, '=' ) ) {
+			continue;
+		}
+		list( $key, $value ) = explode( '=', $arg, 2 );
+		$parsed[ trim( $key ) ] = trim( $value );
+	}
+
+	return $parsed;
+}
+
 function toolbox_media_alt_trial_admin_user_id(): int {
 	$admins = get_users(
 		array(
@@ -103,11 +117,133 @@ function toolbox_media_alt_trial_rest_request( array $payload ): array {
 	return $data;
 }
 
+function toolbox_media_alt_trial_write_json( string $path, array $payload ): void {
+	if ( '' === $path ) {
+		return;
+	}
+
+	$directory = dirname( $path );
+	if ( ! is_dir( $directory ) && ! wp_mkdir_p( $directory ) ) {
+		toolbox_media_alt_trial_fail( 'Unable to create output directory: ' . $directory );
+	}
+
+	$encoded = wp_json_encode( $payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+	if ( ! is_string( $encoded ) || false === file_put_contents( $path, $encoded . "\n" ) ) {
+		toolbox_media_alt_trial_fail( 'Unable to write JSON output: ' . $path );
+	}
+
+	toolbox_media_alt_trial_pass( 'Wrote trial JSON output.' );
+}
+
+function toolbox_media_alt_trial_markdown_text( string $value ): string {
+	$value = preg_replace( '/\s+/u', ' ', $value ) ?? $value;
+	return str_replace( array( '|', "\r", "\n" ), array( '\|', ' ', ' ' ), trim( $value ) );
+}
+
+function toolbox_media_alt_trial_write_markdown( string $path, array $payload ): void {
+	if ( '' === $path ) {
+		return;
+	}
+
+	$directory = dirname( $path );
+	if ( ! is_dir( $directory ) && ! wp_mkdir_p( $directory ) ) {
+		toolbox_media_alt_trial_fail( 'Unable to create output directory: ' . $directory );
+	}
+
+	$summary = is_array( $payload['summary'] ?? null ) ? $payload['summary'] : array();
+	$lines   = array(
+		'# Media ALT/Caption Operator Trial Cases',
+		'',
+		'- Contract: `' . (string) ( $payload['contract'] ?? '' ) . '`',
+		'- Created: `' . (string) ( $payload['created_at'] ?? '' ) . '`',
+		'- Write posture: `' . (string) ( $payload['write_posture'] ?? '' ) . '`',
+		'- Scanned: `' . (string) ( $summary['scanned'] ?? 0 ) . '`, selected: `' . (string) ( $summary['selected'] ?? 0 ) . '`, blocked: `' . (string) ( $summary['blocked'] ?? 0 ) . '`',
+		'',
+		'| Attachment | Reasons | Current ALT | Caption candidate | ALT candidates | Human outcome |',
+		'| ---: | --- | --- | --- | --- | --- |',
+	);
+
+	foreach ( (array) ( $payload['cases'] ?? array() ) as $case ) {
+		if ( ! is_array( $case ) ) {
+			continue;
+		}
+		$metadata = is_array( $case['metadata'] ?? null ) ? $case['metadata'] : array();
+		$candidate = is_array( $case['candidate'] ?? null ) ? $case['candidate'] : array();
+		$lines[] = '| ' . (string) ( $case['attachment_id'] ?? '' )
+			. ' | ' . toolbox_media_alt_trial_markdown_text( implode( ', ', array_map( 'strval', (array) ( $candidate['review_reasons'] ?? array() ) ) ) )
+			. ' | ' . toolbox_media_alt_trial_markdown_text( (string) ( $metadata['alt'] ?? '' ) )
+			. ' | ' . toolbox_media_alt_trial_markdown_text( (string) ( $candidate['caption_candidate'] ?? '' ) )
+			. ' | ' . toolbox_media_alt_trial_markdown_text( implode( '; ', array_map( 'strval', (array) ( $candidate['alt_candidates'] ?? array() ) ) ) )
+			. ' | pending |';
+	}
+	$lines[] = '';
+	$lines[] = 'Human outcome values should be accepted, edited, rejected, or misleading. This worksheet is local review evidence only; it is not a WordPress write authorization.';
+
+	if ( false === file_put_contents( $path, implode( "\n", $lines ) . "\n" ) ) {
+		toolbox_media_alt_trial_fail( 'Unable to write Markdown output: ' . $path );
+	}
+
+	toolbox_media_alt_trial_pass( 'Wrote trial Markdown output.' );
+}
+
+function toolbox_media_alt_trial_case_payload( array $selected, array $before, array $summary, array $reason_counts, int $max_items ): array {
+	$cases = array();
+	foreach ( $selected as $item ) {
+		if ( ! is_array( $item ) ) {
+			continue;
+		}
+		$attachment_id = absint( $item['attachment_id'] ?? 0 );
+		if ( 0 >= $attachment_id || ! isset( $before[ $attachment_id ] ) ) {
+			continue;
+		}
+		$cases[] = array(
+			'case_id'       => 'attachment:' . $attachment_id,
+			'attachment_id' => $attachment_id,
+			'metadata'      => $before[ $attachment_id ],
+			'candidate'     => array(
+				'alt_candidates'             => array_values( array_map( 'strval', (array) ( $item['alt_candidates'] ?? array() ) ) ),
+				'caption_candidate'          => (string) ( $item['caption_candidate'] ?? '' ),
+				'current_alt_status'         => (string) ( $item['current_alt_status'] ?? '' ),
+				'current_caption_status'     => (string) ( $item['current_caption_status'] ?? '' ),
+				'review_reasons'             => array_values( array_map( 'strval', (array) ( $item['review_reasons'] ?? array() ) ) ),
+				'needs_human_visual_check'   => (bool) ( $item['needs_human_visual_check'] ?? false ),
+				'direct_wordpress_write'     => (bool) ( $item['direct_wordpress_write'] ?? true ),
+				'target_write_path'          => (string) ( $item['target_write_path'] ?? '' ),
+				'operator_next_action'       => (string) ( $item['operator_next_action'] ?? '' ),
+			),
+			'human_review' => array(
+				'outcome' => 'pending',
+				'notes'   => '',
+			),
+		);
+	}
+
+	return array(
+		'version'       => 1,
+		'type'          => 'media_alt_caption_operator_trial',
+		'contract'      => 'media_alt_caption_operator_trial.v1',
+		'created_at'    => gmdate( 'c' ),
+		'write_posture' => 'eval_only_no_wordpress_write',
+		'provider_backed' => false,
+		'source_policy' => 'media_library_metadata_only_no_pixel_vision',
+		'summary'       => array(
+			'scanned'       => (int) ( $summary['scanned_count'] ?? 0 ),
+			'eligible'      => (int) ( $summary['eligible_count'] ?? 0 ),
+			'selected'      => count( $selected ),
+			'blocked'       => (int) ( $summary['blocked_count'] ?? 0 ),
+			'max_items'     => $max_items,
+			'reason_counts' => $reason_counts,
+		),
+		'cases'         => $cases,
+	);
+}
+
+$arg_map = toolbox_media_alt_trial_arg_map( isset( $args ) && is_array( $args ) ? $args : array() );
 $admin_user_id = toolbox_media_alt_trial_admin_user_id();
 toolbox_media_alt_trial_assert( $admin_user_id > 0, 'Found an administrator user for the media ALT/caption trial.' );
 wp_set_current_user( $admin_user_id );
 
-$max_items      = max( 1, min( 10, absint( getenv( 'NPCINK_TOOLBOX_MEDIA_ALT_TRIAL_MAX_ITEMS' ) ?: 10 ) ) );
+$max_items      = max( 1, min( 10, absint( $arg_map['max_items'] ?? ( getenv( 'NPCINK_TOOLBOX_MEDIA_ALT_TRIAL_MAX_ITEMS' ) ?: 10 ) ) ) );
 $attachment_ids = toolbox_media_alt_trial_attachment_ids( $max_items );
 toolbox_media_alt_trial_assert( ! empty( $attachment_ids ), 'Found real image attachments for the media ALT/caption trial.' );
 
@@ -192,14 +328,11 @@ foreach ( $blocked as $item ) {
 	}
 }
 
-echo 'INFO: Media ALT/caption trial summary=' . wp_json_encode(
-	array(
-		'scanned'       => (int) ( $summary['scanned_count'] ?? 0 ),
-		'eligible'      => (int) ( $summary['eligible_count'] ?? 0 ),
-		'selected'      => count( $selected ),
-		'blocked'       => count( $blocked ),
-		'max_items'     => $max_items,
-		'reason_counts' => $reason_counts,
-	)
-) . PHP_EOL;
+$case_payload = toolbox_media_alt_trial_case_payload( $selected, $before, $summary, $reason_counts, $max_items );
+$output_json  = (string) ( $arg_map['output_json'] ?? ( getenv( 'NPCINK_TOOLBOX_MEDIA_ALT_TRIAL_OUTPUT_JSON' ) ?: '' ) );
+$output_md    = (string) ( $arg_map['output_md'] ?? ( getenv( 'NPCINK_TOOLBOX_MEDIA_ALT_TRIAL_OUTPUT_MD' ) ?: '' ) );
+toolbox_media_alt_trial_write_json( $output_json, $case_payload );
+toolbox_media_alt_trial_write_markdown( $output_md, $case_payload );
+
+echo 'INFO: Media ALT/caption trial summary=' . wp_json_encode( $case_payload['summary'] ) . PHP_EOL;
 echo "Media ALT/caption operator trial passed.\n";

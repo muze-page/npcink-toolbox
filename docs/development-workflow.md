@@ -501,6 +501,8 @@ For the media ALT/caption Toolkit extraction gate, run:
 
 ```bash
 composer smoke:media-alt-caption-trial
+composer eval:media-alt-caption:export
+composer eval:media-alt-caption:judge-cross
 ```
 
 This uses real local image attachments and the existing `/ai/site-helpers`
@@ -508,7 +510,12 @@ route to validate `media_alt_caption_review_set.v1` as a metadata-only
 review-set artifact. It uses a local host filter for the site-helper runtime
 response, stays outside `composer test:all`, creates no fixture media, creates
 no Core proposal, does not call a Cloud runtime, and verifies attachment
-metadata snapshots remain unchanged.
+metadata snapshots remain unchanged. The export command writes the selected
+`media_alt_caption_operator_trial.v1` cases under local `build/eval/` so they
+can be checked by a human or passed to the development-only eval-lab checkout.
+The judge-cross command calls eval-lab task `media_alt_caption_judge_cross`
+with the exported file; it is AI-assisted review evidence only and never
+authorizes media metadata writes.
 
 ## Coding Rules
 
