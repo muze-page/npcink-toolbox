@@ -68,6 +68,7 @@ Project goals, ownership, and future-session instructions are documented in:
 - [Content Support Release And Trial Closeout](docs/content-support-release-trial-closeout.md)
 - [Content Support Toolkit Migration History](docs/content-support-toolkit-migration-history-2026-06-21.md)
 - [Site Knowledge Cloud Addon Bridge Closeout](docs/site-knowledge-cloud-addon-bridge-closeout-2026-06-21.md)
+- [Cross-Repo Release And Run Baseline](docs/cross-repo-release-run-baseline-2026-06-21.md)
 - [Content Support Writing Checkup History](docs/content-support-writing-checkup-history.md)
 - [Editor Progressive Recommendations Trial](docs/editor-progressive-recommendations-trial.md)
 - [Editor AI Image Recommendation Summary](docs/editor-ai-image-recommendation-summary.md)
