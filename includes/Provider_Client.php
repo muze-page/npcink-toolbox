@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class Provider_Client {
 	private const SITE_KNOWLEDGE_CONTENT_CHARS = 30000;
+	private const SITE_KNOWLEDGE_SYNC_MAX_BYTES = 750000;
 	private const AI_IMAGE_PROMPT_CHARS = 4000;
 	private const ARTICLE_PLAN_CONTENT_CHARS = 60000;
 	private const ARTICLE_PLAN_NOTES_CHARS = 12000;
@@ -23,6 +24,9 @@ final class Provider_Client {
 	private const DEBUG_PAYLOAD_MAX_DEPTH = 6;
 	private const DEBUG_PAYLOAD_MAX_ITEMS = 40;
 	private const DEBUG_PAYLOAD_MAX_STRING_CHARS = 2000;
+	private const HTTP_TIMEOUT_DEFAULT = 20;
+	private const HTTP_TIMEOUT_MAX = 60;
+	private const HTTP_CONNECT_TIMEOUT = 5;
 
 	private Settings $settings;
 
@@ -32,7 +36,7 @@ final class Provider_Client {
 
 	private function cloud_runtime_client() {
 		if ( function_exists( 'npcink_cloud_addon_runtime_client' ) ) {
-		return npcink_cloud_addon_runtime_client();
+			return npcink_cloud_addon_runtime_client();
 		}
 
 		if ( function_exists( 'magick_ai_cloud_addon_runtime_client' ) ) {
@@ -137,6 +141,8 @@ final class Provider_Client {
 			'storage_mode'        => 'result_only',
 			'retention_ttl'       => 3600,
 			'timeout_seconds'     => 60,
+			'http_timeout_seconds' => 60,
+			'connect_timeout_seconds' => self::HTTP_CONNECT_TIMEOUT,
 			'retry_max'           => 0,
 			'policy'              => array(
 				'allow_fallback' => false,
@@ -497,6 +503,8 @@ final class Provider_Client {
 			'storage_mode'        => 'result_only',
 			'retention_ttl'       => $retention_ttl,
 			'timeout_seconds'     => 60,
+			'http_timeout_seconds' => 60,
+			'connect_timeout_seconds' => self::HTTP_CONNECT_TIMEOUT,
 			'retry_max'           => 0,
 			'policy'              => array(
 				'allow_fallback' => false,
@@ -1774,6 +1782,11 @@ final class Provider_Client {
 			'post_ids'         => $this->sanitize_absint_list( $input['post_ids'] ?? array() ),
 			'max_posts'        => max( 1, min( 50, absint( $input['max_posts'] ?? 20 ) ) ),
 			'documents'        => array(),
+			'payload_limits'   => array(
+				'content_excerpt_chars' => self::SITE_KNOWLEDGE_CONTENT_CHARS,
+				'max_payload_bytes'     => self::SITE_KNOWLEDGE_SYNC_MAX_BYTES,
+				'max_comment_documents' => 100,
+			),
 			'write_posture'    => 'suggestion_only',
 		);
 
@@ -1868,6 +1881,8 @@ final class Provider_Client {
 			'storage_mode'        => 'result_only',
 			'retention_ttl'       => 3600,
 			'timeout_seconds'     => 30,
+			'http_timeout_seconds' => 30,
+			'connect_timeout_seconds' => self::HTTP_CONNECT_TIMEOUT,
 			'retry_max'           => 0,
 			'input'               => $this->sanitize_payload( $runtime_input ),
 			'policy'              => array(
@@ -3189,15 +3204,15 @@ final class Provider_Client {
 				$context
 			);
 
-			$runtime_payload = array(
-				'ability_name'        => 'npcink-toolbox/ai-content-support',
-				'contract_version'    => 'hosted_ai_content_support.v1',
-				'profile_id'          => 'text.ai',
+		$runtime_payload = array(
+			'ability_name'        => 'npcink-toolbox/ai-content-support',
+			'contract_version'    => 'hosted_ai_content_support.v1',
+			'profile_id'          => 'text.ai',
 			'execution_kind'      => 'text',
 			'execution_pattern'   => 'inline',
 			'summary_prompt_mode' => $is_fast_summary ? 'fast_summary_v2' : ( 'summary_suggestions' === $intent ? 'full_quality_contract' : '' ),
 			'input'               => array(
-				'messages' => array(
+				'messages'         => array(
 					array(
 						'role'    => 'system',
 						'content' => $is_fast_summary ? 'You are Npcink Toolbox. Return only compact JSON excerpt candidates. No markdown, no commentary, no WordPress writes.' : 'You are Npcink Toolbox. Return concise, reviewable WordPress content-support suggestions. Do not claim to write, publish, approve, or bypass governance.',
@@ -3207,34 +3222,36 @@ final class Provider_Client {
 						'content' => $prompt,
 					),
 				),
-				'params'   => array(
-						'temperature' => 'summary_suggestions' === $intent ? 0.45 : 0.2,
-						'max_tokens'  => $is_fast_summary ? 260 : ( 'summary_suggestions' === $intent ? 450 : 650 ),
-					),
-					'quality_contract' => $quality_contract,
+				'params'           => array(
+					'temperature' => 'summary_suggestions' === $intent ? 0.45 : 0.2,
+					'max_tokens'  => $is_fast_summary ? 260 : ( 'summary_suggestions' === $intent ? 450 : 650 ),
 				),
-				'data_classification' => 'public_site_content',
-				'storage_mode'        => 'result_only',
-				'retention_ttl'       => 86400,
-				'timeout_seconds'     => $is_fast_summary ? 12 : ( 'summary_suggestions' === $intent && 'full_context' === $summary_generation_mode ? 60 : 30 ),
-				'retry_max'           => 0,
+				'quality_contract' => $quality_contract,
+			),
+			'data_classification' => 'public_site_content',
+			'storage_mode'        => 'result_only',
+			'retention_ttl'       => 86400,
+			'timeout_seconds'     => $is_fast_summary ? 12 : ( 'summary_suggestions' === $intent && 'full_context' === $summary_generation_mode ? 60 : 30 ),
+			'http_timeout_seconds' => $is_fast_summary ? 12 : ( 'summary_suggestions' === $intent && 'full_context' === $summary_generation_mode ? 60 : 30 ),
+			'connect_timeout_seconds' => self::HTTP_CONNECT_TIMEOUT,
+			'retry_max'           => 0,
 			'policy'              => array(
 				'allow_fallback' => false,
-				),
-			);
-			$runtime_payload = $this->runtime_payload_with_data_classification( $runtime_payload, 'public_site_content', $input );
+			),
+		);
+		$runtime_payload = $this->runtime_payload_with_data_classification( $runtime_payload, 'public_site_content', $input );
 
-			$runtime_payload = apply_filters( 'npcink_toolbox_hosted_ai_runtime_payload', $runtime_payload, $input );
-			if ( ! is_array( $runtime_payload ) ) {
-				return new WP_Error(
+		$runtime_payload = apply_filters( 'npcink_toolbox_hosted_ai_runtime_payload', $runtime_payload, $input );
+		if ( ! is_array( $runtime_payload ) ) {
+			return new WP_Error(
 				'npcink_toolbox_invalid_hosted_ai_runtime_payload',
 				__( 'The hosted AI runtime payload was not valid.', 'npcink-toolbox' ),
-					array( 'status' => 500 )
-				);
-			}
-			$runtime_payload = $this->runtime_payload_with_data_classification( $runtime_payload, 'public_site_content', $input );
+				array( 'status' => 500 )
+			);
+		}
+		$runtime_payload = $this->runtime_payload_with_data_classification( $runtime_payload, 'public_site_content', $input );
 
-			$handled = apply_filters( 'npcink_toolbox_hosted_ai_cloud_request', null, $runtime_payload, $input );
+		$handled = apply_filters( 'npcink_toolbox_hosted_ai_cloud_request', null, $runtime_payload, $input );
 		if ( is_wp_error( $handled ) ) {
 			return $handled;
 		}
@@ -3567,6 +3584,8 @@ final class Provider_Client {
 			'storage_mode'        => 'result_only',
 			'retention_ttl'       => 86400,
 			'timeout_seconds'     => 30,
+			'http_timeout_seconds' => 30,
+			'connect_timeout_seconds' => self::HTTP_CONNECT_TIMEOUT,
 			'retry_max'           => 0,
 			'policy'              => array(
 				'allow_fallback' => false,
@@ -3923,6 +3942,8 @@ final class Provider_Client {
 			'storage_mode'        => 'result_only',
 			'retention_ttl'       => 86400,
 			'timeout_seconds'     => 'whole_run_offload' === $execution_pattern ? 60 : 20,
+			'http_timeout_seconds' => 'whole_run_offload' === $execution_pattern ? 60 : 20,
+			'connect_timeout_seconds' => self::HTTP_CONNECT_TIMEOUT,
 			'retry_max'           => 'whole_run_offload' === $execution_pattern ? 1 : 0,
 			'policy'              => array(
 				'allow_fallback' => true,
@@ -4017,6 +4038,8 @@ final class Provider_Client {
 			'storage_mode'        => $this->runtime_payload_storage_mode( $data_classification ),
 			'retention_ttl'       => 3600,
 			'timeout_seconds'     => $fast_first ? 5 : 60,
+			'http_timeout_seconds' => $fast_first ? 5 : 60,
+			'connect_timeout_seconds' => self::HTTP_CONNECT_TIMEOUT,
 			'retry_max'           => 0,
 			'policy'              => array(
 				'allow_fallback' => true,
@@ -5818,6 +5841,7 @@ final class Provider_Client {
 
 		$documents = array();
 		$indexed_post_ids = array();
+		$remaining_bytes  = self::SITE_KNOWLEDGE_SYNC_MAX_BYTES;
 		foreach ( $posts as $post ) {
 			if ( ! is_object( $post ) ) {
 				continue;
@@ -5831,7 +5855,7 @@ final class Provider_Client {
 			$indexed_post_ids[] = $post_id;
 			$content = wp_strip_all_tags( (string) ( $post->post_content ?? '' ) );
 			$excerpt = function_exists( 'get_the_excerpt' ) ? wp_strip_all_tags( get_the_excerpt( $post ) ) : '';
-			$documents[] = array(
+			$document = array(
 				'post_id'         => $post_id,
 				'post_type'       => function_exists( 'get_post_type' ) ? sanitize_key( (string) get_post_type( $post ) ) : '',
 				'post_status'     => function_exists( 'get_post_status' ) ? sanitize_key( (string) get_post_status( $post ) ) : 'publish',
@@ -5842,19 +5866,35 @@ final class Provider_Client {
 				'content_excerpt' => $this->trim_site_knowledge_content( $content ),
 				'content_hash'    => md5( $content ),
 			);
+			if ( ! $this->append_site_knowledge_document( $documents, $document, $remaining_bytes ) ) {
+				break;
+			}
 		}
 
-		if ( array() !== $indexed_post_ids ) {
+		if ( array() !== $indexed_post_ids && $remaining_bytes > 0 ) {
 			$documents = array_merge(
 				$documents,
 				$this->collect_site_knowledge_comments(
 					array_values( array_unique( $indexed_post_ids ) ),
-					max( 1, min( 100, max( 1, $max_posts ) * 3 ) )
+					max( 1, min( 100, max( 1, $max_posts ) * 3 ) ),
+					$remaining_bytes
 				)
 			);
 		}
 
 		return $documents;
+	}
+
+	private function append_site_knowledge_document( array &$documents, array $document, int &$remaining_bytes ): bool {
+		$encoded = wp_json_encode( $document );
+		$bytes   = is_string( $encoded ) ? strlen( $encoded ) : 0;
+		if ( $bytes <= 0 || $bytes > $remaining_bytes ) {
+			return false;
+		}
+
+		$documents[] = $document;
+		$remaining_bytes -= $bytes;
+		return true;
 	}
 
 	private function site_knowledge_post_types(): array {
@@ -5894,7 +5934,7 @@ final class Provider_Client {
 		return sanitize_textarea_field( substr( $content, 0, self::SITE_KNOWLEDGE_CONTENT_CHARS ) );
 	}
 
-	private function collect_site_knowledge_comments( array $post_ids, int $max_comments ): array {
+	private function collect_site_knowledge_comments( array $post_ids, int $max_comments, int &$remaining_bytes ): array {
 		if ( array() === $post_ids || ! function_exists( 'get_comments' ) ) {
 			return array();
 		}
@@ -5930,7 +5970,7 @@ final class Provider_Client {
 				continue;
 			}
 
-			$documents[] = array(
+			$document = array(
 				'comment_id'      => $comment_id,
 				'post_id'         => $post_id,
 				'comment_status'  => 'approve',
@@ -5939,6 +5979,9 @@ final class Provider_Client {
 				'content_excerpt' => wp_trim_words( $content, 280, '' ),
 				'content_hash'    => md5( $content ),
 			);
+			if ( ! $this->append_site_knowledge_document( $documents, $document, $remaining_bytes ) ) {
+				break;
+			}
 		}
 
 		return $documents;
@@ -5964,10 +6007,13 @@ final class Provider_Client {
 		return strlen( $value ) > $max_chars ? substr( $value, 0, $max_chars ) : $value;
 	}
 
-	private function json_request( string $url, string $method, array $headers = array(), ?array $body = null ) {
+	private function json_request( string $url, string $method, array $headers = array(), ?array $body = null, int $timeout = self::HTTP_TIMEOUT_DEFAULT ) {
 		$args = array(
-			'method'  => $method,
-			'timeout' => 45,
+			'method'             => $method,
+			'timeout'            => $this->http_timeout( $timeout ),
+			'connect_timeout'    => self::HTTP_CONNECT_TIMEOUT,
+			'redirection'        => 2,
+			'limit_response_size' => 1048576,
 			'headers' => array_merge(
 				array(
 					'Accept' => 'application/json',
@@ -6015,10 +6061,13 @@ final class Provider_Client {
 		return $data;
 	}
 
-	private function text_request( string $url, string $method, array $headers = array() ) {
+	private function text_request( string $url, string $method, array $headers = array(), int $timeout = self::HTTP_TIMEOUT_DEFAULT ) {
 		$args = array(
-			'method'  => $method,
-			'timeout' => 45,
+			'method'             => $method,
+			'timeout'            => $this->http_timeout( $timeout ),
+			'connect_timeout'    => self::HTTP_CONNECT_TIMEOUT,
+			'redirection'        => 2,
+			'limit_response_size' => 1048576,
 			'headers' => array_merge(
 				array(
 					'Accept' => 'text/plain',
@@ -6049,11 +6098,23 @@ final class Provider_Client {
 	}
 
 	private function with_optional_raw( array $payload, array $raw ): array {
-		if ( (bool) $this->settings->get( 'include_raw_responses' ) ) {
+		if ( $this->raw_responses_enabled() ) {
 			$payload['raw'] = $this->sanitize_debug_payload( $raw );
 		}
 
 		return $payload;
+	}
+
+	private function raw_responses_enabled(): bool {
+		if ( defined( 'NPCINK_TOOLBOX_DISABLE_RAW_RESPONSES' ) && NPCINK_TOOLBOX_DISABLE_RAW_RESPONSES ) {
+			return false;
+		}
+
+		return (bool) $this->settings->get( 'include_raw_responses' );
+	}
+
+	private function http_timeout( int $timeout ): int {
+		return max( 1, min( self::HTTP_TIMEOUT_MAX, $timeout ) );
 	}
 
 	private function with_output_contract( array $payload, string $artifact_type, string $composition_role ): array {
@@ -6445,7 +6506,22 @@ final class Provider_Client {
 			return $value;
 		}
 
-		return $this->bounded_text( (string) $value, self::DEBUG_PAYLOAD_MAX_STRING_CHARS );
+		return $this->bounded_text( $this->redact_sensitive_debug_text( (string) $value ), self::DEBUG_PAYLOAD_MAX_STRING_CHARS );
+	}
+
+	private function redact_sensitive_debug_text( string $value ): string {
+		$patterns = array(
+			'/\bBearer\s+[A-Za-z0-9._~+\/=-]{12,}\b/i',
+			'/\b(?:api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password)\s*[:=]\s*[A-Za-z0-9._~+\/=-]{8,}/i',
+			'/\b(?:sk|pk|rk|ghp|gho|github_pat|xox[baprs])[_-][A-Za-z0-9._-]{12,}\b/i',
+			'/\b[A-Za-z0-9_-]{24,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b/',
+		);
+
+		foreach ( $patterns as $pattern ) {
+			$value = preg_replace( $pattern, '[redacted]', $value ) ?? $value;
+		}
+
+		return $value;
 	}
 
 	private function is_sensitive_payload_key( string $key ): bool {

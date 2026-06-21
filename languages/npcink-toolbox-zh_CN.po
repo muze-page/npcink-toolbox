@@ -15,7 +15,10 @@ msgstr ""
 "X-Generator: Codex\n"
 
 msgid "Npcink Toolbox"
-msgstr "Npcink 工具箱"
+msgstr "Npcink Toolbox"
+
+msgid "Settings"
+msgstr "设置"
 
 msgid "Toolbox"
 msgstr "工具箱"

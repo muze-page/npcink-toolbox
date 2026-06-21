@@ -177,8 +177,8 @@ namespace {
 		)
 	);
 	$disabled->register_hooks();
-	if ( ! isset( $GLOBALS['npcink_basic_cron_actions'][ $hook ] ) || ! isset( $GLOBALS['npcink_basic_cron_actions']['admin_init'] ) ) {
-		$fail( 'Basic WP-Cron dry-run should register only the cron hook and admin schedule sync.' );
+	if ( array() !== $GLOBALS['npcink_basic_cron_actions'] ) {
+		$fail( 'Disabled clean Basic WP-Cron dry-run should not register hooks.' );
 	}
 
 	$GLOBALS['npcink_basic_cron_events'][ $hook ] = array(
@@ -186,6 +186,10 @@ namespace {
 		'recurrence' => 'daily',
 	);
 	update_option( \Npcink\LocalAutomationRuntime\NightlyInspection\Basic_WP_Cron_Dry_Run::SCHEDULE_SIGNATURE_OPTION, 'stale', false );
+	$disabled->register_hooks();
+	if ( ! isset( $GLOBALS['npcink_basic_cron_actions'][ $hook ] ) || ! isset( $GLOBALS['npcink_basic_cron_actions']['admin_init'] ) ) {
+		$fail( 'Disabled stale Basic WP-Cron dry-run should register only the cron hook and admin cleanup sync.' );
+	}
 	$disabled->sync_schedule();
 	if ( false !== wp_next_scheduled( $hook ) ) {
 		$fail( 'Disabled Basic WP-Cron dry-run should clear the scheduled hook.' );

@@ -85,7 +85,58 @@ final class Rest_Controller {
 	}
 
 	public function permission( $request = null ): bool {
-		return (bool) apply_filters( 'npcink_toolbox_rest_permission', current_user_can( 'manage_options' ), $request );
+		$route          = $request instanceof WP_REST_Request ? $this->normalize_route_for_scope( (string) $request->get_route() ) : '';
+		$required_scope = $this->rest_route_scope( $route );
+
+		return (bool) apply_filters( 'npcink_toolbox_rest_permission', current_user_can( 'manage_options' ), $request, $required_scope, $route );
+	}
+
+	private function normalize_route_for_scope( string $route ): string {
+		$prefix = '/' . Plugin::REST_NAMESPACE;
+		if ( str_starts_with( $route, $prefix ) ) {
+			$route = substr( $route, strlen( $prefix ) );
+		}
+
+		return '' === $route ? '/' : $route;
+	}
+
+	private function rest_route_scope( string $route ): string {
+		if ( preg_match( '#^/nightly-inspection/cloud-batch/[A-Za-z0-9._:-]+(?:/result|/retry)?$#', $route ) ) {
+			return 'cap.toolbox.nightly_inspection';
+		}
+
+		$scopes = array(
+			'/status'                                      => 'cap.toolbox.status.read',
+			'/image-candidates'                            => 'cap.toolbox.image_source',
+			'/vector-search'                               => 'cap.toolbox.vector_search',
+			'/knowledge-search'                            => 'cap.toolbox.knowledge.search',
+			'/web-search/test'                             => 'cap.toolbox.web_search',
+			'/web-search/diagnostics'                      => 'cap.toolbox.web_search',
+			'/site-knowledge/status'                       => 'cap.toolbox.knowledge.read',
+			'/site-knowledge/search'                       => 'cap.toolbox.knowledge.search',
+			'/site-knowledge/sync'                         => 'cap.toolbox.knowledge.sync',
+			'/agent-feedback'                              => 'cap.toolbox.feedback.write',
+			'/agent-feedback/summary'                      => 'cap.toolbox.feedback.read',
+			'/ai/content-support'                          => 'cap.toolbox.workflow_suggest',
+			'/ai/site-helpers'                             => 'cap.toolbox.workflow_suggest',
+			'/ai/image-generation'                         => 'cap.toolbox.image_source',
+			'/flows/article-brief'                         => 'cap.toolbox.workflow_suggest',
+			'/flows/article-assistant'                     => 'cap.toolbox.workflow_suggest',
+			'/flows/article-plan'                          => 'cap.toolbox.workflow_suggest',
+			'/flows/image-candidate-adoption-plan'         => 'cap.toolbox.workflow_suggest',
+			'/local-admin-consent' . '/featured-image'     => 'cap.toolbox.local_admin_consent',
+			'/flows/site-knowledge-review-plan'            => 'cap.toolbox.workflow_suggest',
+			'/flows/nightly-inspection-review-plan'        => 'cap.toolbox.workflow_suggest',
+			'/flows/content-metadata-apply-plan'           => 'cap.toolbox.workflow_suggest',
+			'/flows/media-brief'                           => 'cap.toolbox.workflow_suggest',
+			'/editor/content-support'                      => 'cap.toolbox.workflow_suggest',
+			'/media-derivative-handoff'                    => 'cap.toolbox.workflow_suggest',
+			'/nightly-inspection/cloud-runtime-entitlement' => 'cap.toolbox.nightly_inspection',
+			'/nightly-inspection/cloud-batch'              => 'cap.toolbox.nightly_inspection',
+			'/nightly-inspection/cloud-batch/recent'       => 'cap.toolbox.nightly_inspection',
+		);
+
+		return $scopes[ $route ] ?? 'cap.toolbox.admin';
 	}
 
 	public function status(): WP_REST_Response {

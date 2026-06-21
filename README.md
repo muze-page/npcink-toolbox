@@ -100,6 +100,13 @@ All routes require a logged-in user with `manage_options`.
 - `POST /wp-json/npcink-toolbox/v1/image-candidates`
 - `POST /wp-json/npcink-toolbox/v1/vector-search`
 - `POST /wp-json/npcink-toolbox/v1/knowledge-search`
+- `POST /wp-json/npcink-toolbox/v1/web-search/test`
+- `POST /wp-json/npcink-toolbox/v1/web-search/diagnostics`
+- `GET /wp-json/npcink-toolbox/v1/site-knowledge/status`
+- `POST /wp-json/npcink-toolbox/v1/site-knowledge/search`
+- `POST /wp-json/npcink-toolbox/v1/site-knowledge/sync`
+- `POST /wp-json/npcink-toolbox/v1/agent-feedback`
+- `POST /wp-json/npcink-toolbox/v1/agent-feedback/summary`
 - `POST /wp-json/npcink-toolbox/v1/ai/content-support`
 - `POST /wp-json/npcink-toolbox/v1/ai/site-helpers`
 - `POST /wp-json/npcink-toolbox/v1/ai/image-generation`
@@ -109,14 +116,17 @@ All routes require a logged-in user with `manage_options`.
 - `POST /wp-json/npcink-toolbox/v1/flows/image-candidate-adoption-plan`
 - `POST /wp-json/npcink-toolbox/v1/local-admin-consent/featured-image`
 - `POST /wp-json/npcink-toolbox/v1/flows/site-knowledge-review-plan`
+- `POST /wp-json/npcink-toolbox/v1/flows/nightly-inspection-review-plan`
 - `POST /wp-json/npcink-toolbox/v1/flows/content-metadata-apply-plan`
 - `POST /wp-json/npcink-toolbox/v1/flows/media-brief`
 - `POST /wp-json/npcink-toolbox/v1/editor/content-support`
 - `POST /wp-json/npcink-toolbox/v1/media-derivative-handoff`
 - `GET /wp-json/npcink-toolbox/v1/nightly-inspection/cloud-runtime-entitlement`
 - `POST /wp-json/npcink-toolbox/v1/nightly-inspection/cloud-batch`
+- `GET /wp-json/npcink-toolbox/v1/nightly-inspection/cloud-batch/recent`
 - `GET /wp-json/npcink-toolbox/v1/nightly-inspection/cloud-batch/{run_id}`
 - `GET|POST /wp-json/npcink-toolbox/v1/nightly-inspection/cloud-batch/{run_id}/result`
+- `POST /wp-json/npcink-toolbox/v1/nightly-inspection/cloud-batch/{run_id}/retry`
 
 The status route distinguishes registered Toolbox surfaces from currently
 available Cloud execution. Cloud-backed actions report `registered`,
@@ -143,11 +153,12 @@ reviews. It is intentionally not presented as one-click whole-site replacement.
 Toolbox also bundles `modules/local-automation-runtime/` for the future
 `npcink-local-automation-runtime` owner. That module supports Phase 1A Manual Read-Only Preview for Morning Brief evidence, validates dry-run replay fixtures,
 and now owns Phase 2 Basic WP-Cron Dry-Run. Phase 1A is a Toolbox-hosted
-operator preview, not a runtime execution phase; it does not register hooks,
+operator preview, not a runtime execution phase; that manual path does not register hooks,
 create runtime job tables, schedule workers, acquire leases, retry actions,
 dead-letter failures, persist preview results, approve proposals, execute
-Adapter actions, or write WordPress data. Phase 2 Basic may register one
-disabled-by-default WP-Cron hook that overwrites a single latest-preview option;
+Adapter actions, or write WordPress data. Phase 2 Basic WP-Cron Dry-Run is the
+Local Fallback Preview; it may register one disabled-by-default WP-Cron hook
+that overwrites a single latest-preview option;
 it must not call Cloud, create Core proposals, use Action Scheduler, create
 custom tables, acquire leases, retry actions, process dead letters, or write
 WordPress content. Current Pro planning does not introduce plugin-side Action
@@ -573,7 +584,9 @@ submission, batch proposal submission, and URL repair handoffs remain in
 **Workflows -> Optimize Existing Image**.
 
 Provider responses return normalized fields by default. Set **Include provider
-raw responses** to include raw provider payloads for debugging.
+raw responses** to include redacted raw provider payloads for debugging.
+Production hosts can define `NPCINK_TOOLBOX_DISABLE_RAW_RESPONSES` to force raw
+payloads off even if the local option is enabled.
 
 ## Development
 

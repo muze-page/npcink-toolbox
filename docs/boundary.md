@@ -116,6 +116,13 @@ planning flows:
 - `/image-candidates`
 - `/vector-search`
 - `/knowledge-search`
+- `/web-search/test`
+- `/web-search/diagnostics`
+- `/site-knowledge/status`
+- `/site-knowledge/search`
+- `/site-knowledge/sync`
+- `/agent-feedback`
+- `/agent-feedback/summary`
 - `/ai/content-support`
 - `/ai/site-helpers`
 - `/ai/image-generation`
@@ -125,10 +132,10 @@ planning flows:
 - `/flows/image-candidate-adoption-plan`
 - `/local-admin-consent/featured-image`
 - `/flows/site-knowledge-review-plan`
+- `/flows/nightly-inspection-review-plan`
 - `/flows/content-metadata-apply-plan`
 - `/flows/media-brief`
 - `/editor/content-support`
-- `/media-derivative-handoff`
 - `/media-derivative-handoff`
 - `/nightly-inspection/cloud-runtime-entitlement`
 - `/nightly-inspection/cloud-batch`

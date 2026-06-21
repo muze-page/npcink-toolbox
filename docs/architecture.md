@@ -15,7 +15,7 @@ Status: MVP architecture.
 | `Editor_Content_Support` | Post editor document panel entrypoint for fixed content-support flows. |
 | `Abilities` | WordPress Abilities API exposure for Toolbox actions. |
 | `Site_Knowledge_Auto_Sync` | Compatibility status projection for the Cloud Addon Site Knowledge change bridge plus retired legacy state cleanup. It does not own public content-change hooks, queues, retries, or refresh hints. |
-| `modules/local-automation-runtime/` | Phase 1 bundled skeleton for the future `npcink-local-automation-runtime` owner; supports Phase 1A Manual Read-Only Preview and dry-run replay validation while registering no WordPress hooks. |
+| `modules/local-automation-runtime/` | Bundled module for the future `npcink-local-automation-runtime` owner; supports Phase 1A Manual Read-Only Preview plus one Phase 2 disabled-by-default Basic WP-Cron dry-run hook for the Local Fallback Preview. |
 | `assets/admin.js` | Vanilla JS for fixed tool form submission and summary-first result rendering. |
 | `assets/admin.css` | Admin layout, summary/detail result panels, and tool result styling. |
 | `assets/editor-content-support.js` | Block editor sidebar panel for article checkup, publish preflight, taxonomy/tag, internal-link, image-candidate, outline, summary support flows, and selected-block paragraph checks. |
@@ -64,8 +64,16 @@ Current MVP provider flow:
 4. Toolbox returns `image_candidate.v1` image-source or generated-image
    candidates, Cloud site-knowledge context, Cloud-managed web search status,
    or planning output. Raw provider payloads are included only when the debug
-   setting is enabled.
+   setting is enabled and `NPCINK_TOOLBOX_DISABLE_RAW_RESPONSES` has not forced
+   them off. Debug payloads are bounded, key-redacted, and scanned for common
+   token-shaped strings before display.
 5. Any WordPress write remains a separate Abilities/Core handoff.
+
+Cloud runtime payloads carry capability-specific timeout metadata, including
+short budgets for fast image-source and summary paths. The direct WordPress HTTP
+helpers also cap connection time, response size, and total request time so
+future connector calls do not silently occupy PHP workers for a long default
+timeout.
 
 The current provider client is deliberately small. Future durable connector
 ownership may move to connector plugins if quotas, billing, logs, multi-provider
@@ -215,18 +223,23 @@ Cloud credentials and does not own the Cloud index lifecycle.
 
 `request-site-knowledge-sync` collects only public WordPress manifests before
 calling Cloud: published posts and pages, plus bounded approved comments for
-the selected public entries. The comment manifest carries public text and
-source identifiers only. WordPress still owns moderation, edits, deletion, and
-final write decisions. Automatic public content-change delivery is owned by
-Cloud Addon after its bridge is installed and verified. Toolbox clears retired
-legacy hooks, skips local fallback queue ownership, and only displays bridge
-health or the Cloud Addon install-and-verify requirement.
+the selected public entries. The sync payload is constrained by post count,
+content excerpt length, comment count, and an aggregate JSON byte budget before
+it leaves WordPress. The comment manifest carries public text and source
+identifiers only. WordPress still owns moderation, edits, deletion, and final
+write decisions. Automatic public content-change delivery is owned by Cloud
+Addon after its bridge is installed and verified. Toolbox clears retired legacy
+hooks, skips local fallback queue ownership, and only displays bridge health or
+the Cloud Addon install-and-verify requirement.
 
 The first admin REST surface remains `manage_options` gated by default.
 External AI access should be mediated by Core/app-key scope checks in the host
 that consumes these ability definitions. The host can use
 `npcink_toolbox_rest_permission` and
-`npcink_toolbox_ability_permission` as first-version integration hooks.
+`npcink_toolbox_ability_permission` as first-version integration hooks. Those
+filters receive the required route or ability scope, such as
+`cap.toolbox.knowledge.search` or `cap.toolbox.workflow_suggest`, so a host can
+grant narrower access without treating every Toolbox action as one permission.
 
 ## REST Surface
 
@@ -236,6 +249,13 @@ Current routes require `manage_options`:
 - `POST /wp-json/npcink-toolbox/v1/image-candidates`
 - `POST /wp-json/npcink-toolbox/v1/vector-search`
 - `POST /wp-json/npcink-toolbox/v1/knowledge-search`
+- `POST /wp-json/npcink-toolbox/v1/web-search/test`
+- `POST /wp-json/npcink-toolbox/v1/web-search/diagnostics`
+- `GET /wp-json/npcink-toolbox/v1/site-knowledge/status`
+- `POST /wp-json/npcink-toolbox/v1/site-knowledge/search`
+- `POST /wp-json/npcink-toolbox/v1/site-knowledge/sync`
+- `POST /wp-json/npcink-toolbox/v1/agent-feedback`
+- `POST /wp-json/npcink-toolbox/v1/agent-feedback/summary`
 - `POST /wp-json/npcink-toolbox/v1/ai/content-support`
 - `POST /wp-json/npcink-toolbox/v1/ai/site-helpers`
 - `POST /wp-json/npcink-toolbox/v1/ai/image-generation`
@@ -245,6 +265,7 @@ Current routes require `manage_options`:
 - `POST /wp-json/npcink-toolbox/v1/flows/image-candidate-adoption-plan`
 - `POST /wp-json/npcink-toolbox/v1/local-admin-consent/featured-image`
 - `POST /wp-json/npcink-toolbox/v1/flows/site-knowledge-review-plan`
+- `POST /wp-json/npcink-toolbox/v1/flows/nightly-inspection-review-plan`
 - `POST /wp-json/npcink-toolbox/v1/flows/content-metadata-apply-plan`
 - `POST /wp-json/npcink-toolbox/v1/flows/media-brief`
 - `POST /wp-json/npcink-toolbox/v1/editor/content-support`

@@ -25,6 +25,12 @@ final class Basic_WP_Cron_Dry_Run {
 	}
 
 	public function register_hooks(): void {
+		$config       = $this->settings->get_nightly_inspection_settings();
+		$has_schedule = false !== wp_next_scheduled( self::HOOK ) || '' !== (string) get_option( self::SCHEDULE_SIGNATURE_OPTION, '' );
+		if ( empty( $config['enabled'] ) && ! $has_schedule ) {
+			return;
+		}
+
 		add_action( self::HOOK, array( $this, 'run' ) );
 		add_action( 'admin_init', array( $this, 'sync_schedule' ) );
 	}

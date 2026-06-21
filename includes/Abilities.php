@@ -74,7 +74,7 @@ final class Abilities {
 					'input_schema'        => $definition['input_schema'],
 					'output_schema'       => $definition['output_schema'],
 					'execute_callback'    => $definition['execute_callback'],
-					'permission_callback' => fn(): bool => $this->can_execute_ability( $ability_id ),
+					'permission_callback' => fn(): bool => $this->can_execute_ability( $ability_id, (string) $definition['required_scope'] ),
 					'meta'                => array_merge(
 						array(
 							'show_in_rest'   => true,
@@ -539,8 +539,8 @@ final class Abilities {
 		return $this->client->build_ai_article_writing_pack( is_array( $input ) ? $input : array() );
 	}
 
-	private function can_execute_ability( string $ability_id ): bool {
-		return (bool) apply_filters( 'npcink_toolbox_ability_permission', current_user_can( 'manage_options' ), $ability_id );
+	private function can_execute_ability( string $ability_id, string $required_scope = '' ): bool {
+		return (bool) apply_filters( 'npcink_toolbox_ability_permission', current_user_can( 'manage_options' ), $ability_id, $required_scope );
 	}
 
 	private function sanitize_string_list( $value ): array {
