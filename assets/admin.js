@@ -1586,14 +1586,17 @@
 		container.appendChild(el('div', notice.kind ? 'npcink-toolbox__result-notice is-' + notice.kind : 'npcink-toolbox__result-notice', notice.message));
 
 		const meta = el('div', 'npcink-toolbox__result-meta');
-		appendMeta(meta, 'Auto-sync', localizedLabel(status));
-		appendMeta(meta, 'Queue meaning', siteKnowledgeAutoSyncQueueMeaning(health, status, queueCount));
-		appendMeta(meta, 'Queued changes', health.queue_count);
-		appendMeta(meta, 'Next queue run', formatDateTime(health.next_queue_run_at));
+		appendMeta(meta, 'Change bridge', localizedLabel(status));
+		appendMeta(meta, 'Bridge owner', formatLabel(health.owner || 'cloud_addon'));
+		appendMeta(meta, 'Bridge state', siteKnowledgeAutoSyncQueueMeaning(health, status, queueCount));
+		appendMeta(meta, 'Buffered changes', health.queue_count);
+		appendMeta(meta, 'Next flush', formatDateTime(health.next_flush_at || health.next_queue_run_at));
 		appendMeta(meta, 'Daily check', formatDateTime(health.next_reconcile_at));
 		appendMeta(meta, 'WP-Cron disabled', health.wp_cron_disabled === true ? 'Yes' : 'No');
 		appendMeta(meta, 'Batch size', health.batch_size);
-		appendMeta(meta, 'Debounce', typeof health.debounce_seconds === 'number' ? health.debounce_seconds + 's' : '');
+		appendMeta(meta, 'Last delivery', formatDateTime(health.last_delivery_at || health.last_delivered_at));
+		appendMeta(meta, 'Last success', formatDateTime(health.last_success_at));
+		appendMeta(meta, 'Last error', health.last_error_code);
 		if (meta.childNodes.length) {
 			container.appendChild(meta);
 		}
@@ -1621,38 +1624,38 @@
 		if (status === 'disabled') {
 			return {
 				kind: 'warning',
-				message: health.message || 'Auto-sync is disabled until Cloud transport is available.',
+				message: health.message || 'Cloud Addon change bridge is disabled until Cloud settings are verified.',
 			};
 		}
 		if (status === 'delayed' || health.wp_cron_disabled === true || siteKnowledgeAutoSyncDue(health, queueCount)) {
 			return {
 				kind: 'warning',
-				message: 'Auto-sync has queued changes that are due for WP-Cron. If this stays queued, run WP-Cron or configure the server cron command below.',
+				message: 'Cloud Addon has buffered Site Knowledge changes that are due for WP-Cron. If this stays buffered, run WP-Cron or configure the server cron command below.',
 			};
 		}
 		if (queueCount > 0) {
 			return {
 				kind: '',
-				message: 'Auto-sync is waiting for the debounce window. The current index remains usable; queued changes will refresh on the next WP-Cron run.',
+				message: 'Cloud Addon is waiting for the debounce window. The current index remains usable; buffered changes will refresh on the next WP-Cron run.',
 			};
 		}
 		return {
 			kind: 'ok',
-			message: 'Auto-sync is idle. No queued public-content changes are waiting.',
+			message: 'Cloud Addon change bridge is idle. No public-content changes are waiting.',
 		};
 	}
 
 	function siteKnowledgeAutoSyncQueueMeaning(health, status, queueCount) {
 		if (status === 'disabled') {
-			return 'Disabled until Cloud transport is available';
+			return 'Disabled until Cloud Addon is installed and verified';
 		}
 		if (queueCount <= 0) {
-			return 'No queued changes';
+			return 'No buffered changes';
 		}
 		if (status === 'delayed' || health.wp_cron_disabled === true || siteKnowledgeAutoSyncDue(health, queueCount)) {
-			return 'Queued changes are due for WP-Cron';
+			return 'Buffered changes are due for WP-Cron';
 		}
-		return 'Debounced changes waiting for the next WP-Cron run';
+		return 'Buffered changes waiting for the next WP-Cron run';
 	}
 
 	function siteKnowledgeAutoSyncCronSummary(health, status, queueCount) {
@@ -1663,10 +1666,11 @@
 	}
 
 	function siteKnowledgeAutoSyncDue(health, queueCount) {
-		if (queueCount <= 0 || !health.next_queue_run_at) {
+		const nextValue = health.next_flush_at || health.next_queue_run_at;
+		if (queueCount <= 0 || !nextValue) {
 			return false;
 		}
-		const nextRun = Date.parse(String(health.next_queue_run_at));
+		const nextRun = Date.parse(String(nextValue));
 		return Number.isFinite(nextRun) && nextRun <= Date.now();
 	}
 

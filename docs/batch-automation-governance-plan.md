@@ -75,11 +75,12 @@ validates it before forwarding or executing.
 ### Thin Local Event Bridges
 
 Site Knowledge auto-sync has moved to the Cloud Addon change bridge as the
-preferred owner. Toolbox retains only a legacy standalone fallback with
-debounced post ids, bounded batch size, capped retries, and Cloud status
-handoff. It is not a general workflow runtime. New batch workflows should not
-copy that bridge unless the task is a narrow content-change notification with
-no WordPress write and a separate boundary owner has been named.
+required owner. Toolbox no longer retains a legacy standalone fallback with
+debounced post ids, bounded batch size, capped retries, or Cloud status
+handoff. It may show Cloud Addon bridge health and clear retired local state,
+but it must not act as a general workflow runtime. New batch workflows should
+not copy that bridge unless the task is a narrow content-change notification
+with no WordPress write and a separate boundary owner has been named.
 
 ### Cloud-Fit Decision Rule
 

@@ -41,9 +41,10 @@ operator entries.
 Site Knowledge status now distinguishes the Cloud index state from automatic
 public-change delivery health. When Cloud Addon exposes the Site Knowledge
 change bridge, Toolbox displays that bridge health and does not register its
-legacy local auto-sync hooks. The legacy queue remains only for standalone
-fallback installs. Status values and common Cloud status messages are localized
-for the zh_CN admin surface.
+legacy local auto-sync hooks. Standalone installs without the bridge now show a
+Cloud Addon install-and-verify requirement instead of running a Toolbox-owned
+fallback queue. Status values and common Cloud status messages are localized for
+the zh_CN admin surface.
 
 Media optimization defaults remain an independent settings form because they
 submit to `options.php`, but they are now an attached settings panel for the

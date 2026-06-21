@@ -135,10 +135,10 @@ model routing, prompt management, provider billing, or media import.
 Cloud-managed Site Knowledge is the vector surface. Toolbox may collect bounded
 public WordPress manifests for explicit sync requests, show returned status, and
 call semantic site search. Automatic public content-change delivery belongs in
-Cloud Addon when its bridge is present; Toolbox keeps only a legacy fallback for
-standalone installs. Embedding providers, vector database endpoints, collection
-names, dimensions, rerank, stale detection, and index lifecycle are Cloud
-operator responsibilities.
+Cloud Addon after its bridge is installed and verified; Toolbox no longer keeps
+a standalone legacy fallback queue. Embedding providers, vector database
+endpoints, collection names, dimensions, rerank, stale detection, and index
+lifecycle are Cloud operator responsibilities.
 
 Cloud-managed site knowledge is the preferred high-level surface for semantic
 site search, related content, writing context, internal links, refresh
