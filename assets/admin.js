@@ -1489,6 +1489,96 @@
 		}
 	}
 
+	function contentOperationsFromStatus(payload) {
+		return payload && payload.content_operations && typeof payload.content_operations === 'object'
+			? payload.content_operations
+			: {};
+	}
+
+	function contentOperationSurfaceItems(operations) {
+		const surfaces = operations && operations.surfaces && typeof operations.surfaces === 'object' ? operations.surfaces : {};
+		return Object.keys(surfaces).map((key) => {
+			const surface = surfaces[key] && typeof surfaces[key] === 'object' ? surfaces[key] : {};
+			const contracts = Array.isArray(surface.contracts) ? surface.contracts : [];
+			const intents = Array.isArray(surface.intents) ? surface.intents : [];
+			return {
+				name: formatLabel(key),
+				value: surface.route || '',
+				detail: [
+					contracts.length ? 'Contracts: ' + contracts.map(formatLabel).join(', ') : '',
+					intents.length ? 'Intents: ' + intents.slice(0, 6).map(formatLabel).join(', ') + (intents.length > 6 ? ' +' + String(intents.length - 6) : '') : '',
+					surface.feedback_scope ? 'Feedback: ' + formatLabel(surface.feedback_scope) : '',
+				].filter(Boolean).join(' · '),
+			};
+		});
+	}
+
+	function contentOperationGapItems(operations) {
+		const contracts = operations && operations.gap_contracts && typeof operations.gap_contracts === 'object' ? operations.gap_contracts : {};
+		return Object.keys(contracts).map((key) => {
+			const contract = contracts[key] && typeof contracts[key] === 'object' ? contracts[key] : {};
+			const artifacts = Array.isArray(contract.current_artifacts) ? contract.current_artifacts : [];
+			return {
+				name: key,
+				value: formatLabel(contract.state || ''),
+				detail: [
+					contract.route ? 'Route: ' + contract.route : 'No runtime route',
+					artifacts.length ? 'Artifacts: ' + artifacts.join(', ') : '',
+					contract.final_write_path ? 'Writes: ' + formatLabel(contract.final_write_path) : '',
+					contract.reason ? formatLabel(contract.reason) : '',
+				].filter(Boolean).join(' · '),
+			};
+		});
+	}
+
+	function renderContentOperationsNode(container, statusPayload, feedbackPayload) {
+		const operations = contentOperationsFromStatus(statusPayload);
+		clearNode(container);
+		if (!operations.contract_version) {
+			container.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'Content operations projection is not available in the status response.'));
+			container.appendChild(createRawDetails(statusPayload || {}, 'Status payload'));
+			return;
+		}
+
+		container.appendChild(el('div', 'npcink-toolbox__result-notice is-ok', 'Content operations projection loaded. This is read-only status; Core approval and final WordPress writes remain local.'));
+		const meta = el('div', 'npcink-toolbox__result-meta');
+		appendMeta(meta, 'Contract', operations.contract_version);
+		appendMeta(meta, 'Available', operations.available === true ? 'yes' : 'no');
+		appendMeta(meta, 'Write posture', formatLabel(operations.write_posture || ''));
+		appendMeta(meta, 'Final write path', formatLabel(operations.final_write_path || ''));
+		appendMeta(meta, 'Approval truth', formatLabel(operations.approval_truth || ''));
+		appendMeta(meta, 'Direct writes', operations.direct_wordpress_write === false ? 'false' : '');
+		if (meta.childNodes.length) {
+			container.appendChild(meta);
+		}
+
+		renderSupportItems(container, 'Covered surfaces', contentOperationSurfaceItems(operations), 'No covered surfaces returned.');
+		renderSupportItems(container, 'Suggestion contracts', contentOperationGapItems(operations), 'No suggestion contracts returned.');
+
+		const feedback = operations.feedback && typeof operations.feedback === 'object' ? operations.feedback : {};
+		const feedbackSection = createSection('Feedback coverage');
+		const feedbackMeta = el('div', 'npcink-toolbox__result-meta');
+		appendMeta(feedbackMeta, 'Route', feedback.route || '');
+		appendMeta(feedbackMeta, 'Summary', feedback.summary_route || '');
+		appendMeta(feedbackMeta, 'Quality owner', formatLabel(feedback.quality_owner || ''));
+		appendMeta(feedbackMeta, 'Mutation scope', formatLabel(feedback.mutation_scope || ''));
+		appendMeta(feedbackMeta, 'Events', feedbackPayload && feedbackPayload.events_total !== undefined ? feedbackPayload.events_total : '');
+		if (feedbackMeta.childNodes.length) {
+			feedbackSection.appendChild(feedbackMeta);
+		}
+		const runtimes = Array.isArray(feedback.source_runtimes) ? feedback.source_runtimes : [];
+		if (runtimes.length) {
+			renderSupportItems(
+				feedbackSection,
+				'Source runtimes',
+				runtimes.map((runtime) => ({ name: formatLabel(runtime), detail: 'Cloud eval only; no prompt, router, proposal, or WordPress mutation authority.' })),
+				'No source runtimes returned.'
+			);
+		}
+		container.appendChild(feedbackSection);
+		container.appendChild(createRawDetails({ status: statusPayload, feedback: feedbackPayload || {} }, 'Content operations payload'));
+	}
+
 	function renderSiteKnowledgeAutoSync(container, health) {
 		const status = String(health.status || 'idle');
 		const queueCount = Number(health.queue_count || 0);
@@ -4209,11 +4299,36 @@
 		}
 		clearNode(summary);
 		summary.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Loading Agent feedback quality...'));
+		const operationsPromise = getJson(config.restUrl, 'status').catch(() => null);
 		const payload = await postJson(config.restUrl, 'agent-feedback/summary', { window_hours: 24 });
 		renderAgentFeedbackSummaryNode(summary, payload);
+		const statusPayload = await operationsPromise;
+		const operations = contentOperationsFromStatus(statusPayload);
+		const runtimes = operations && operations.feedback && Array.isArray(operations.feedback.source_runtimes) ? operations.feedback.source_runtimes : [];
+		if (runtimes.length) {
+			renderSupportItems(
+				summary,
+				'Tracked source runtimes',
+				runtimes.map((runtime) => ({ name: formatLabel(runtime), detail: 'Quality signal only; local proposal and write truth stay unchanged.' })),
+				'No source runtime coverage returned.'
+			);
+		}
 		summary.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Quality feedback is aggregate Cloud eval data only. Approval, preflight, media import, and final WordPress writes remain local.'));
-		summary.appendChild(createRawDetails(payload, 'Agent feedback quality payload'));
+		summary.appendChild(createRawDetails({ feedback: payload, status: statusPayload || {} }, 'Agent feedback quality payload'));
 		return payload;
+	}
+
+	async function refreshContentOperationsPanel(root) {
+		const summary = root.querySelector('[data-toolbox-content-operations]');
+		if (!summary) {
+			return null;
+		}
+		clearNode(summary);
+		summary.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Loading content operations coverage...'));
+		const statusPayload = await getJson(config.restUrl, 'status');
+		const feedbackPayload = await postJson(config.restUrl, 'agent-feedback/summary', { window_hours: 24 }).catch(() => null);
+		renderContentOperationsNode(summary, statusPayload, feedbackPayload);
+		return statusPayload;
 	}
 
 	async function runSiteKnowledgeForm(form, endpoint) {
@@ -5834,6 +5949,33 @@
 		});
 	}
 
+	function initContentOperationsPanel() {
+		document.querySelectorAll('[data-toolbox-content-operations]').forEach((summary) => {
+			const root = summary.closest('[data-toolbox-cloud-check-panel]') || document;
+			const button = root.querySelector('[data-toolbox-content-operations-refresh]');
+			const renderError = (error) => {
+				clearNode(summary);
+				summary.appendChild(el('div', 'npcink-toolbox__result-notice is-error', error.message || 'Content operations coverage failed.'));
+				summary.appendChild(createRawDetails(error, 'Content operations coverage error'));
+			};
+
+			if (button) {
+				button.addEventListener('click', async () => {
+					button.disabled = true;
+					try {
+						await refreshContentOperationsPanel(root);
+					} catch (error) {
+						renderError(error);
+					} finally {
+						button.disabled = false;
+					}
+				});
+			}
+
+			refreshContentOperationsPanel(root).catch(renderError);
+		});
+	}
+
 	async function submitMediaReferenceRepairProposal(form) {
 		if (!config.adapterRestUrl) {
 			throw { message: 'Npcink Adapter REST URL is unavailable.' };
@@ -6644,6 +6786,7 @@
 	initNightlyCloudBatch();
 	initSiteKnowledge();
 	initAgentFeedbackQuality();
+	initContentOperationsPanel();
 	initMediaDerivativeControls();
 	initUrlState();
 

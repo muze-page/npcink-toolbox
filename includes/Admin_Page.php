@@ -1002,6 +1002,10 @@ final class Admin_Page {
 					<span><?php esc_html_e( 'Nightly Inspection', 'npcink-toolbox' ); ?></span>
 					<small><?php esc_html_e( 'Runtime detail', 'npcink-toolbox' ); ?></small>
 				</button>
+				<button type="button" class="npcink-toolbox__cloud-check-tab" data-toolbox-cloud-check-target="content-operations" aria-selected="false">
+					<span><?php esc_html_e( 'Content Operations', 'npcink-toolbox' ); ?></span>
+					<small><?php esc_html_e( 'Coverage map', 'npcink-toolbox' ); ?></small>
+				</button>
 				<button type="button" class="npcink-toolbox__cloud-check-tab" data-toolbox-cloud-check-target="agent-quality" aria-selected="false">
 					<span><?php esc_html_e( 'Agent Quality', 'npcink-toolbox' ); ?></span>
 					<small><?php esc_html_e( 'Quality summary', 'npcink-toolbox' ); ?></small>
@@ -1153,6 +1157,22 @@ final class Admin_Page {
 					</section>
 					<?php $this->render_nightly_inspection_preview( $nightly_preview ); ?>
 					<?php $this->render_nightly_inspection_basic_settings( $settings ); ?>
+				</section>
+
+				<section class="npcink-toolbox__card" data-toolbox-cloud-check-panel="content-operations" hidden>
+					<div class="npcink-toolbox__section-heading">
+						<div>
+							<h3><?php esc_html_e( 'Content operations coverage', 'npcink-toolbox' ); ?></h3>
+							<p><?php esc_html_e( 'Read-only status projection for existing content-support, Nightly, Site Knowledge, media metadata, and feedback surfaces.', 'npcink-toolbox' ); ?></p>
+						</div>
+						<button type="button" class="button" data-toolbox-content-operations-refresh <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Refresh coverage', 'npcink-toolbox' ); ?></button>
+					</div>
+					<?php if ( ! $cloud_ready ) : ?>
+						<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before loading Cloud-backed coverage detail.', 'npcink-toolbox' ); ?></div>
+					<?php endif; ?>
+					<div class="npcink-toolbox__knowledge-summary" data-toolbox-content-operations>
+						<div class="npcink-toolbox__result-notice is-pending"><?php esc_html_e( 'Content operations coverage has not been loaded yet.', 'npcink-toolbox' ); ?></div>
+					</div>
 				</section>
 
 				<section class="npcink-toolbox__card" data-toolbox-cloud-check-panel="agent-quality" hidden>

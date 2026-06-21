@@ -18,6 +18,7 @@ final class Rest_Controller {
 	private const REQUIRED_TEXT_MAX_CHARS = 500;
 	private const EDITOR_SUMMARY_FULL_CONTENT_MAX_CHARS = 30000;
 	private const EDITOR_SELECTED_TEXT_MAX_CHARS = 2000;
+	private const EDITOR_COMMENT_TEXT_MAX_CHARS = 1200;
 	private const EDITOR_FLOW_CACHE_TTL = 300;
 	private const EDITOR_PROGRESSIVE_TARGET_MS = 2500;
 	private const EDITOR_PROGRESSIVE_CANDIDATE_LIMIT = 8;
@@ -124,6 +125,7 @@ final class Rest_Controller {
 					'available'               => $cloud_ready,
 					'posture'                 => 'suggestion_only_core_approval_required',
 				),
+				'content_operations'      => $this->content_operations_projection( $cloud_ready ),
 				'pro_nightly_inspection'  => array(
 					'registered'             => true,
 					'available'              => $cloud_ready,
@@ -139,6 +141,83 @@ final class Rest_Controller {
 				),
 				'boundary'                 => 'Toolbox returns Cloud-managed image-source and Cloud-managed site-knowledge suggestions only. Cloud owns web search execution and provider configuration. WordPress writes should be handed to Abilities/Core governance.',
 			)
+		);
+	}
+
+	private function content_operations_projection( bool $cloud_ready ): array {
+		return array(
+			'contract_version'      => 'toolbox_content_operations_projection.v1',
+			'registered'            => true,
+			'available'             => $cloud_ready,
+			'write_posture'         => 'suggestion_only',
+			'final_write_path'      => 'core_proposal_required',
+			'approval_truth'        => 'wordpress_local',
+			'final_write_truth'     => 'wordpress_local',
+			'direct_wordpress_write' => false,
+			'projection_role'       => 'single_toolbox_status_projection',
+			'surfaces'              => array(
+				'editor_content_support' => array(
+					'route'          => '/editor/content-support',
+					'artifact_type'  => 'editor_content_support_flow',
+					'source_layers'  => array( 'local_editor_context', 'cloud_site_knowledge', 'cloud_web_search', 'hosted_ai' ),
+					'intents'        => array( 'progressive_recommendations', 'writing_support', 'article_checkup', 'title_suggestions', 'article_outline', 'polish_notes', 'summary_suggestions', 'category_suggestions', 'tag_suggestions', 'summary_terms_optimization', 'taxonomy_tags', 'internal_links', 'image_candidates', 'image_alt_suggestions', 'comment_reply_suggestion', 'publish_preflight', 'discoverability' ),
+					'feedback_scope' => 'editor_content_support',
+				),
+				'nightly_inspection'     => array(
+					'route'          => '/nightly-inspection/cloud-batch',
+					'contracts'      => array( 'nightly_site_inspection_morning_brief.v2', 'nightly_site_inspection_core_intake_package.v1' ),
+					'source_layers'  => array( 'local_site_snapshot', 'cloud_batch_runtime' ),
+					'feedback_scope' => 'nightly_site_inspection',
+				),
+				'site_knowledge'         => array(
+					'route'          => '/site-knowledge/search',
+					'intents'        => array( 'site_search', 'related_content', 'writing_context', 'internal_links', 'refresh_suggestions', 'image_context', 'faq_candidates', 'content_gap_analysis', 'duplicate_check', 'writing_support_plan' ),
+					'source_layers'  => array( 'cloud_site_knowledge' ),
+					'feedback_scope' => 'site_knowledge',
+				),
+				'media_site_helpers'     => array(
+					'route'          => '/ai/site-helpers',
+					'contracts'      => array( 'media_alt_caption_review_set.v1', 'current_article_image_alt_suggestions.v1' ),
+					'source_layers'  => array( 'media_library_metadata_only_no_pixel_vision', 'hosted_ai' ),
+					'feedback_scope' => 'media_alt_caption',
+				),
+			),
+			'gap_contracts'         => array(
+				'seo_metadata_suggestion.v1'       => array(
+					'state'                => 'covered_by_existing_projection',
+					'current_artifacts'    => array( 'seo_meta_handoff_preview.v1', 'content_metadata_delta' ),
+					'route'                => '/editor/content-support',
+					'final_write_path'     => 'core_proposal_required',
+					'target_ability_id'    => 'npcink-abilities-toolkit/set-post-seo-meta',
+					'direct_wordpress_write' => false,
+					'feedback_scope'       => 'seo_metadata',
+				),
+				'media_alt_caption_suggestion.v1'  => array(
+					'state'                => 'covered_by_existing_projection',
+					'current_artifacts'    => array( 'media_alt_caption_review_set.v1', 'current_article_image_alt_suggestions.v1' ),
+					'route'                => '/ai/site-helpers',
+					'evidence_policy'      => 'media_library_metadata_only_no_pixel_vision',
+					'direct_wordpress_write' => false,
+					'feedback_scope'       => 'media_alt_caption',
+				),
+				'comment_reply_suggestion.v1'      => array(
+					'state'                => 'covered_by_existing_projection',
+					'current_artifacts'    => array( 'comment_reply_suggestion.v1' ),
+					'route'                => '/editor/content-support',
+					'final_write_path'     => 'core_proposal_required',
+					'direct_wordpress_write' => false,
+					'feedback_scope'       => 'comment_reply',
+				),
+			),
+			'feedback'              => array(
+				'route'              => '/agent-feedback',
+				'summary_route'      => '/agent-feedback/summary',
+				'contract_version'   => 'cloud_agent_feedback.v1',
+				'quality_owner'      => 'cloud_eval_only',
+				'mutation_scope'     => 'none',
+				'source_runtimes'    => array( 'editor_content_support', 'image_candidates', 'nightly_site_inspection', 'site_knowledge', 'seo_metadata', 'media_alt_caption', 'comment_reply' ),
+				'direct_wordpress_write' => false,
+			),
 		);
 	}
 
@@ -665,7 +744,7 @@ final class Rest_Controller {
 
 	public function editor_content_support( WP_REST_Request $request ) {
 		$intent = sanitize_key( (string) ( $request->get_param( 'intent' ) ?: '' ) );
-		if ( ! in_array( $intent, array( 'progressive_recommendations', 'writing_support', 'article_checkup', 'title_suggestions', 'article_outline', 'polish_notes', 'summary_suggestions', 'category_suggestions', 'tag_suggestions', 'summary_terms_optimization', 'taxonomy_tags', 'internal_links', 'image_candidates', 'image_alt_suggestions', 'publish_preflight', 'discoverability' ), true ) ) {
+		if ( ! in_array( $intent, array( 'progressive_recommendations', 'writing_support', 'article_checkup', 'title_suggestions', 'article_outline', 'polish_notes', 'summary_suggestions', 'category_suggestions', 'tag_suggestions', 'summary_terms_optimization', 'taxonomy_tags', 'internal_links', 'image_candidates', 'image_alt_suggestions', 'comment_reply_suggestion', 'publish_preflight', 'discoverability' ), true ) ) {
 			return new WP_Error(
 				'npcink_toolbox_invalid_editor_support_intent',
 				__( 'A supported editor content-support intent is required.', 'npcink-toolbox' ),
@@ -816,6 +895,10 @@ final class Rest_Controller {
 
 		if ( 'image_alt_suggestions' === $intent ) {
 			$result['sections']['image_alt_suggestions'] = $this->editor_article_image_alt_suggestions( $context );
+		}
+
+		if ( 'comment_reply_suggestion' === $intent ) {
+			$result['sections']['comment_reply_suggestion'] = $this->editor_comment_reply_suggestions( $context );
 		}
 
 		if ( 'discoverability' === $intent || 'publish_preflight' === $intent ) {
@@ -1021,6 +1104,9 @@ final class Rest_Controller {
 			'tag_ids'             => $this->csv_absint_list( (string) $request->get_param( 'tag_ids' ) ),
 			'featured_media'      => absint( $request->get_param( 'featured_media' ) ),
 			'media_items'         => $this->editor_media_items_from_request( $request ),
+			'comment_id'          => absint( $request->get_param( 'comment_id' ) ),
+			'comment_author'      => sanitize_text_field( (string) $request->get_param( 'comment_author' ) ),
+			'comment_text'        => sanitize_textarea_field( $this->editor_trim_chars( trim( wp_strip_all_tags( (string) $request->get_param( 'comment_text' ) ) ), self::EDITOR_COMMENT_TEXT_MAX_CHARS ) ),
 		);
 	}
 
@@ -1168,6 +1254,151 @@ final class Rest_Controller {
 				)
 			)
 		);
+	}
+
+	private function editor_comment_reply_suggestions( array $context ): array {
+		$comment_context = $this->editor_comment_reply_context( $context );
+		$comment_text    = (string) ( $comment_context['comment_text'] ?? '' );
+		$post_title      = sanitize_text_field( (string) ( $context['title'] ?? '' ) );
+		$post_excerpt    = sanitize_textarea_field( (string) ( $context['excerpt'] ?? '' ) );
+		$post_summary    = '' !== $post_excerpt ? $post_excerpt : sanitize_textarea_field( wp_trim_words( (string) ( $context['content_text'] ?? '' ), 36, '' ) );
+
+		$base = array(
+			'artifact_type'             => 'comment_reply_suggestion.v1',
+			'candidate_type'            => 'comment_reply_candidates',
+			'write_posture'             => 'suggestion_only',
+			'final_write_path'          => 'core_proposal_required',
+			'direct_wordpress_write'    => false,
+			'comment_publication_policy' => 'operator_review_only_no_comment_publish',
+			'comment_status_unchanged'  => true,
+			'provider_execution'        => 'local_comment_reply_suggestion',
+			'source_policy'             => 'current_article_and_operator_supplied_comment_only',
+			'post_context'              => array(
+				'post_id' => absint( $context['post_id'] ?? 0 ),
+				'title'   => $post_title,
+				'excerpt' => $post_summary,
+			),
+			'comment_context'           => $comment_context,
+		);
+
+		if ( '' === $comment_text ) {
+			return array_merge(
+				$base,
+				array(
+					'status'  => 'needs_comment_context',
+					'message' => __( 'Select or provide a comment before requesting reply suggestions.', 'npcink-toolbox' ),
+					'items'   => array(),
+				)
+			);
+		}
+
+		$reply_seed = wp_trim_words( $comment_text, 26, '' );
+		$topic      = '' !== $post_title ? $post_title : __( 'this article', 'npcink-toolbox' );
+		$items      = array(
+			array(
+				'id'            => 'acknowledge_and_answer',
+				'label'         => __( 'Acknowledge and answer', 'npcink-toolbox' ),
+				'reply_text'    => sprintf(
+					/* translators: 1: comment excerpt, 2: post title. */
+					__( 'Thanks for raising this. On "%2$s", the practical answer is to treat "%1$s" as a review point and verify it against the article before taking action.', 'npcink-toolbox' ),
+					$reply_seed,
+					$topic
+				),
+				'reason'        => __( 'Useful when the comment asks for clarification or a concrete next step.', 'npcink-toolbox' ),
+				'status'        => 'review_required',
+				'action_policy' => 'operator_review_only_no_comment_publish',
+				'target_field'  => 'comment_reply',
+			),
+			array(
+				'id'            => 'ask_for_detail',
+				'label'         => __( 'Ask for detail', 'npcink-toolbox' ),
+				'reply_text'    => __( 'Thanks for the note. Could you share one concrete example or the context where you saw this issue? That will make the follow-up more accurate.', 'npcink-toolbox' ),
+				'reason'        => __( 'Useful when the comment is broad, ambiguous, or missing enough context for a confident answer.', 'npcink-toolbox' ),
+				'status'        => 'review_required',
+				'action_policy' => 'operator_review_only_no_comment_publish',
+				'target_field'  => 'comment_reply',
+			),
+			array(
+				'id'            => 'editorial_boundary',
+				'label'         => __( 'Set boundary', 'npcink-toolbox' ),
+				'reply_text'    => __( 'Thanks for flagging this. I will review it against the source material first, because I do not want to overstate anything that the article has not supported.', 'npcink-toolbox' ),
+				'reason'        => __( 'Useful when the comment asks for a claim, recommendation, or commitment that needs source review.', 'npcink-toolbox' ),
+				'status'        => 'review_required',
+				'action_policy' => 'operator_review_only_no_comment_publish',
+				'target_field'  => 'comment_reply',
+			),
+		);
+
+		return array_merge(
+			$base,
+			array(
+				'status'                   => 'ready',
+				'items'                    => $items,
+				'recommendation_candidates' => $this->editor_comment_reply_recommendation_candidates( $items ),
+			)
+		);
+	}
+
+	private function editor_comment_reply_context( array $context ): array {
+		$comment_id = absint( $context['comment_id'] ?? 0 );
+		$text       = sanitize_textarea_field( (string) ( $context['comment_text'] ?? '' ) );
+		$author     = sanitize_text_field( (string) ( $context['comment_author'] ?? '' ) );
+		$status     = '';
+
+		if ( $comment_id > 0 && function_exists( 'get_comment' ) ) {
+			$comment = get_comment( $comment_id );
+			if ( $comment ) {
+				$text   = '' !== $text ? $text : sanitize_textarea_field( $this->editor_trim_chars( wp_strip_all_tags( (string) ( $comment->comment_content ?? '' ) ), self::EDITOR_COMMENT_TEXT_MAX_CHARS ) );
+				$author = '' !== $author ? $author : sanitize_text_field( (string) ( $comment->comment_author ?? '' ) );
+				$status = sanitize_key( (string) ( $comment->comment_approved ?? '' ) );
+			}
+		}
+
+		if ( '' === $text ) {
+			$text = sanitize_textarea_field(
+				$this->editor_trim_chars(
+					trim(
+						implode(
+							' ',
+							array_filter(
+								array(
+									(string) ( $context['selected_text_full'] ?? '' ),
+									(string) ( $context['selected_block_text_full'] ?? '' ),
+									(string) ( $context['user_instruction'] ?? '' ),
+								)
+							)
+						)
+					),
+					self::EDITOR_COMMENT_TEXT_MAX_CHARS
+				)
+			);
+		}
+
+		return array(
+			'comment_id'     => $comment_id,
+			'comment_author' => $author,
+			'comment_status' => $status,
+			'comment_text'   => $text,
+			'redaction'      => 'operator_supplied_or_local_comment_text',
+		);
+	}
+
+	private function editor_comment_reply_recommendation_candidates( array $items ): array {
+		$candidates = array();
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			$candidates[] = array(
+				'id'            => sanitize_key( (string) ( $item['id'] ?? '' ) ),
+				'kind'          => 'comment_reply',
+				'target_field'  => 'comment_reply',
+				'value'         => sanitize_textarea_field( (string) ( $item['reply_text'] ?? '' ) ),
+				'reason'        => sanitize_textarea_field( (string) ( $item['reason'] ?? '' ) ),
+				'action_policy' => 'operator_review_only_no_comment_publish',
+			);
+		}
+		return $candidates;
 	}
 
 	private function image_visual_context_from_request( WP_REST_Request $request, string $query ): array {

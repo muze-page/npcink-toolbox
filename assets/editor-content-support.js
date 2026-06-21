@@ -251,6 +251,12 @@
 			description: __('Suggest ALT and caption notes for images already used by this draft.', 'npcink-toolbox'),
 			group: 'pre_publish',
 		},
+		{
+			intent: 'comment_reply_suggestion',
+			label: __('Comment reply suggestions', 'npcink-toolbox'),
+			description: __('Draft review-only reply options from a selected or supplied comment and the current article context.', 'npcink-toolbox'),
+			group: 'pre_publish',
+		},
 	];
 
 	const flowGroups = [
@@ -1074,8 +1080,9 @@
 		const activeIntent = String(intent || (payload && payload.intent) || 'content_support').trim();
 		const runId = payload && payload.run_id ? String(payload.run_id) : '';
 		const artifactType = payload && payload.artifact_type ? String(payload.artifact_type) : 'editor_content_support_flow';
+		const sourceRuntime = editorContentSupportSourceRuntime(payload, activeIntent);
 		const handoffId = [
-			'content_support',
+			sourceRuntime,
 			feedbackOptions.action || '',
 			activeIntent,
 			artifactType,
@@ -1086,7 +1093,7 @@
 			contract_version: 'cloud_agent_feedback.v1',
 			agent_id: 'editor_content_support_agent',
 			agent_version: payload && payload.contract_version ? String(payload.contract_version) : '',
-			source_runtime: 'content_support',
+			source_runtime: sourceRuntime,
 			source_run_id: runId,
 			handoff_id: handoffId.slice(0, 191),
 			handoff_type: feedbackOptions.handoffType || 'editor_content_support_result',
@@ -1100,6 +1107,21 @@
 			retention_class: 'quality_eval',
 			created_at: new Date().toISOString()
 		};
+	}
+
+	function editorContentSupportSourceRuntime(payload, intent) {
+		const activeIntent = String(intent || '').trim();
+		const sections = payload && payload.sections && typeof payload.sections === 'object' ? payload.sections : {};
+		if (activeIntent === 'comment_reply_suggestion' || sections.comment_reply_suggestion) {
+			return 'comment_reply';
+		}
+		if (activeIntent === 'image_alt_suggestions' || sections.image_alt_suggestions) {
+			return 'media_alt_caption';
+		}
+		if (activeIntent === 'discoverability' || activeIntent === 'publish_preflight' || sections.seo_handoff) {
+			return 'seo_metadata';
+		}
+		return 'editor_content_support';
 	}
 
 	function editorContentImplicitFeedbackPayload(payload, intent, action, outcome, labels, localProposalId) {
@@ -1381,6 +1403,7 @@
 			polish_notes: __('Paragraph check', 'npcink-toolbox'),
 			discoverability: __('Discoverability suggestions', 'npcink-toolbox'),
 			image_alt_suggestions: __('Image ALT suggestions', 'npcink-toolbox'),
+			comment_reply_suggestion: __('Comment reply suggestions', 'npcink-toolbox'),
 			categories: __('Categories', 'npcink-toolbox'),
 			tags: __('Tags', 'npcink-toolbox'),
 			featured_image: __('Featured image', 'npcink-toolbox'),
@@ -1506,6 +1529,9 @@
 		if (value === 'image_alt_suggestions') {
 			return __('Image ALT suggestions', 'npcink-toolbox');
 		}
+		if (value === 'comment_reply_suggestion') {
+			return __('Comment reply suggestions', 'npcink-toolbox');
+		}
 		if (value === 'summary_terms_optimization') {
 			return __('Metadata optimization', 'npcink-toolbox');
 		}
@@ -1542,6 +1568,9 @@
 		}
 		if (value === 'image_alt_suggestions') {
 			return __('Review ALT and caption suggestions against the actual image before any media edit.', 'npcink-toolbox');
+		}
+		if (value === 'comment_reply_suggestion') {
+			return __('Review reply options before taking any comment action. Toolbox does not publish replies or change comment status.', 'npcink-toolbox');
 		}
 		if (value === 'summary_suggestions') {
 			return __('AI reads the current draft and returns an editor-ready excerpt candidate.', 'npcink-toolbox');
@@ -3245,6 +3274,7 @@
 				'polish_notes',
 				'discoverability',
 				'image_alt_suggestions',
+				'comment_reply_suggestion',
 			].indexOf(intent) >= 0;
 		}
 
@@ -3266,6 +3296,9 @@
 		}
 		if (intent === 'image_alt_suggestions') {
 			return __('Example: concise, factual ALT text; no keyword stuffing.', 'npcink-toolbox');
+		}
+		if (intent === 'comment_reply_suggestion') {
+			return __('Paste or select the comment text; add tone guidance if needed.', 'npcink-toolbox');
 		}
 		if (intent === 'writing_support') {
 			return __('Example: focus on what is already covered, what angle is missing, and what I should do next.', 'npcink-toolbox');
@@ -3784,6 +3817,22 @@
 			return [];
 		}
 		return hostedWritingSupportItems(section);
+	}
+
+	function commentReplySuggestionItems(section) {
+		if (!section || typeof section !== 'object') {
+			return [];
+		}
+		const items = Array.isArray(section.items) ? section.items : [];
+		return items.map((item, index) => ({
+			name: readableItemText(item && (item.label || item.id), __('Reply option', 'npcink-toolbox') + ' ' + String(index + 1)),
+			value: readableItemText(item && (item.reply_text || item.value), ''),
+			detail: [
+				item && item.status ? formatMetaLabel(item.status) : '',
+				item && item.action_policy ? formatMetaLabel(item.action_policy) : '',
+				item && item.reason ? item.reason : '',
+			].filter(Boolean).join(' · '),
+		}));
 	}
 
 	function prePublishReviewItems(section) {
@@ -5039,6 +5088,12 @@
 					}
 					blocks.push(renderItems(imageAltSuggestionItems(sections.image_alt_suggestions), __('No image ALT suggestions returned.', 'npcink-toolbox')));
 					blocks.push(renderHostedAiDiagnostics(sections.image_alt_suggestions));
+				}
+
+				if (sections.comment_reply_suggestion) {
+					blocks.push(createElement('h4', { key: 'comment-reply-suggestion-title' }, __('Comment reply suggestions', 'npcink-toolbox')));
+					blocks.push(createElement('p', { key: 'comment-reply-suggestion-help', className: 'npcink-toolbox-editor-support__muted' }, __('Review-only suggestions. Toolbox does not publish comment replies or change comment status.', 'npcink-toolbox')));
+					blocks.push(renderItems(commentReplySuggestionItems(sections.comment_reply_suggestion), __('No comment reply suggestions returned.', 'npcink-toolbox')));
 				}
 
 				if (hasPreflightReview) {
