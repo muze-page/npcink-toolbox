@@ -99,7 +99,10 @@ npcink_toolbox_sk_review_smoke_assert(
 npcink_toolbox_sk_review_smoke_assert(
 	false !== strpos( $admin_js, 'Site Knowledge review proposal submitted' )
 	&& false !== strpos( $admin_js, 'Human title and content input are required before approval, preflight, or execution can proceed.' )
-	&& false !== strpos( $admin_js, 'Could not submit the Site Knowledge review proposal.' ),
+	&& false !== strpos( $admin_js, 'Could not submit the Site Knowledge review proposal.' )
+	&& false !== strpos( $admin_js, 'Site Knowledge Core handoff failed' )
+	&& false !== strpos( $admin_js, 'Site Knowledge Core handoff error payload' )
+	&& false !== strpos( $admin_js, 'review_adapter_core_error' ),
 	'Admin UI exposes success and failure copy for the blocked Core review proposal.'
 );
 

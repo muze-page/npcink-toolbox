@@ -219,6 +219,17 @@ Cloud Site Knowledge, verifies `internal_link_candidates.v1`,
 through Adapter `/proposals`, purges that fixture, and proves the sampled post
 is not mutated.
 
+For the Toolbox/Core handoff receipt UI, run:
+
+```bash
+NODE_PATH="${NODE_PATH:-/Users/muze/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules}" composer smoke:core-handoff-receipt-ui
+```
+
+This optional browser fixture loads the real admin JavaScript with mocked REST
+responses, verifies success and failure receipt rendering, checks the Core
+review link, and confirms failed handoffs show operator recovery feedback. It
+does not create WordPress, Adapter, or Core records.
+
 For the post-editor SEO apply loop, run:
 
 ```bash

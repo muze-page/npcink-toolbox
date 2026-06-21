@@ -588,6 +588,28 @@
 		};
 	}
 
+	function handoffErrorMessage(error, fallback) {
+		if (!error) {
+			return fallback || __('Core handoff failed.', 'npcink-toolbox');
+		}
+		if (typeof error === 'string') {
+			return error;
+		}
+		return error.message || error.error || error.code || fallback || __('Core handoff failed.', 'npcink-toolbox');
+	}
+
+	function coreHandoffFailure(error, options) {
+		options = options || {};
+		return {
+			message: handoffErrorMessage(error, options.fallback || __('Core handoff failed.', 'npcink-toolbox')),
+			error,
+			handoff_receipt: coreHandoffReceipt(error, Object.assign({}, options.receipt || {}, {
+				status: 'handoff_failed',
+				operator_next_action: 'review_adapter_core_error',
+			})),
+		};
+	}
+
 	function renderCoreHandoffReceipt(receipt) {
 		if (!receipt || typeof receipt !== 'object') {
 			return null;
@@ -4877,7 +4899,8 @@
 					},
 					controls.running ? __('Submitting', 'npcink-toolbox') : __('Create Core review proposal', 'npcink-toolbox')
 				),
-				controls.error ? createElement(Notice, { status: 'error', isDismissible: false }, controls.error) : null,
+				controls.error ? createElement(Notice, { status: 'error', isDismissible: false }, handoffErrorMessage(controls.error, __('Could not create the Core metadata proposal.', 'npcink-toolbox'))) : null,
+				controls.error && controls.error.handoff_receipt ? renderCoreHandoffReceipt(controls.error.handoff_receipt) : null,
 				controls.result ? createElement(
 					Notice,
 					{ status: 'success', isDismissible: false },
@@ -4965,7 +4988,8 @@
 					},
 						controls.running ? __('Applying', 'npcink-toolbox') : __('Apply SEO optimization', 'npcink-toolbox')
 					),
-					controls.error ? createElement(Notice, { status: 'error', isDismissible: false }, controls.error) : null,
+					controls.error ? createElement(Notice, { status: 'error', isDismissible: false }, handoffErrorMessage(controls.error, __('Could not apply the SEO optimization.', 'npcink-toolbox'))) : null,
+					controls.error && controls.error.handoff_receipt ? renderCoreHandoffReceipt(controls.error.handoff_receipt) : null,
 					controls.result ? createElement(
 						Notice,
 						{ status: controls.result.execution_error ? 'warning' : 'success', isDismissible: false },
@@ -6481,7 +6505,15 @@
 						: __('Created Core review proposal(s). Review them in Governance Core before execution.', 'npcink-toolbox'),
 				});
 			} catch (requestError) {
-				setMetadataHandoffError(requestError && requestError.message ? requestError.message : __('Could not create the Core metadata proposal.', 'npcink-toolbox'));
+				setMetadataHandoffError(coreHandoffFailure(requestError, {
+					fallback: __('Could not create the Core metadata proposal.', 'npcink-toolbox'),
+					receipt: {
+						handoff_type: 'content_metadata_delta_handoff',
+						source_item_id: 'summary_terms_optimization',
+						source_label: 'Content Metadata Delta',
+						target_ability_id: 'npcink-abilities-toolkit/build-content-metadata-apply-plan',
+					},
+				}));
 			} finally {
 				setMetadataHandoffRunning(false);
 			}
@@ -6538,7 +6570,15 @@
 					});
 				}
 			} catch (requestError) {
-				setSeoHandoffError(requestError && requestError.message ? requestError.message : __('Could not apply the SEO optimization.', 'npcink-toolbox'));
+				setSeoHandoffError(coreHandoffFailure(requestError, {
+					fallback: __('Could not apply the SEO optimization.', 'npcink-toolbox'),
+					receipt: {
+						handoff_type: 'seo_meta_handoff_preview',
+						source_item_id: 'seo_handoff',
+						source_label: 'SEO handoff',
+						target_ability_id: payload.ability_id || 'npcink-abilities-toolkit/set-post-seo-meta',
+					},
+				}));
 			} finally {
 				setSeoHandoffRunning(false);
 			}

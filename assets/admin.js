@@ -409,7 +409,54 @@
 		result.appendChild(notice);
 	}
 
-	function renderErrorResult(form, error, fallback) {
+	function renderCoreHandoffError(form, error, fallback, options) {
+		options = options || {};
+		const result = renderShell(
+			form,
+			{ provider: 'core governance' },
+			options.title || 'Core handoff failed',
+			formatErrorMessage(error, fallback || 'Could not submit the Core handoff.')
+		);
+		if (!result) {
+			return;
+		}
+		const receipt = coreHandoffReceipt(error, Object.assign({}, options.receiptContext || {}, {
+			status: 'handoff_failed',
+			operatorNextAction: 'review_adapter_core_error',
+		}));
+		const receiptNode = renderCoreHandoffReceipt(receipt);
+		if (receiptNode) {
+			result.appendChild(receiptNode);
+		}
+		const feedback = extractOperatorFeedback(error);
+		if (feedback) {
+			const meta = el('div', 'npcink-toolbox__result-meta');
+			appendMeta(meta, 'Feedback status', feedback.status ? formatLabel(feedback.status) : '');
+			appendMeta(meta, 'Severity', feedback.severity ? formatLabel(feedback.severity) : '');
+			appendMeta(meta, 'Retry after revision', feedback.can_retry_after_revision === true ? 'Yes' : 'No');
+			if (meta.childNodes.length) {
+				result.appendChild(meta);
+			}
+			if (Array.isArray(feedback.next_steps) && feedback.next_steps.length) {
+				const section = createSection('Next steps');
+				const list = el('ol', 'npcink-toolbox__step-list');
+				feedback.next_steps.forEach((step) => {
+					list.appendChild(el('li', '', step));
+				});
+				section.appendChild(list);
+				result.appendChild(section);
+			}
+		}
+		if (error && typeof error === 'object') {
+			result.appendChild(createRawDetails(error, options.rawTitle || 'Core handoff error payload'));
+		}
+	}
+
+	function renderErrorResult(form, error, fallback, options) {
+		if (options && options.receiptContext) {
+			renderCoreHandoffError(form, error, fallback, options);
+			return;
+		}
 		const result = form.querySelector('.npcink-toolbox__result');
 		if (!result) {
 			return;
@@ -421,6 +468,26 @@
 		result.appendChild(el('div', 'npcink-toolbox__result-notice is-error', formatErrorMessage(error, fallback)));
 		if (error && typeof error === 'object') {
 			result.appendChild(createRawDetails(error, 'Error payload'));
+		}
+	}
+
+	function renderCoreHandoffStatusError(statusNode, error, fallback, receiptContext, rawTitle) {
+		if (!statusNode) {
+			return;
+		}
+		statusNode.className = 'npcink-toolbox__result-notice is-error';
+		clearNode(statusNode);
+		statusNode.appendChild(el('strong', '', 'Core handoff failed'));
+		statusNode.appendChild(el('span', '', formatErrorMessage(error, fallback || 'Could not submit the Core handoff.')));
+		const receiptNode = renderCoreHandoffReceipt(coreHandoffReceipt(error, Object.assign({}, receiptContext || {}, {
+			status: 'handoff_failed',
+			operatorNextAction: 'review_adapter_core_error',
+		})));
+		if (receiptNode) {
+			statusNode.appendChild(receiptNode);
+		}
+		if (error && typeof error === 'object') {
+			statusNode.appendChild(createRawDetails(error, rawTitle || 'Core handoff error payload'));
 		}
 	}
 
@@ -1113,7 +1180,16 @@
 				},
 			});
 		} catch (error) {
-			renderErrorResult(form, error, 'Could not submit the Site Knowledge review proposal.');
+			renderErrorResult(form, error, 'Could not submit the Site Knowledge review proposal.', {
+				title: 'Site Knowledge Core handoff failed',
+				rawTitle: 'Site Knowledge Core handoff error payload',
+				receiptContext: {
+					handoffType: 'site_knowledge_review_plan',
+					sourceItemId: 'site_knowledge_agent_handoff',
+					sourceLabel: 'Site Knowledge review evidence',
+					targetAbilityId: 'npcink-abilities-toolkit/create-draft',
+				},
+			});
 		} finally {
 			if (button) {
 				button.disabled = false;
@@ -5242,9 +5318,12 @@
 				},
 			});
 		} catch (error) {
-			statusNode.className = 'npcink-toolbox__result-notice is-error';
-			statusNode.textContent = formatErrorMessage(error, 'Could not submit selected Morning Brief items to Core.');
-			statusNode.appendChild(createRawDetails(error, 'Core review submission error'));
+			renderCoreHandoffStatusError(statusNode, error, 'Could not submit selected Morning Brief items to Core.', {
+				handoffType: 'nightly_inspection_review_plan',
+				sourceItemId: 'morning_brief_selected_review_items',
+				sourceLabel: 'Morning Brief selected review items',
+				targetAbilityId: 'npcink-abilities-toolkit/create-draft',
+			}, 'Core review submission error');
 		} finally {
 			if (button) {
 				button.disabled = false;
@@ -5299,9 +5378,12 @@
 				},
 			});
 		} catch (error) {
-			statusNode.className = 'npcink-toolbox__result-notice is-error';
-			statusNode.textContent = formatErrorMessage(error, 'Could not submit the completed Morning Brief draft to Core.');
-			statusNode.appendChild(createRawDetails(error, 'Completed draft submission error'));
+			renderCoreHandoffStatusError(statusNode, error, 'Could not submit the completed Morning Brief draft to Core.', {
+				handoffType: 'nightly_inspection_completed_draft',
+				sourceItemId: 'morning_brief_completed_draft',
+				sourceLabel: 'Morning Brief completed draft',
+				targetAbilityId: 'npcink-abilities-toolkit/create-draft',
+			}, 'Completed draft submission error');
 		} finally {
 			if (button) {
 				button.disabled = false;
