@@ -503,6 +503,8 @@ For the media ALT/caption Toolkit extraction gate, run:
 composer smoke:media-alt-caption-trial
 composer eval:media-alt-caption:export
 composer eval:media-alt-caption:judge-cross
+composer eval:media-alt-caption:export-batch
+composer eval:media-alt-caption:judge-cross-batch
 ```
 
 This uses real local image attachments and the existing `/ai/site-helpers`
@@ -516,6 +518,15 @@ can be checked by a human or passed to the development-only eval-lab checkout.
 The judge-cross command calls eval-lab task `media_alt_caption_judge_cross`
 with the exported file; it is AI-assisted review evidence only and never
 authorizes media metadata writes.
+
+Use the `*-batch` commands when you need more sample volume for extraction
+confidence. The batch exporter pages real media-library metadata through the
+same `/ai/site-helpers` route with `MEDIA_ALT_CAPTION_PAGE_SIZE` capped at 10,
+then aggregates a local `media_alt_caption_operator_trial.v1` file for
+eval-lab. This is an eval-only accelerator; it does not raise the product UI
+cap, create a queue/runtime, call Cloud, create Core proposals, or write media
+metadata. Tune the sample size with `MEDIA_ALT_CAPTION_SAMPLE_LIMIT`, default
+50.
 
 ## Coding Rules
 

@@ -18,6 +18,8 @@ The trial is not a migration approval. It is one evidence point for the
 composer smoke:media-alt-caption-trial
 composer eval:media-alt-caption:export
 composer eval:media-alt-caption:judge-cross
+composer eval:media-alt-caption:export-batch
+composer eval:media-alt-caption:judge-cross-batch
 ```
 
 The command runs through WP-CLI against the configured local WordPress site. It
@@ -32,6 +34,13 @@ the development-only `magick-ai-eval-lab` task
 `media_alt_caption_judge_cross`. The eval-lab output is AI-assisted review
 evidence only; it is not final acceptance truth or write authorization.
 
+Use the `*-batch` commands to accelerate sample collection before making an
+extraction decision. The batch exporter pages real local media metadata through
+the same `/ai/site-helpers` route, keeps each request capped at 10 items, and
+aggregates a local `media_alt_caption_operator_trial.v1` artifact for
+eval-lab. This is not a product batch workflow and does not create a queue,
+Cloud run, Core proposal, execution, or media metadata write.
+
 ## Boundary Checked
 
 - real image attachments only; no generated fixture media;
@@ -42,6 +51,7 @@ evidence only; it is not final acceptance truth or write authorization.
 - no execution creation;
 - no media derivative run;
 - every selected item requires human visual review;
+- batch eval keeps `MEDIA_ALT_CAPTION_PAGE_SIZE` capped at 10 per request;
 - attachment title, caption, description, ALT, attached file, metadata hash,
   URL, and modified timestamp remain unchanged.
 
@@ -138,6 +148,12 @@ evidence, but it is still too small for extraction approval and one
 metadata-thin item still required editing. The next useful evidence is real
 operator review quality: accepted, edited, rejected, and misleading suggestion
 counts for selected items.
+
+For faster evidence collection, first run the batch exporter with the default
+50-attachment sample and review the selected case count. If local media density
+is still low, raise `MEDIA_ALT_CAPTION_SAMPLE_LIMIT` without raising
+`MEDIA_ALT_CAPTION_PAGE_SIZE`; the latter preserves the current product route
+contract.
 
 Keep the current implementation in Toolbox until at least one real operator
 review records those outcome counts and confirms the artifact is useful outside
