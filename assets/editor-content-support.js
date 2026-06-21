@@ -512,6 +512,112 @@
 		return '';
 	}
 
+	function collectProposalIds(value, ids, depth) {
+		ids = ids || [];
+		if (!value || depth > 6 || typeof value !== 'object') {
+			return ids;
+		}
+		const proposalId = extractProposalId(value, depth);
+		if (proposalId && ids.indexOf(proposalId) < 0) {
+			ids.push(proposalId);
+		}
+		if (Array.isArray(value)) {
+			value.forEach((item) => collectProposalIds(item, ids, depth + 1));
+			return ids;
+		}
+		Object.keys(value).forEach((key) => collectProposalIds(value[key], ids, depth + 1));
+		return ids;
+	}
+
+	function firstAbilityId(value, depth) {
+		if (!value || depth > 6 || typeof value !== 'object') {
+			return '';
+		}
+		if (Array.isArray(value)) {
+			for (let index = 0; index < value.length; index += 1) {
+				const abilityId = firstAbilityId(value[index], depth + 1);
+				if (abilityId) {
+					return abilityId;
+				}
+			}
+			return '';
+		}
+		if (value.ability_id || value.target_ability_id) {
+			return String(value.ability_id || value.target_ability_id);
+		}
+		const keys = Object.keys(value);
+		for (let index = 0; index < keys.length; index += 1) {
+			const abilityId = firstAbilityId(value[keys[index]], depth + 1);
+			if (abilityId) {
+				return abilityId;
+			}
+		}
+		return '';
+	}
+
+	function coreHandoffProposalUrl(proposalId) {
+		if (!proposalId || !config.coreAdminUrl) {
+			return '';
+		}
+		return config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId);
+	}
+
+	function coreHandoffReceipt(payload, options) {
+		options = options || {};
+		const proposalIds = collectProposalIds(payload, [], 0);
+		const proposalId = options.proposal_id || options.proposalId || extractProposalId(payload, 0) || (proposalIds.length ? proposalIds[0] : '');
+		if (proposalId && proposalIds.indexOf(proposalId) < 0) {
+			proposalIds.unshift(proposalId);
+		}
+		return {
+			contract_version: 'toolbox_core_handoff_receipt.v1',
+			receipt_owner: 'wordpress_toolbox_local',
+			storage: 'ephemeral_response_only',
+			approval_owner: 'npcink-governance-core',
+			proposal_id: proposalId,
+			proposal_ids: proposalIds,
+			status: options.status || 'submitted',
+			target_ability_id: options.target_ability_id || options.targetAbilityId || firstAbilityId(payload, 0),
+			source_item_id: options.source_item_id || options.sourceItemId || '',
+			source_label: options.source_label || options.sourceLabel || '',
+			handoff_type: options.handoff_type || options.handoffType || '',
+			operator_next_action: options.operator_next_action || options.operatorNextAction || 'review_in_core',
+			core_url: coreHandoffProposalUrl(proposalId),
+			direct_wordpress_write: false,
+			canonical_truth: 'core_governance_record',
+		};
+	}
+
+	function renderCoreHandoffReceipt(receipt) {
+		if (!receipt || typeof receipt !== 'object') {
+			return null;
+		}
+		const items = [
+			{ name: __('Receipt', 'npcink-toolbox'), value: receipt.contract_version, status: receipt.receipt_owner },
+			{ name: __('Core proposal', 'npcink-toolbox'), value: receipt.proposal_id, status: receipt.status },
+			{ name: __('Target ability', 'npcink-toolbox'), value: receipt.target_ability_id, status: 'core_governance_record' },
+			{ name: __('Source item', 'npcink-toolbox'), value: receipt.source_item_id || receipt.source_label, status: receipt.handoff_type },
+			{ name: __('Next action', 'npcink-toolbox'), value: receipt.operator_next_action, status: receipt.storage },
+		];
+		return createElement(
+			'div',
+			{ className: 'npcink-toolbox-editor-support__handoff-receipt' },
+			createElement('h4', null, __('Core handoff receipt', 'npcink-toolbox')),
+			renderItems(items, __('No Core handoff receipt returned.', 'npcink-toolbox')),
+			receipt.core_url ? createElement(
+				'a',
+				{
+					className: 'npcink-toolbox-editor-support__core-record-link',
+					href: receipt.core_url,
+					target: '_blank',
+					rel: 'noreferrer',
+				},
+				__('Open in Core review', 'npcink-toolbox')
+			) : null,
+			createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, __('Toolbox keeps this as an ephemeral local receipt. Core remains the canonical approval, preflight, execution, and audit record.', 'npcink-toolbox'))
+		);
+	}
+
 	function metadataTermId(item) {
 		return parseInt(item && (item.term_id || item.id) ? (item.term_id || item.id) : 0, 10) || 0;
 	}
@@ -4776,7 +4882,8 @@
 					Notice,
 					{ status: 'success', isDismissible: false },
 					controls.result.message || __('Core proposal created. Review it in Governance Core before execution.', 'npcink-toolbox')
-				) : null
+				) : null,
+				controls.result && controls.result.handoff_receipt ? renderCoreHandoffReceipt(controls.result.handoff_receipt) : null
 			)
 		);
 	}
@@ -4864,6 +4971,7 @@
 						{ status: controls.result.execution_error ? 'warning' : 'success', isDismissible: false },
 						controls.result.message || __('SEO optimization applied and recorded.', 'npcink-toolbox')
 					) : null,
+					controls.result && controls.result.handoff_receipt ? renderCoreHandoffReceipt(controls.result.handoff_receipt) : null,
 					controls.result ? renderItems(
 						seoApplyResultItems(controls.result),
 						__('No SEO application details returned.', 'npcink-toolbox')
@@ -6355,10 +6463,19 @@
 				if (topLevelProposalId && proposalIds.indexOf(topLevelProposalId) < 0) {
 					proposalIds.push(topLevelProposalId);
 				}
+				const handoffReceipt = coreHandoffReceipt(bridge, {
+					proposal_id: proposalIds.length ? proposalIds[0] : topLevelProposalId,
+					handoff_type: 'content_metadata_delta_handoff',
+					source_item_id: 'summary_terms_optimization',
+					source_label: 'Content Metadata Delta',
+					target_ability_id: firstAbilityId(plan, 0) || 'npcink-abilities-toolkit/build-content-metadata-apply-plan',
+					operator_next_action: 'review_in_core',
+				});
 				setMetadataHandoffResult({
 					plan,
 					bridge,
 					proposal_ids: proposalIds,
+					handoff_receipt: handoffReceipt,
 					message: proposalIds.length
 						? __('Created Core review proposal(s): ', 'npcink-toolbox') + proposalIds.join(', ')
 						: __('Created Core review proposal(s). Review them in Governance Core before execution.', 'npcink-toolbox'),
@@ -6385,10 +6502,19 @@
 			try {
 				const bridge = await postSeoMetaProposalToAdapter(section, { commitExecution: true });
 				const proposalId = extractProposalId(bridge, 0);
+				const handoffReceipt = coreHandoffReceipt(bridge, {
+					proposal_id: proposalId,
+					handoff_type: 'seo_meta_handoff_preview',
+					source_item_id: 'seo_handoff',
+					source_label: 'SEO handoff',
+					target_ability_id: payload.ability_id,
+					operator_next_action: 'review_in_core',
+				});
 				if (!proposalId) {
 					setSeoHandoffResult({
 						bridge,
 						proposal_id: '',
+						handoff_receipt: handoffReceipt,
 						message: __('SEO optimization was submitted for Core review, but automatic application could not start.', 'npcink-toolbox'),
 					});
 					return;
@@ -6399,6 +6525,7 @@
 						bridge,
 						proposal_id: proposalId,
 						execution,
+						handoff_receipt: Object.assign({}, handoffReceipt, { status: 'executed', operator_next_action: 'review_execution_result' }),
 						message: __('SEO optimization applied and recorded.', 'npcink-toolbox'),
 					});
 				} catch (executionError) {
@@ -6406,6 +6533,7 @@
 						bridge,
 						proposal_id: proposalId,
 						execution_error: executionError,
+						handoff_receipt: Object.assign({}, handoffReceipt, { status: 'pending_review', operator_next_action: 'review_in_core' }),
 						message: __('SEO optimization was submitted for Core review, but automatic application was blocked: ', 'npcink-toolbox') + (executionError && executionError.message ? executionError.message : __('review in Core before execution.', 'npcink-toolbox')),
 					});
 				}

@@ -110,6 +110,30 @@ Acceptance for that slice:
   registry, media registry, or Cloud control plane is introduced;
 - existing smoke gates above continue to pass.
 
+## Receipt Loop Slice - 2026-06-21
+
+Implemented in Toolbox as an operator-facing local receipt, not a governance
+record:
+
+- receipt contract: `toolbox_core_handoff_receipt.v1`;
+- receipt owner: `wordpress_toolbox_local`;
+- storage posture: `ephemeral_response_only`;
+- canonical truth: Core governance proposal, approval, preflight, execution,
+  and audit records;
+- visible fields: Core proposal id, status, target ability id, source review
+  item, next operator action, and Core review link when available.
+
+Covered surfaces:
+
+- Morning Brief selected review-item Core handoff;
+- Morning Brief completed draft proposal handoff;
+- Site Knowledge review proposal handoff;
+- Editor Content Support metadata Core review handoff;
+- Editor Content Support SEO handoff and Core execution fallback.
+
+This slice intentionally does not introduce a Toolbox queue, proposal store,
+approval store, workflow runtime, scheduler, or direct WordPress write path.
+
 ## Stop Conditions
 
 Stop and write a boundary note before implementing any of these:

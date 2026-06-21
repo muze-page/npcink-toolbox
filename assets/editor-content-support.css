@@ -2163,6 +2163,20 @@
 	color: #3858e9;
 }
 
+.npcink-toolbox-editor-support__handoff-receipt {
+	display: grid;
+	gap: 8px;
+	padding: 10px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+}
+
+.npcink-toolbox-editor-support__handoff-receipt h4,
+.npcink-toolbox-editor-support__handoff-receipt p {
+	margin: 0;
+}
+
 .npcink-toolbox-editor-support__empty {
 	display: grid;
 	gap: 4px;

@@ -1105,6 +1105,12 @@
 				title: 'Site Knowledge review proposal submitted',
 				summary: 'Core created a blocked review proposal from Site Knowledge evidence. Human title and content input are required before approval, preflight, or execution can proceed.',
 				rawTitle: 'Core Site Knowledge review response',
+				receiptContext: {
+					handoffType: 'site_knowledge_review_plan',
+					sourceItemId: 'site_knowledge_agent_handoff',
+					sourceLabel: 'Site Knowledge review evidence',
+					targetAbilityId: 'npcink-abilities-toolkit/create-draft',
+				},
 			});
 		} catch (error) {
 			renderErrorResult(form, error, 'Could not submit the Site Knowledge review proposal.');
@@ -3217,6 +3223,114 @@
 		], '');
 	}
 
+	function collectCoreHandoffProposalIds(value, ids, depth) {
+		ids = ids || [];
+		if (!value || depth > 6 || typeof value !== 'object') {
+			return ids;
+		}
+		const proposalId = proposalIdFromResponse(value);
+		if (proposalId && ids.indexOf(proposalId) < 0) {
+			ids.push(proposalId);
+		}
+		if (Array.isArray(value)) {
+			value.forEach((item) => collectCoreHandoffProposalIds(item, ids, depth + 1));
+			return ids;
+		}
+		Object.keys(value).forEach((key) => {
+			collectCoreHandoffProposalIds(value[key], ids, depth + 1);
+		});
+		return ids;
+	}
+
+	function firstCoreHandoffAbilityId(value, depth) {
+		if (!value || depth > 6 || typeof value !== 'object') {
+			return '';
+		}
+		if (Array.isArray(value)) {
+			for (let index = 0; index < value.length; index += 1) {
+				const abilityId = firstCoreHandoffAbilityId(value[index], depth + 1);
+				if (abilityId) {
+					return abilityId;
+				}
+			}
+			return '';
+		}
+		if (value.ability_id || value.target_ability_id) {
+			return String(value.ability_id || value.target_ability_id);
+		}
+		const keys = Object.keys(value);
+		for (let index = 0; index < keys.length; index += 1) {
+			const abilityId = firstCoreHandoffAbilityId(value[keys[index]], depth + 1);
+			if (abilityId) {
+				return abilityId;
+			}
+		}
+		return '';
+	}
+
+	function coreHandoffProposalUrl(proposalId) {
+		if (!proposalId || !config.coreAdminUrl) {
+			return '';
+		}
+		return config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId);
+	}
+
+	function coreHandoffReceipt(payload, options) {
+		options = options || {};
+		const proposal = asObject(options.proposal || proposalFromPlanResponse(payload));
+		const proposalIds = collectCoreHandoffProposalIds(payload || proposal, [], 0);
+		const proposalId = firstFilled([
+			options.proposalId,
+			options.proposal_id,
+			proposalIdFromResponse(proposal),
+			proposalIds.length ? proposalIds[0] : '',
+		], '');
+		if (proposalId && proposalIds.indexOf(proposalId) < 0) {
+			proposalIds.unshift(proposalId);
+		}
+		return {
+			contract_version: 'toolbox_core_handoff_receipt.v1',
+			receipt_owner: 'wordpress_toolbox_local',
+			storage: 'ephemeral_response_only',
+			approval_owner: 'npcink-governance-core',
+			proposal_id: proposalId,
+			proposal_ids: proposalIds,
+			status: firstFilled([options.status, proposal.status, proposal.proposal_status], 'submitted'),
+			target_ability_id: firstFilled([options.targetAbilityId, options.target_ability_id, proposal.ability_id, firstCoreHandoffAbilityId(payload, 0)], ''),
+			source_item_id: firstFilled([options.sourceItemId, options.source_item_id], ''),
+			source_label: firstFilled([options.sourceLabel, options.source_label], ''),
+			handoff_type: firstFilled([options.handoffType, options.handoff_type], ''),
+			operator_next_action: firstFilled([options.operatorNextAction, options.operator_next_action], 'review_in_core'),
+			core_url: coreHandoffProposalUrl(proposalId),
+			direct_wordpress_write: false,
+			canonical_truth: 'core_governance_record',
+		};
+	}
+
+	function renderCoreHandoffReceipt(receipt) {
+		if (!receipt || typeof receipt !== 'object') {
+			return null;
+		}
+		const section = el('div', 'npcink-toolbox__handoff-receipt');
+		section.appendChild(el('h4', '', 'Core handoff receipt'));
+		const meta = el('div', 'npcink-toolbox__result-meta');
+		appendMeta(meta, 'Receipt', receipt.contract_version);
+		appendMeta(meta, 'Proposal', receipt.proposal_id);
+		appendMeta(meta, 'Status', receipt.status ? formatLabel(receipt.status) : '');
+		appendMeta(meta, 'Ability', receipt.target_ability_id);
+		appendMeta(meta, 'Source item', receipt.source_item_id || receipt.source_label);
+		appendMeta(meta, 'Next action', receipt.operator_next_action ? formatLabel(receipt.operator_next_action) : '');
+		appendMeta(meta, 'Storage', receipt.storage);
+		section.appendChild(meta);
+		if (receipt.core_url) {
+			const actions = el('div', 'npcink-toolbox__result-actions');
+			actions.appendChild(createLink(receipt.core_url, 'Open in Core review'));
+			section.appendChild(actions);
+		}
+		section.appendChild(el('p', '', 'Toolbox keeps this as an ephemeral local receipt. Core remains the canonical approval, preflight, execution, and audit record.'));
+		return section;
+	}
+
 	function mediaBatchResultStatus(state) {
 		if (state && state.batchExecutionError) {
 			return 'execution_failed';
@@ -3639,7 +3753,11 @@
 
 	function renderProposalCreated(form, proposal, options) {
 		options = options || {};
-		const proposalId = proposal && proposal.proposal_id ? proposal.proposal_id : '';
+		const proposalId = proposalIdFromResponse(proposal);
+		const receipt = options.receipt || coreHandoffReceipt(proposal, Object.assign({}, options.receiptContext || {}, {
+			proposal,
+			proposalId,
+		}));
 		const result = renderShell(
 			form,
 			{ provider: 'core governance' },
@@ -3659,6 +3777,10 @@
 			const actions = el('div', 'npcink-toolbox__result-actions');
 			actions.appendChild(createLink(config.coreAdminUrl + '&proposal_id=' + encodeURIComponent(proposalId), 'Open in Core review'));
 			result.appendChild(actions);
+		}
+		const receiptNode = renderCoreHandoffReceipt(receipt);
+		if (receiptNode) {
+			result.appendChild(receiptNode);
 		}
 		result.appendChild(createRawDetails(proposal, options.rawTitle || 'Core proposal'));
 	}
@@ -5111,7 +5233,13 @@
 			renderProposalCreated(root, proposalFromPlanResponse(bridge), {
 				title: 'Nightly Inspection review proposal submitted',
 				summary: 'Core created a blocked review proposal from selected Morning Brief evidence. Human title and content input are required before approval, preflight, or execution can proceed.',
-				rawTitle: 'Core Nightly Inspection review response'
+				rawTitle: 'Core Nightly Inspection review response',
+				receiptContext: {
+					handoffType: 'nightly_inspection_review_plan',
+					sourceItemId: 'morning_brief_selected_review_items',
+					sourceLabel: 'Morning Brief selected review items',
+					targetAbilityId: 'npcink-abilities-toolkit/create-draft',
+				},
 			});
 		} catch (error) {
 			statusNode.className = 'npcink-toolbox__result-notice is-error';
@@ -5162,7 +5290,13 @@
 			renderProposalCreated(root, proposalFromPlanResponse(proposal), {
 				title: 'Nightly Inspection draft proposal submitted',
 				summary: 'Core created a complete draft proposal from selected Morning Brief evidence. Review, approval, preflight, and execution remain in Core/Adapter.',
-				rawTitle: 'Core Nightly Inspection completed draft response'
+				rawTitle: 'Core Nightly Inspection completed draft response',
+				receiptContext: {
+					handoffType: 'nightly_inspection_completed_draft',
+					sourceItemId: 'morning_brief_completed_draft',
+					sourceLabel: 'Morning Brief completed draft',
+					targetAbilityId: 'npcink-abilities-toolkit/create-draft',
+				},
 			});
 		} catch (error) {
 			statusNode.className = 'npcink-toolbox__result-notice is-error';

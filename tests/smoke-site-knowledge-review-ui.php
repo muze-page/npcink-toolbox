@@ -54,6 +54,16 @@ npcink_toolbox_sk_review_smoke_assert(
 );
 
 npcink_toolbox_sk_review_smoke_assert(
+	false !== strpos( $admin_js, 'toolbox_core_handoff_receipt.v1' )
+	&& false !== strpos( $admin_js, 'wordpress_toolbox_local' )
+	&& false !== strpos( $admin_js, 'ephemeral_response_only' )
+	&& false !== strpos( $admin_js, "handoffType: 'site_knowledge_review_plan'" )
+	&& false !== strpos( $admin_js, "sourceItemId: 'site_knowledge_agent_handoff'" )
+	&& false !== strpos( $admin_js, 'Core remains the canonical approval, preflight, execution, and audit record.' ),
+	'Admin UI renders a local Site Knowledge Core handoff receipt without claiming canonical governance storage.'
+);
+
+npcink_toolbox_sk_review_smoke_assert(
 	false !== strpos( $admin_js, "submitButton.setAttribute('data-toolbox-site-knowledge-review-submit', 'true')" )
 	&& false !== strpos( $admin_js, "submitButton.addEventListener('click', () => submitSiteKnowledgeReviewProposal(container, handoff, submitButton))" ),
 	'Admin UI submits Site Knowledge review only from the explicit operator button.'
