@@ -2,12 +2,14 @@
 .github
 .env*
 .distignore
+.gitignore
 AGENTS.md
 README.md
 composer.json
 composer.lock
 docs
 tests
+scripts
 dev
 vendor
 node_modules

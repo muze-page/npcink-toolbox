@@ -432,8 +432,10 @@ foreach ( array( '4d16755', 'operator_review_only_no_insert', 'direct_wordpress_
 }
 
 $composer = file_get_contents( $root . '/composer.json' );
+$distignore = file_get_contents( $root . '/.distignore' );
 $site_knowledge_bridge_smoke = file_get_contents( $root . '/scripts/smoke-site-knowledge-cloud-addon-bridge.sh' );
 toolbox_assert( false !== $composer && false !== strpos( $composer, '"test:quiet": "php tests/run.php --quiet"' ) && false !== strpos( $composer, '"test:editor": "php tests/run.php --quiet --filter=Editor"' ) && false !== strpos( $composer, '"test:translations": "php tests/run.php --quiet --filter=translation"' ) && false !== strpos( $composer, '"test:eval-proxy": "php tests/run.php --quiet --filter=\'Eval lab proxy\'"' ), 'Composer exposes focused static contract test shortcuts.' );
+toolbox_assert( false !== $distignore && false !== strpos( $distignore, "\n.gitignore\n" ) && false !== strpos( $distignore, "\nscripts\n" ) && false !== strpos( $distignore, "\ntests\n" ) && false !== strpos( $distignore, "\ndocs\n" ), 'Release package excludes hidden files, development scripts, tests, and docs.' );
 toolbox_assert( false !== strpos( $composer, '"test:progressive-recommendations": "php tests/progressive-recommendations-behavior.php"' ) && false !== strpos( $composer, '@test:progressive-recommendations' ), 'Composer runs progressive recommendation behavior checks in the default test gate.' );
 toolbox_assert( false !== strpos( $composer, '"test:editor-progressive-js": "php tests/smoke-editor-progressive-js-contract.php"' ) && false !== strpos( $composer, '@test:editor-progressive-js' ), 'Composer runs the editor progressive JavaScript contract in the default test gate.' );
 toolbox_assert( false !== strpos( file_get_contents( __FILE__ ), '--filter=' ) && false !== strpos( file_get_contents( __FILE__ ), '--quiet' ) && false !== strpos( file_get_contents( __FILE__ ), 'No static contract checks matched filter' ), 'Static contract runner supports quiet output, focused filters, and empty-filter failure.' );
