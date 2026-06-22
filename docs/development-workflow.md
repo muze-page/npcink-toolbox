@@ -559,7 +559,10 @@ Cloud-owned or host-owned visual evidence only. It is not a local vision model,
 not a queue/runtime, not a Core proposal, and not write authorization. A returned
 `image_context_evidence.v1` packet can improve candidate basis, but selected
 items still require human visual confirmation and unchanged media metadata
-snapshots.
+snapshots. When the Cloud Addon exposes `request_image_context_evidence()`,
+Toolbox may call that named helper once and rebuild the local review set with
+the returned evidence; helper absence or Cloud failure must fall back to the
+visible request packet without blocking the metadata-only review flow.
 
 ## Coding Rules
 

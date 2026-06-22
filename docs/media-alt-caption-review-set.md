@@ -71,11 +71,15 @@ runtime. Toolbox does not run a local vision model, persist provider keys,
 create a queue, create a Core proposal, or write media metadata from this
 request. In short: no local vision model and no local write path.
 
-If a host runtime returns `image_context_evidence.v1`, Toolbox may use the
-returned visual summary, scene, objects, or visible text as additional candidate
-basis. The resulting suggestions still remain review-only. The evidence is not
-treated as final truth; every selected item still requires human visual
-confirmation against the real image.
+If the Cloud Addon exposes `request_image_context_evidence()`, Toolbox may call
+that named helper once for the bounded request and rebuild the local review set
+with the returned `image_context_evidence.v1`. If the helper is missing or
+Cloud returns an error, Toolbox keeps the request packet visible and the local
+metadata-only flow still succeeds. The returned visual summary, scene, objects,
+or visible text may become additional candidate basis, but the resulting
+suggestions still remain review-only. The evidence is not treated as final
+truth; every selected item still requires human visual confirmation against the
+real image.
 
 ## Current P0 Behavior
 

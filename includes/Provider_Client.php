@@ -3644,6 +3644,12 @@ final class Provider_Client {
 		$media_alt_caption_review_set = 'media_alt_suggestions' === $intent
 			? $this->build_media_alt_caption_review_set( $media_snapshot, $review_set_limit, $image_context_evidence )
 			: array();
+		if ( 'media_alt_suggestions' === $intent && empty( $image_context_evidence ) ) {
+			$image_context_evidence = $this->maybe_request_media_alt_caption_image_context_evidence( $media_alt_caption_review_set );
+			if ( ! empty( $image_context_evidence ) ) {
+				$media_alt_caption_review_set = $this->build_media_alt_caption_review_set( $media_snapshot, $review_set_limit, $image_context_evidence );
+			}
+		}
 		$source           = array(
 			'focus'                  => wp_trim_words( $focus, 80, '' ),
 			'site_snapshot'          => 'content_snapshot_suggestions' === $intent ? $this->collect_hosted_ai_site_snapshot() : array(),
@@ -5307,6 +5313,33 @@ final class Provider_Client {
 				'blocked_direct_apply_reason' => 'Toolbox does not own media metadata writes.',
 			),
 		);
+	}
+
+	private function maybe_request_media_alt_caption_image_context_evidence( array $review_set ): array {
+		$request = is_array( $review_set['image_context_evidence_request'] ?? null ) ? $review_set['image_context_evidence_request'] : array();
+		$items   = is_array( $request['items'] ?? null ) ? $request['items'] : array();
+		if ( empty( $items ) ) {
+			return array();
+		}
+
+		$client = $this->cloud_runtime_client();
+		if ( ! is_object( $client ) || ! method_exists( $client, 'request_image_context_evidence' ) ) {
+			return array();
+		}
+
+		$result = $client->request_image_context_evidence(
+			$request,
+			$this->trace_id( 'image_context_evidence' ),
+			$this->trace_id( 'image_context_evidence_request' )
+		);
+		if ( is_wp_error( $result ) || ! is_array( $result ) ) {
+			return array();
+		}
+		if ( 'image_context_evidence.v1' !== (string) ( $result['contract_version'] ?? '' ) ) {
+			return array();
+		}
+
+		return $this->sanitize_payload( $result );
 	}
 
 	private function media_alt_caption_index_image_context_evidence( array $image_context_evidence ): array {
