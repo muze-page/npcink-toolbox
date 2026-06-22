@@ -526,7 +526,11 @@ then aggregates a local `media_alt_caption_operator_trial.v1` file for
 eval-lab. This is an eval-only accelerator; it does not raise the product UI
 cap, create a queue/runtime, call Cloud, create Core proposals, or write media
 metadata. Tune the sample size with `MEDIA_ALT_CAPTION_SAMPLE_LIMIT`, default
-50.
+50. Provider-backed eval-lab review can be resumed with
+`MEDIA_ALT_CAPTION_JUDGE_RESUME=1`; use `MEDIA_ALT_CAPTION_JUDGE_OFFSET` to
+split long runs and `MEDIA_ALT_CAPTION_CHECKPOINT_EVERY` to control how often
+the eval report is rewritten. The default checkpoint interval is 1 completed
+case so interrupted 36+ case runs do not have to restart from the beginning.
 
 ## Coding Rules
 

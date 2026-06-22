@@ -41,6 +41,12 @@ aggregates a local `media_alt_caption_operator_trial.v1` artifact for
 eval-lab. This is not a product batch workflow and does not create a queue,
 Cloud run, Core proposal, execution, or media metadata write.
 
+For long provider-backed evals, keep `MEDIA_ALT_CAPTION_JUDGE_RESUME=1` and
+`MEDIA_ALT_CAPTION_CHECKPOINT_EVERY=1`. If a 36+ case run is interrupted,
+rerun the same command and eval-lab will skip completed matching cases from the
+same input fingerprint. Use `MEDIA_ALT_CAPTION_JUDGE_OFFSET` only when you
+intentionally split a run into smaller windows.
+
 ## Boundary Checked
 
 - real image attachments only; no generated fixture media;
