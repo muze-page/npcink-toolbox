@@ -42,10 +42,16 @@ eval-lab. This is not a product batch workflow and does not create a queue,
 Cloud run, Core proposal, execution, or media metadata write.
 
 For long provider-backed evals, keep `MEDIA_ALT_CAPTION_JUDGE_RESUME=1` and
-`MEDIA_ALT_CAPTION_CHECKPOINT_EVERY=1`. If a 36+ case run is interrupted,
-rerun the same command and eval-lab will skip completed matching cases from the
-same input fingerprint. Use `MEDIA_ALT_CAPTION_JUDGE_OFFSET` only when you
-intentionally split a run into smaller windows.
+`MEDIA_ALT_CAPTION_CHECKPOINT_EVERY=1`. The batch judge command reuses an
+existing `build/eval/media-alt-caption-batch-cases.json` file by default so
+the input fingerprint remains stable across retries; set
+`MEDIA_ALT_CAPTION_FORCE_EXPORT=1` only when the sampled cases should be
+refreshed. If a 36+ case run is interrupted, rerun the same command and
+eval-lab will skip completed matching cases from the same input fingerprint.
+Use `MEDIA_ALT_CAPTION_JUDGE_OFFSET` only when you intentionally split a run
+into smaller windows. Use `MEDIA_ALT_CAPTION_JUDGE_OUTPUT_JSON`,
+`MEDIA_ALT_CAPTION_JUDGE_OUTPUT_MD`, and `MEDIA_ALT_CAPTION_JUDGE_OUTPUT_CSV`
+when a full run should write to dedicated report paths.
 
 ## Boundary Checked
 
@@ -121,46 +127,113 @@ Cross-judge result:
 | --- | --- |
 | Input contract | `media_alt_caption_operator_trial.v1` |
 | Output contract | `media_alt_caption_ai_judge_cross.v1` |
-| Cases reviewed | 2 |
-| Accepted | 1 |
-| Edited | 1 |
-| Rejected | 0 |
-| Misleading | 0 |
+| Cases reviewed | 36 |
+| Requested/completed | `36/36` |
+| Source fingerprint | `1215c016ca060e7f4fc6b75965d7806e2623eef1` |
+| Accepted | 5 |
+| Edited | 3 |
+| Rejected | 27 |
+| Misleading | 1 |
+| Partial | `false` |
+
+Profile reliability:
+
+| Profile | Successful judgments | Provider failures |
+| --- | ---: | ---: |
+| `gpt55` | 36 | 0 |
+| `grok43` | 24 | 12 |
+| `deepseek` | 36 | 0 |
+
+Top flags:
+
+| Flag | Cases |
+| --- | ---: |
+| `needs_human_visual_check` | 36 |
+| `caption_redundant` | 32 |
+| `too_generic` | 32 |
+| `metadata_insufficient` | 29 |
+| `filename_like` | 24 |
+| `provider_error` | 12 |
+| `unsupported_visual_claim` | 2 |
 
 Attachment-level result:
 
 | Attachment | Outcome | Average score | Passes | Flags |
 | ---: | --- | ---: | ---: | --- |
-| `8053` | `edited` | `0.567` | `0/3` | `too_generic`, `caption_redundant`, `needs_human_visual_check` |
-| `7774` | `accepted` | `0.867` | `3/3` | `needs_human_visual_check` |
+| `8053` | `accepted` | `0.640` | `1/3` | `caption_redundant`, `too_generic`, `needs_human_visual_check`, `metadata_insufficient` |
+| `7774` | `accepted` | `0.577` | `2/3` | `needs_human_visual_check`, `provider_error` |
+| `7598` | `edited` | `0.440` | `0/3` | `too_generic`, `caption_redundant`, `needs_human_visual_check`, `provider_error`, `unsupported_visual_claim` |
+| `6242` | `rejected` | `0.117` | `0/3` | `too_generic`, `filename_like`, `caption_redundant`, `needs_human_visual_check`, `provider_error` |
+| `6241` | `rejected` | `0.117` | `0/3` | `filename_like`, `too_generic`, `caption_redundant`, `metadata_insufficient`, `needs_human_visual_check`, `provider_error` |
+| `6240` | `rejected` | `0.133` | `0/3` | `metadata_insufficient`, `too_generic`, `filename_like`, `caption_redundant`, `needs_human_visual_check`, `provider_error` |
+| `6239` | `rejected` | `0.100` | `0/3` | `too_generic`, `filename_like`, `caption_redundant`, `metadata_insufficient`, `needs_human_visual_check`, `provider_error` |
+| `1377` | `rejected` | `0.150` | `0/3` | `too_generic`, `caption_redundant`, `metadata_insufficient`, `needs_human_visual_check`, `provider_error` |
+| `6238` | `rejected` | `0.100` | `0/3` | `metadata_insufficient`, `filename_like`, `too_generic`, `caption_redundant`, `needs_human_visual_check`, `provider_error` |
+| `6237` | `rejected` | `0.100` | `0/3` | `filename_like`, `too_generic`, `caption_redundant`, `metadata_insufficient`, `needs_human_visual_check`, `provider_error` |
+| `6236` | `rejected` | `0.117` | `0/3` | `metadata_insufficient`, `too_generic`, `filename_like`, `caption_redundant`, `needs_human_visual_check`, `provider_error` |
+| `5175` | `rejected` | `0.117` | `0/3` | `metadata_insufficient`, `too_generic`, `filename_like`, `caption_redundant`, `needs_human_visual_check`, `provider_error` |
+| `4874` | `accepted` | `0.807` | `2/3` | `metadata_insufficient`, `caption_redundant`, `needs_human_visual_check` |
+| `1493` | `rejected` | `0.423` | `0/3` | `too_generic`, `caption_redundant`, `needs_human_visual_check`, `metadata_insufficient` |
+| `1692` | `rejected` | `0.267` | `0/3` | `metadata_insufficient`, `too_generic`, `filename_like`, `needs_human_visual_check` |
+| `1691` | `rejected` | `0.133` | `0/3` | `filename_like`, `too_generic`, `metadata_insufficient`, `needs_human_visual_check` |
+| `1687` | `rejected` | `0.150` | `0/3` | `filename_like`, `too_generic`, `caption_redundant`, `needs_human_visual_check`, `metadata_insufficient` |
+| `1686` | `rejected` | `0.117` | `0/3` | `filename_like`, `too_generic`, `caption_redundant`, `metadata_insufficient`, `needs_human_visual_check` |
+| `1628` | `accepted` | `0.533` | `1/3` | `filename_like`, `caption_redundant`, `too_generic`, `needs_human_visual_check`, `metadata_insufficient` |
+| `1027` | `misleading` | `0.250` | `0/3` | `unsupported_visual_claim`, `caption_redundant`, `too_generic`, `filename_like`, `needs_human_visual_check`, `metadata_insufficient` |
+| `1022` | `rejected` | `0.200` | `0/3` | `too_generic`, `filename_like`, `caption_redundant`, `metadata_insufficient`, `needs_human_visual_check` |
+| `1045` | `rejected` | `0.167` | `0/3` | `too_generic`, `metadata_insufficient`, `needs_human_visual_check` |
+| `1029` | `rejected` | `0.200` | `0/3` | `too_generic`, `filename_like`, `caption_redundant`, `metadata_insufficient`, `needs_human_visual_check` |
+| `967` | `rejected` | `0.200` | `0/3` | `too_generic`, `filename_like`, `caption_redundant`, `needs_human_visual_check`, `metadata_insufficient` |
+| `1025` | `rejected` | `0.217` | `0/3` | `too_generic`, `filename_like`, `caption_redundant`, `needs_human_visual_check` |
+| `968` | `rejected` | `0.200` | `0/3` | `too_generic`, `filename_like`, `caption_redundant`, `needs_human_visual_check`, `metadata_insufficient` |
+| `1023` | `rejected` | `0.250` | `0/3` | `caption_redundant`, `filename_like`, `too_generic`, `needs_human_visual_check` |
+| `827` | `rejected` | `0.133` | `0/3` | `too_generic`, `caption_redundant`, `metadata_insufficient`, `needs_human_visual_check`, `filename_like` |
+| `811` | `rejected` | `0.133` | `0/3` | `metadata_insufficient`, `filename_like`, `too_generic`, `caption_redundant`, `needs_human_visual_check` |
+| `807` | `rejected` | `0.133` | `0/3` | `filename_like`, `too_generic`, `caption_redundant`, `needs_human_visual_check`, `metadata_insufficient` |
+| `769` | `rejected` | `0.467` | `0/3` | `too_generic`, `caption_redundant`, `needs_human_visual_check`, `metadata_insufficient` |
+| `767` | `edited` | `0.827` | `2/3` | `caption_redundant`, `needs_human_visual_check` |
+| `766` | `edited` | `0.507` | `0/3` | `too_generic`, `caption_redundant`, `needs_human_visual_check`, `metadata_insufficient` |
+| `765` | `rejected` | `0.417` | `0/3` | `too_generic`, `caption_redundant`, `needs_human_visual_check`, `filename_like` |
+| `764` | `rejected` | `0.483` | `0/3` | `too_generic`, `caption_redundant`, `needs_human_visual_check`, `metadata_insufficient` |
 
 Interpretation:
 
-- The selected candidates did not trip direct write, proposal, execution, or
-  misleading-content boundaries.
-- Description-backed candidates can be specific enough to enter human visual
+- The selected candidates still did not create direct writes, proposals,
+  executions, or media derivative runs.
+- The 36-case run found one misleading case where generated text contradicted
+  existing title/file evidence (`Horizontal` versus `Vertical`), so the review
+  set must keep visual confirmation and conflict checks before any handoff.
+- Most rejected cases were not provider-quality failures alone: common issues
+  were duplicate captions, title/file-name reuse, metadata insufficiency, and
+  generic text that did not describe actual visual content.
+- `grok43` had 12 provider failures during the run; the result is still useful
+  because `gpt55` and `deepseek` completed all 36 cases, but this profile
+  should not be treated as a stable release gate until provider reliability is
+  improved.
+- The useful product direction is not direct application. It is a guarded
+  review queue that filters duplicate/file-name-like candidates, marks
+  conflict risk, and keeps every suggested ALT/caption behind human visual
   confirmation.
-- Metadata-thin candidates still need editing when they only restate title/ALT
-  language.
-- The next product step should keep every item on the human visual review path
-  and collect real operator accept/edit/reject outcomes.
 
 ## Follow-Up Decision
 
-Do not move code to `npcink-abilities-toolkit` from this single trial alone.
-The latest AI-assisted review improved to one `accepted` and one `edited`
-outcome after metadata-source selection was tightened. That is useful quality
-evidence, but it is still too small for extraction approval and one
-metadata-thin item still required editing. The next useful evidence is real
-operator review quality: accepted, edited, rejected, and misleading suggestion
-counts for selected items.
+Do not move the implementation to `npcink-abilities-toolkit` yet. The sample
+size is now sufficient to expose the shape of the problem, and the dominant
+problem is candidate quality rather than lack of volume: 28 of 36 cases were
+`rejected` or `misleading`.
 
-For faster evidence collection, first run the batch exporter with the default
-50-attachment sample and review the selected case count. If local media density
-is still low, raise `MEDIA_ALT_CAPTION_SAMPLE_LIMIT` without raising
-`MEDIA_ALT_CAPTION_PAGE_SIZE`; the latter preserves the current product route
-contract.
+Before any extraction approval, tighten the Toolbox candidate filter and rerun
+the same 36-case gate:
 
-Keep the current implementation in Toolbox until at least one real operator
-review records those outcome counts and confirms the artifact is useful outside
-the Toolbox screen.
+- block caption candidates that only duplicate existing title, ALT, or caption;
+- block ALT candidates that are URLs, source attribution, camera defaults, or
+  file-name-like strings;
+- mark metadata conflicts as `misleading_risk` before they reach the operator;
+- keep all accepted/edited candidates as `human_review_required=true`;
+- keep the artifact `suggestion_only` with Core handoff only after operator
+  review, never direct media metadata writes.
+
+The current implementation should stay in Toolbox as a product-surface review
+gate until a follow-up 36-case run shows materially lower rejected/misleading
+rates and a real operator review confirms accepted/edited candidates are useful
+outside the Toolbox screen.

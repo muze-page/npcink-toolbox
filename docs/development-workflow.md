@@ -526,11 +526,18 @@ then aggregates a local `media_alt_caption_operator_trial.v1` file for
 eval-lab. This is an eval-only accelerator; it does not raise the product UI
 cap, create a queue/runtime, call Cloud, create Core proposals, or write media
 metadata. Tune the sample size with `MEDIA_ALT_CAPTION_SAMPLE_LIMIT`, default
-50. Provider-backed eval-lab review can be resumed with
-`MEDIA_ALT_CAPTION_JUDGE_RESUME=1`; use `MEDIA_ALT_CAPTION_JUDGE_OFFSET` to
-split long runs and `MEDIA_ALT_CAPTION_CHECKPOINT_EVERY` to control how often
-the eval report is rewritten. The default checkpoint interval is 1 completed
-case so interrupted 36+ case runs do not have to restart from the beginning.
+50. `composer eval:media-alt-caption:judge-cross-batch` reuses the existing
+batch file by default so the eval-lab input fingerprint stays stable for
+resume; set `MEDIA_ALT_CAPTION_FORCE_EXPORT=1` only when you intentionally want
+to refresh the sampled cases. Provider-backed eval-lab review can be resumed
+with `MEDIA_ALT_CAPTION_JUDGE_RESUME=1`; use
+`MEDIA_ALT_CAPTION_JUDGE_OFFSET` to split long runs and
+`MEDIA_ALT_CAPTION_CHECKPOINT_EVERY` to control how often the eval report is
+rewritten. The default checkpoint interval is 1 completed case so interrupted
+36+ case runs do not have to restart from the beginning. Use
+`MEDIA_ALT_CAPTION_JUDGE_OUTPUT_JSON`, `MEDIA_ALT_CAPTION_JUDGE_OUTPUT_MD`, and
+`MEDIA_ALT_CAPTION_JUDGE_OUTPUT_CSV` when a long eval needs dedicated report
+paths instead of replacing the default generated report.
 
 ## Coding Rules
 
