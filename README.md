@@ -70,6 +70,7 @@ Project goals, ownership, and future-session instructions are documented in:
 - [Content Metadata Apply Plan Decision Envelope Closeout](docs/content-metadata-apply-plan-decision-envelope-closeout-2026-06-21.md)
 - [Site Knowledge Cloud Addon Bridge Closeout](docs/site-knowledge-cloud-addon-bridge-closeout-2026-06-21.md)
 - [Cross-Repo Release And Run Baseline](docs/cross-repo-release-run-baseline-2026-06-21.md)
+- [Toolbox 0.1.1 Stage Closeout](docs/toolbox-0.1.1-stage-closeout-2026-06-22.md)
 - [Content Support Writing Checkup History](docs/content-support-writing-checkup-history.md)
 - [Editor Progressive Recommendations Trial](docs/editor-progressive-recommendations-trial.md)
 - [Editor AI Image Recommendation Summary](docs/editor-ai-image-recommendation-summary.md)
