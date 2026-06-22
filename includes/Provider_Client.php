@@ -5188,6 +5188,22 @@ final class Provider_Client {
 				continue;
 			}
 
+			$candidate_quality = $this->media_alt_caption_candidate_quality( $item, $item_status );
+			if ( empty( $candidate_quality['alt_candidates'] ) && '' === (string) ( $candidate_quality['caption_candidate'] ?? '' ) ) {
+				$blocked[] = array(
+					'attachment_id'              => $attachment_id,
+					'status'                     => 'blocked',
+					'blocked_reason'             => 'candidate_quality_insufficient',
+					'current_alt_status'         => $item_status['current_alt_status'],
+					'current_caption_status'     => $item_status['current_caption_status'],
+					'review_reasons'             => $item_status['review_reasons'],
+					'candidate_quality_flags'    => $candidate_quality['candidate_quality_flags'],
+					'filtered_candidate_notes'   => $candidate_quality['filtered_candidate_notes'],
+					'operator_next_action'       => 'skip_until_better_metadata_or_visual_evidence',
+				);
+				continue;
+			}
+
 			if ( count( $selected ) >= $max_items ) {
 				$blocked[] = array(
 					'attachment_id'        => $attachment_id,
@@ -5211,9 +5227,11 @@ final class Provider_Client {
 					'filename'                 => sanitize_file_name( (string) ( $item['filename'] ?? '' ) ),
 					'thumbnail_url'            => esc_url_raw( (string) ( $item['thumbnail_url'] ?? '' ) ),
 					'url'                      => esc_url_raw( (string) ( $item['url'] ?? '' ) ),
-					'alt_candidates'           => $this->media_alt_caption_alt_candidates( $item ),
-					'caption_candidate'        => $this->media_alt_caption_caption_candidate( $item ),
-					'candidate_basis'          => $this->media_alt_caption_candidate_basis( $item ),
+					'alt_candidates'           => $candidate_quality['alt_candidates'],
+					'caption_candidate'        => $candidate_quality['caption_candidate'],
+					'candidate_basis'          => $candidate_quality['candidate_basis'],
+					'candidate_quality_flags'  => $candidate_quality['candidate_quality_flags'],
+					'filtered_candidate_notes' => $candidate_quality['filtered_candidate_notes'],
 					'needs_human_visual_check' => true,
 					'target_write_path'        => 'core_proposal_required',
 					'direct_wordpress_write'   => false,
@@ -5302,6 +5320,97 @@ final class Provider_Client {
 		);
 	}
 
+	private function media_alt_caption_candidate_quality( array $item, array $item_status ): array {
+		$flags   = array();
+		$notes   = array();
+		$basis   = array();
+		$alt_candidates = array();
+		$caption_candidate = '';
+
+		if ( 'present' !== (string) ( $item_status['current_alt_status'] ?? '' ) ) {
+			foreach ( array( 'description', 'caption', 'title', 'filename' ) as $field ) {
+				$value = 'filename' === $field
+					? $this->media_alt_caption_filename_descriptor( (string) ( $item['filename'] ?? '' ) )
+					: (string) ( $item[ $field ] ?? '' );
+				$candidate = $this->media_alt_caption_clean_candidate( $value );
+				if ( '' === $candidate ) {
+					continue;
+				}
+				$rejection = $this->media_alt_caption_candidate_rejection_reason( $candidate, $item, 'alt' );
+				if ( '' !== $rejection ) {
+					$flags[] = $rejection;
+					$notes[] = 'filtered_alt_' . $field . ':' . $rejection;
+					continue;
+				}
+				$alt_candidates[] = $this->trim_chars( $candidate, 140 );
+				$basis[]          = 'alt:' . $field;
+			}
+		}
+
+		if ( 'missing' === (string) ( $item_status['current_caption_status'] ?? '' ) ) {
+			foreach ( array( 'description', 'alt', 'title' ) as $field ) {
+				$candidate = $this->media_alt_caption_clean_candidate( (string) ( $item[ $field ] ?? '' ) );
+				if ( '' === $candidate ) {
+					continue;
+				}
+				$rejection = $this->media_alt_caption_candidate_rejection_reason( $candidate, $item, 'caption' );
+				if ( '' !== $rejection ) {
+					$flags[] = $rejection;
+					$notes[] = 'filtered_caption_' . $field . ':' . $rejection;
+					continue;
+				}
+				$caption_candidate = $this->trim_chars( $this->media_alt_caption_sentence( $candidate ), 180 );
+				$basis[]           = 'caption:' . $field;
+				break;
+			}
+		} else {
+			$flags[] = 'caption_redundant';
+			$notes[] = 'filtered_caption_existing:caption_redundant';
+		}
+
+		if ( empty( $alt_candidates ) && '' === $caption_candidate ) {
+			$flags[] = 'metadata_insufficient';
+		}
+
+		return array(
+			'alt_candidates'           => array_slice( array_values( array_unique( array_filter( $alt_candidates ) ) ), 0, 2 ),
+			'caption_candidate'        => $caption_candidate,
+			'candidate_basis'          => array_values( array_unique( $basis ) ),
+			'candidate_quality_flags'  => array_values( array_unique( array_filter( $flags ) ) ),
+			'filtered_candidate_notes' => array_values( array_unique( array_filter( $notes ) ) ),
+		);
+	}
+
+	private function media_alt_caption_candidate_rejection_reason( string $candidate, array $item, string $target_field ): string {
+		$candidate = $this->media_alt_caption_clean_candidate( $candidate );
+		if ( '' === $candidate ) {
+			return 'metadata_insufficient';
+		}
+		if ( $this->media_alt_caption_is_url_or_source_text( $candidate ) ) {
+			return 'source_attribution_or_url';
+		}
+		if ( $this->media_alt_caption_is_camera_default( $candidate ) ) {
+			return 'camera_default';
+		}
+		if ( $this->media_alt_caption_is_filename_like( $candidate, $item ) ) {
+			return 'filename_like';
+		}
+		if ( $this->media_alt_caption_is_duplicate_metadata( $candidate, $item, $target_field ) ) {
+			return 'caption' === $target_field ? 'caption_redundant' : 'metadata_duplicate';
+		}
+		if ( $this->media_alt_caption_is_too_generic_candidate( $candidate ) ) {
+			return 'too_generic';
+		}
+		if ( $this->media_alt_caption_has_metadata_conflict( $candidate, $item ) ) {
+			return 'metadata_conflict';
+		}
+		if ( $this->hosted_ai_text_length( $candidate ) < 18 ) {
+			return 'too_generic';
+		}
+
+		return '';
+	}
+
 	private function media_alt_caption_alt_candidates( array $item ): array {
 		$current_alt = $this->media_alt_caption_clean_candidate( (string) ( $item['alt'] ?? '' ) );
 		if ( '' !== $current_alt && $this->hosted_ai_text_length( $current_alt ) >= 18 && ! $this->media_alt_caption_is_filename_like( $current_alt, $item ) ) {
@@ -5375,6 +5484,108 @@ final class Provider_Client {
 		$value = preg_replace( '/\s+/u', ' ', $value ) ?? $value;
 
 		return trim( $value );
+	}
+
+	private function media_alt_caption_normalized_candidate( string $value ): string {
+		$value = strtolower( $this->media_alt_caption_clean_candidate( $value ) );
+		$value = preg_replace( '/https?:\/\/\S+/i', '', $value ) ?? $value;
+		$value = preg_replace( '/\.[a-z0-9]{2,5}\b/i', '', $value ) ?? $value;
+		$value = preg_replace( '/[^a-z0-9\x{4e00}-\x{9fff}]+/u', ' ', $value ) ?? $value;
+		$value = preg_replace( '/\s+/u', ' ', $value ) ?? $value;
+
+		return trim( $value );
+	}
+
+	private function media_alt_caption_is_duplicate_metadata( string $candidate, array $item, string $target_field ): bool {
+		$normalized = $this->media_alt_caption_normalized_candidate( $candidate );
+		if ( '' === $normalized ) {
+			return false;
+		}
+
+		$fields = 'caption' === $target_field
+			? array( 'title', 'alt', 'caption' )
+			: array( 'alt', 'title' );
+		foreach ( $fields as $field ) {
+			$source = $this->media_alt_caption_normalized_candidate( (string) ( $item[ $field ] ?? '' ) );
+			if ( '' !== $source && $normalized === $source ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private function media_alt_caption_is_url_or_source_text( string $value ): bool {
+		$value = trim( $value );
+		if ( preg_match( '/https?:\/\/|www\.|^\S+\.(com|net|org|cn|io|ai)(\/|$)/i', $value ) ) {
+			return true;
+		}
+
+		return (bool) preg_match( '/\b(source|credit|credits|photo by|photograph by|image source|via|unsplash|pexels|pixabay|getty|shutterstock|istock)\b/i', $value );
+	}
+
+	private function media_alt_caption_is_camera_default( string $value ): bool {
+		return (bool) preg_match( '/^(olympus digital camera|canon digital camera|nikon digital camera|dscn?\d+|img[_ -]?\d+|p\d{7}|sam_\d+|image[_ -]?\d+)$/i', trim( $value ) );
+	}
+
+	private function media_alt_caption_is_too_generic_candidate( string $value ): bool {
+		$normalized = $this->media_alt_caption_normalized_candidate( $value );
+		if ( '' === $normalized ) {
+			return true;
+		}
+		if ( $this->hosted_ai_text_length( $normalized ) < 18 ) {
+			return true;
+		}
+
+		$generic_patterns = array(
+			'/^(featured image|horizontal featured image|vertical featured image|hero image|image|photo|screenshot|visual|wallpaper)$/i',
+			'/^(add|write|review|provide|create)\s+(concise\s+)?(alt|caption|description)/i',
+			'/\b(add concise alt text|after visual review|needs visible context|image needs visible context)\b/i',
+			'/\b(click here|read more|learn more|take this)\b/i',
+			'/\blorem ipsum\b/i',
+		);
+		foreach ( $generic_patterns as $pattern ) {
+			if ( preg_match( $pattern, $value ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private function media_alt_caption_has_metadata_conflict( string $candidate, array $item ): bool {
+		$candidate = $this->media_alt_caption_normalized_candidate( $candidate );
+		$evidence  = $this->media_alt_caption_normalized_candidate(
+			implode(
+				' ',
+				array(
+					(string) ( $item['title'] ?? '' ),
+					(string) ( $item['alt'] ?? '' ),
+					(string) ( $item['caption'] ?? '' ),
+					(string) ( $item['description'] ?? '' ),
+					$this->media_alt_caption_filename_descriptor( (string) ( $item['filename'] ?? '' ) ),
+				)
+			)
+		);
+
+		if ( '' === $candidate || '' === $evidence ) {
+			return false;
+		}
+
+		$opposites = array(
+			array( 'horizontal', 'vertical' ),
+			array( 'portrait', 'landscape' ),
+		);
+		foreach ( $opposites as $pair ) {
+			if ( false !== strpos( $candidate, $pair[0] ) && false !== strpos( $evidence, $pair[1] ) ) {
+				return true;
+			}
+			if ( false !== strpos( $candidate, $pair[1] ) && false !== strpos( $evidence, $pair[0] ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private function media_alt_caption_sentence( string $value ): string {

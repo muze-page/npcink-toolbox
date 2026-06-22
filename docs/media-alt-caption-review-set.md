@@ -64,16 +64,26 @@ P0 selects image attachments when:
 - caption is missing;
 - title appears filename-like.
 
+Before an item becomes selected, Toolbox now applies a local candidate-quality
+gate. The gate removes ALT/caption candidates that only duplicate existing
+title, ALT, or caption text; look like URLs, source attribution, camera-default
+strings, or filenames; are generic placeholders; or conflict with supplied
+metadata such as horizontal/vertical wording. Items that need review but have
+no usable metadata-only candidate are blocked as
+`candidate_quality_insufficient` instead of showing low-value text to the
+operator.
+
 The response defaults to a small review set and caps local selection at 10
 items. Items outside the current selection, items with missing attachment ids,
-or items already complete for this P0 are reported as blocked items with a
-reason.
+items already complete for this P0, or items filtered by the candidate-quality
+gate are reported as blocked items with a reason.
 
 The admin UI renders the review set as:
 
 - eligibility and blocked counts;
 - source policy and contract version;
 - selected item rows with ALT candidates and caption candidate;
+- candidate quality flags and filtered-candidate notes for audit/debug review;
 - blocked item details;
 - an explicit "No media metadata was changed" notice.
 

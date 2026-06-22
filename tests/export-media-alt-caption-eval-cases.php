@@ -217,6 +217,8 @@ function toolbox_media_alt_batch_case_payload( array $selected, array $before ):
 				'current_caption_status'   => (string) ( $item['current_caption_status'] ?? '' ),
 				'review_reasons'           => array_values( array_map( 'strval', (array) ( $item['review_reasons'] ?? array() ) ) ),
 				'candidate_basis'          => array_values( array_map( 'strval', (array) ( $item['candidate_basis'] ?? array() ) ) ),
+				'candidate_quality_flags'  => array_values( array_map( 'strval', (array) ( $item['candidate_quality_flags'] ?? array() ) ) ),
+				'filtered_candidate_notes' => array_values( array_map( 'strval', (array) ( $item['filtered_candidate_notes'] ?? array() ) ) ),
 				'needs_human_visual_check' => (bool) ( $item['needs_human_visual_check'] ?? false ),
 				'direct_wordpress_write'   => (bool) ( $item['direct_wordpress_write'] ?? true ),
 				'target_write_path'        => (string) ( $item['target_write_path'] ?? '' ),

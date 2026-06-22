@@ -222,18 +222,89 @@ size is now sufficient to expose the shape of the problem, and the dominant
 problem is candidate quality rather than lack of volume: 28 of 36 cases were
 `rejected` or `misleading`.
 
-Before any extraction approval, tighten the Toolbox candidate filter and rerun
-the same 36-case gate:
+Before any extraction approval, the Toolbox candidate filter must stay tighter
+than the original 36-case run:
 
 - block caption candidates that only duplicate existing title, ALT, or caption;
 - block ALT candidates that are URLs, source attribution, camera defaults, or
   file-name-like strings;
-- mark metadata conflicts as `misleading_risk` before they reach the operator;
+- mark metadata conflicts before they reach the operator;
 - keep all accepted/edited candidates as `human_review_required=true`;
 - keep the artifact `suggestion_only` with Core handoff only after operator
   review, never direct media metadata writes.
+
+This filter is implemented as a local deterministic review-set gate. It emits
+`candidate_quality_flags` and `filtered_candidate_notes` and blocks items as
+`candidate_quality_insufficient` when metadata-only sources cannot produce a
+usable candidate. Rerun the batch export with
+`MEDIA_ALT_CAPTION_FORCE_EXPORT=1` before comparing follow-up eval results so
+the new filter is reflected in the input artifact.
 
 The current implementation should stay in Toolbox as a product-surface review
 gate until a follow-up 36-case run shows materially lower rejected/misleading
 rates and a real operator review confirms accepted/edited candidates are useful
 outside the Toolbox screen.
+
+## Candidate Filter Follow-Up
+
+Command result: pass.
+
+After tightening the local candidate-quality filter, the same local media
+library no longer had 36 usable metadata-only candidates. The batch exporter
+scanned 63 real image attachments, selected 11, and blocked 52. This is an
+expected result of the stricter gate: low-value candidates are removed before
+operator review rather than passed to eval-lab as weak suggestions.
+
+Filtered batch summary:
+
+| Metric | Result |
+| --- | --- |
+| Scanned image attachments | 63 |
+| Eligible items | 11 |
+| Selected items | 11 |
+| Blocked items | 52 |
+| Source fingerprint | `6f8c578d69d2cd3110773bba1a44cf2149b95150` |
+| Blocked as candidate-quality insufficient | 34 |
+| Blocked as metadata-complete for P0 | 18 |
+
+Filtered cross-judge result:
+
+| Metric | Result |
+| --- | --- |
+| Cases reviewed | 11 |
+| Accepted | 11 |
+| Edited | 0 |
+| Rejected | 0 |
+| Misleading | 0 |
+| Partial | `false` |
+| Provider failures | 0 |
+
+Filtered attachment-level result:
+
+| Attachment | Outcome | Average score | Passes | Flags |
+| ---: | --- | ---: | ---: | --- |
+| `7774` | `accepted` | `0.867` | `3/3` | `needs_human_visual_check` |
+| `769` | `accepted` | `0.640` | `1/3` | `metadata_insufficient`, `too_generic`, `caption_redundant`, `needs_human_visual_check`, `metadata_duplicate` |
+| `767` | `accepted` | `0.850` | `3/3` | `needs_human_visual_check`, `caption_redundant` |
+| `766` | `accepted` | `0.703` | `2/3` | `needs_human_visual_check`, `caption_redundant`, `metadata_duplicate` |
+| `765` | `accepted` | `0.810` | `2/3` | `needs_human_visual_check`, `caption_redundant`, `metadata_duplicate` |
+| `764` | `accepted` | `0.687` | `2/3` | `needs_human_visual_check`, `caption_redundant`, `metadata_duplicate`, `filename_like`, `metadata_insufficient` |
+| `761` | `accepted` | `0.727` | `2/3` | `needs_human_visual_check`, `caption_redundant`, `metadata_duplicate` |
+| `759` | `accepted` | `0.720` | `2/3` | `needs_human_visual_check`, `caption_redundant`, `metadata_duplicate` |
+| `758` | `accepted` | `0.787` | `2/3` | `needs_human_visual_check`, `caption_redundant`, `metadata_insufficient` |
+| `757` | `accepted` | `0.637` | `1/3` | `needs_human_visual_check`, `caption_redundant`, `metadata_duplicate`, `filename_like`, `metadata_insufficient` |
+| `754` | `accepted` | `0.787` | `2/3` | `needs_human_visual_check`, `caption_redundant`, `metadata_duplicate` |
+
+Interpretation:
+
+- The local filter eliminated the previous rejected/misleading eval outcomes in
+  this media library.
+- The cost is lower recall: the stricter metadata-only gate selected 11 useful
+  candidates instead of forcing 36 weaker candidates into review.
+- `caption_redundant` still appears because several accepted ALT candidates are
+  derived from existing captions. That is acceptable only as an ALT improvement
+  prompt and still requires human visual confirmation.
+- This improves the case for keeping the feature as a Toolbox review surface,
+  but it still does not justify migration or apply behavior. The next evidence
+  should be real operator accept/edit/reject outcomes on these filtered
+  candidates.
