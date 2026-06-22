@@ -234,15 +234,9 @@
 			group: 'writing_assist',
 		},
 		{
-			intent: 'zhihu_research',
-			label: __('知乎选题研究', 'npcink-toolbox'),
-			description: __('写作前查看知乎里的真实问题、常见观点和反对意见，帮助确定角度与引用来源。只做研究，不复制、不改写、不发布。', 'npcink-toolbox'),
-			group: 'writing_assist',
-		},
-		{
 			intent: 'zhihu_hot_topics',
-			label: __('知乎热榜选题', 'npcink-toolbox'),
-			description: __('读取 Cloud 缓存的知乎热榜，作为今天的选题池。只提供趋势信号，不自动写文章。', 'npcink-toolbox'),
+			label: __('热点选题', 'npcink-toolbox'),
+			description: __('从服务器缓存的知乎热榜生成今日选题池，解决“不知道今天写什么”的问题。只做选题信号，不写文章、不发布。', 'npcink-toolbox'),
 			group: 'writing_assist',
 		},
 		{
@@ -1655,7 +1649,7 @@
 			return __('知乎选题研究', 'npcink-toolbox');
 		}
 		if (value === 'zhihu_hot_topics') {
-			return __('知乎热榜选题', 'npcink-toolbox');
+			return __('热点选题', 'npcink-toolbox');
 		}
 		if (value === 'article_checkup') {
 			return __('Article checkup', 'npcink-toolbox');
@@ -1701,7 +1695,7 @@
 			return __('解决写作前“不知道用户真正关心什么、反对什么、该从哪个角度切入”的问题。它只返回知乎来源候选，供你人工判断、改写和引用。', 'npcink-toolbox');
 		}
 		if (value === 'zhihu_hot_topics') {
-			return __('解决每天“不知道写什么”的问题。它读取服务器缓存的知乎热榜，帮助你先挑选值得研究的选题。', 'npcink-toolbox');
+			return __('解决每天“不知道写什么”的问题。它读取服务器缓存的知乎热榜，先给出今日可研究的选题池；选题后再由人工判断是否展开研究和写作。', 'npcink-toolbox');
 		}
 		if (value === 'article_checkup') {
 			return __('Checks the full draft for review items and points you to affected paragraphs. It will not rewrite the article.', 'npcink-toolbox');
@@ -2860,20 +2854,27 @@
 		if (!section || typeof section !== 'object') {
 			return [];
 		}
-		const results = Array.isArray(section.results) ? section.results : [];
+		const pool = section.hot_topic_pool && typeof section.hot_topic_pool === 'object' ? section.hot_topic_pool : {};
+		const poolItems = Array.isArray(pool.items) ? pool.items : [];
+		const results = poolItems.length ? poolItems : (Array.isArray(section.results) ? section.results : []);
 		return results.map((item, index) => {
+			const rank = item && item.rank ? sprintf(__('热榜 #%s', 'npcink-toolbox'), item.rank) : sprintf(__('热榜 #%s', 'npcink-toolbox'), index + 1);
 			const stats = [
-				item && item.content_type ? formatMetaLabel(item.content_type) : __('热榜', 'npcink-toolbox'),
+				rank,
+				item && item.content_type ? formatMetaLabel(item.content_type) : __('趋势信号', 'npcink-toolbox'),
 				item && item.vote_up_count ? sprintf(__('赞同 %s', 'npcink-toolbox'), item.vote_up_count) : '',
 				item && item.comment_count ? sprintf(__('评论 %s', 'npcink-toolbox'), item.comment_count) : '',
+				item && item.source ? formatMetaLabel(item.source) : '',
 			].filter(Boolean).join(' · ');
-			const snippet = item && item.snippet ? truncateText(item.snippet, 100) : '';
+			const signal = item && (item.signal || item.snippet || item.selection_reason) ? truncateText(item.signal || item.snippet || item.selection_reason, 120) : '';
+			const suggestedUse = item && item.suggested_use ? readableItemText(item.suggested_use, '') : '';
 			return {
 				name: item && item.title ? item.title : sprintf(__('热榜选题 %d', 'npcink-toolbox'), index + 1),
 				detail: [
-					snippet ? __('选题信号：', 'npcink-toolbox') + snippet : '',
+					signal ? __('选题信号：', 'npcink-toolbox') + signal : '',
+					suggestedUse ? __('适合用途：', 'npcink-toolbox') + suggestedUse : '',
 					stats,
-					__('适合先判断是否贴合本站受众；决定采用后，再运行“知乎选题研究”做深入资料核验。', 'npcink-toolbox'),
+					__('使用方式：先判断是否贴合本站受众和栏目，再进入人工资料核验与写作准备；这里不生成文章。', 'npcink-toolbox'),
 				].filter(Boolean).join(' · '),
 				source: 'zhihu_hot_list',
 				evidence_refs: item && item.url ? ['zhihu_hot:' + item.url] : ['zhihu:hot_topics'],
@@ -3515,7 +3516,7 @@
 			return __('例如：帮我找真实用户问题、争议点、反对意见和可引用来源。', 'npcink-toolbox');
 		}
 		if (intent === 'zhihu_hot_topics') {
-			return __('例如：优先看和 AI、WordPress、内容创作相关的热榜话题。', 'npcink-toolbox');
+			return __('可选：优先筛选 AI、WordPress、内容创作、独立开发相关话题；留空则返回今日热榜选题池。', 'npcink-toolbox');
 		}
 		return __('Example: more practical, concise, and less promotional.', 'npcink-toolbox');
 	}
@@ -5281,8 +5282,8 @@
 			}
 
 			if (sections.zhihu_hot_topics) {
-				blocks.push(createElement('h4', { key: 'zhihu-hot-topics-title' }, __('知乎热榜：今日选题池', 'npcink-toolbox')));
-				blocks.push(createElement('p', { key: 'zhihu-hot-topics-help', className: 'npcink-toolbox-editor-support__muted' }, __('这些是服务器缓存的知乎热榜信号，用来发现今天可以研究的选题。它不是事实来源，也不会自动生成或发布文章。', 'npcink-toolbox')));
+				blocks.push(createElement('h4', { key: 'zhihu-hot-topics-title' }, __('热点选题：今日选题池', 'npcink-toolbox')));
+				blocks.push(createElement('p', { key: 'zhihu-hot-topics-help', className: 'npcink-toolbox-editor-support__muted' }, __('用于解决今天写什么：这些是服务器缓存的知乎热榜趋势信号，帮助先挑选值得研究的主题。它不是事实来源，也不会自动生成、改写或发布文章。', 'npcink-toolbox')));
 				blocks.push(renderItems(extractZhihuHotTopicItems(sections.zhihu_hot_topics), __('没有返回可用的知乎热榜选题。', 'npcink-toolbox')));
 			}
 

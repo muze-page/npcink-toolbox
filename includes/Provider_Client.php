@@ -1875,6 +1875,7 @@ final class Provider_Client {
 		}
 		if ( 'zhihu_hot_topics' === $managed_source ) {
 			$runtime_input['provider']         = 'zhihu';
+			$runtime_input['managed_source']   = 'zhihu_hot_topics';
 			$runtime_input['source_type']      = 'zhihu_hot_list';
 		}
 		if ( 'zhihu_global_search' === $managed_source ) {
@@ -4321,6 +4322,7 @@ final class Provider_Client {
 		}
 		$atomic_outputs = is_array( $result['atomic_outputs'] ?? null ) ? $this->sanitize_payload( $result['atomic_outputs'] ) : array();
 		$result_count   = array() !== $results ? count( $results ) : absint( $result['result_count'] ?? 0 );
+		$hot_topic_pool = $this->cloud_web_search_hot_topic_pool( $results, $atomic_outputs, $input, $result );
 
 		$payload = $this->with_output_contract(
 			array(
@@ -4361,12 +4363,76 @@ final class Provider_Client {
 			'web_search_results',
 			'external_web_evidence'
 		);
+		if ( array() !== $hot_topic_pool ) {
+			$payload['hot_topic_pool'] = $hot_topic_pool;
+		}
 
 		if ( (bool) $this->settings->get( 'include_raw_responses' ) ) {
 			$payload['cloud_response'] = $this->sanitize_debug_payload( $response );
 		}
 
 		return $payload;
+	}
+
+	private function cloud_web_search_hot_topic_pool( array $results, array $atomic_outputs, array $input, array $result ): array {
+		$intent      = sanitize_key( (string) ( $result['intent'] ?? $input['intent'] ?? '' ) );
+		$source_type = sanitize_key( (string) ( $input['source_type'] ?? $result['source_type'] ?? '' ) );
+		if ( 'zhihu_hot_topics' !== $intent && 'zhihu_hot_list' !== $source_type ) {
+			return array();
+		}
+
+		$topic_candidates = is_array( $atomic_outputs['topic_candidates'] ?? null ) ? $atomic_outputs['topic_candidates'] : array();
+		$source_items     = is_array( $topic_candidates['items'] ?? null ) && array() !== $topic_candidates['items']
+			? $topic_candidates['items']
+			: $results;
+		$items            = array();
+
+		foreach ( array_slice( $source_items, 0, max( 1, min( 10, (int) ( $input['max_results'] ?? 5 ) ) ) ) as $index => $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			$title = sanitize_text_field( (string) ( $item['title'] ?? '' ) );
+			if ( '' === $title ) {
+				continue;
+			}
+
+			$url     = esc_url_raw( (string) ( $item['url'] ?? '' ) );
+			$items[] = array(
+				'title'                  => $title,
+				'url'                    => $url,
+				'rank'                   => absint( $item['rank'] ?? ( $index + 1 ) ),
+				'signal'                 => sanitize_textarea_field( (string) ( $item['signal'] ?? $item['snippet'] ?? '' ) ),
+				'selection_reason'       => sanitize_textarea_field( (string) ( $item['selection_reason'] ?? $item['suggested_use'] ?? $item['snippet'] ?? '' ) ),
+				'source'                 => sanitize_key( (string) ( $item['source'] ?? 'zhihu_hot_list' ) ),
+				'score'                  => is_numeric( $item['score'] ?? null ) ? (float) $item['score'] : null,
+				'suggested_use'          => sanitize_textarea_field( (string) ( $item['suggested_use'] ?? __( 'Topic selection and manual research queue.', 'npcink-toolbox' ) ) ),
+				'next_action'            => sanitize_key( (string) ( $item['next_action'] ?? 'manual_topic_selection_then_focused_research' ) ),
+				'evidence_refs'          => $url ? array( $url ) : array(),
+				'write_posture'          => 'suggestion_only',
+				'direct_wordpress_write' => false,
+				'action_policy'          => 'operator_review_only_no_write',
+			);
+		}
+
+		return array(
+			'artifact_type'           => 'zhihu_hot_topic_pool',
+			'contract_version'        => 'zhihu_hot_topic_pool.v1',
+			'cloud_atomic_contract'   => sanitize_text_field( (string) ( $topic_candidates['contract_version'] ?? 'topic_candidate.v1' ) ),
+			'status'                  => array() === $items ? 'empty' : 'ready',
+			'problem_solved'          => 'daily_topic_selection',
+			'use_cases'               => array(
+				'choose_today_topic',
+				'screen_audience_fit',
+				'build_manual_research_queue',
+			),
+			'operator_next_action'    => 'select_topic_then_manual_research',
+			'source_priority'         => 'trend_signal_not_factual_source',
+			'result_count'            => count( $items ),
+			'items'                   => $items,
+			'write_posture'           => 'suggestion_only',
+			'direct_wordpress_write'  => false,
+		);
 	}
 
 	private function cloud_web_search_evidence( array $research ): array {

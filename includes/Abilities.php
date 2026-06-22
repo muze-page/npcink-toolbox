@@ -140,7 +140,7 @@ final class Abilities {
 			),
 			'npcink-toolbox/cloud-web-search'                  => $this->definition(
 				__( 'Cloud Web Search', 'npcink-toolbox' ),
-				__( 'Run Cloud-managed web search for current external evidence without exposing local provider keys or writing WordPress content.', 'npcink-toolbox' ),
+				__( 'Run Cloud-managed web search or Zhihu hot-topic atoms for external evidence and topic selection without exposing local provider keys or writing WordPress content.', 'npcink-toolbox' ),
 				array( 'query' ),
 				array( $this, 'cloud_web_search' ),
 				'cap.toolbox.web_search',
@@ -163,7 +163,7 @@ final class Abilities {
 					),
 					'managed_source' => array(
 						'type'        => 'string',
-						'description' => __( 'Optional Cloud-managed source lane such as zhihu_research, zhihu_hot_topics, zhihu_global_search, zhida_simple, zhida_deep, or zhida_deepsearch.', 'npcink-toolbox' ),
+						'description' => __( 'Optional Cloud-managed source lane such as zhihu_hot_topics for a cached topic pool, zhihu_research, zhihu_global_search, zhida_simple, zhida_deep, or zhida_deepsearch.', 'npcink-toolbox' ),
 					),
 					'max_results'  => array(
 						'type'        => 'integer',

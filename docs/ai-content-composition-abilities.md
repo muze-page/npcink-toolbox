@@ -36,7 +36,11 @@ one kind of evidence:
   article rewrite tool, or publish path;
 - the fixed editor `zhihu_hot_topics` flow for a Cloud-cached Zhihu hot-list
   topic pool. It is a trend and selection surface, not a factual source,
-  article generator, scheduler, publisher, or WordPress write path;
+  article generator, scheduler, publisher, or WordPress write path. OpenClaw
+  callers should use `npcink-toolbox/cloud-web-search` with
+  `managed_source=zhihu_hot_topics`, `intent=zhihu_hot_topics`, and a neutral
+  query such as `知乎热榜`; Toolbox promotes the Cloud `topic_candidate.v1`
+  atom into `hot_topic_pool` for direct topic selection;
 - `npcink-toolbox/search-image-source` for featured, inline, layout,
   presentation, reference, or media-planning image candidates;
 - `npcink-toolbox/search-site-knowledge` for semantic site search, related
