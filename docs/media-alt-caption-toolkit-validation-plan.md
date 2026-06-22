@@ -40,8 +40,11 @@ Move the reusable part to Toolkit only when all of these are true:
    it does not require Toolbox admin state.
 3. The output remains `review-only`, deterministic enough to test, and usable
    without a Cloud runtime.
-4. The contract preserves `media_library_metadata_only_no_pixel_vision` unless
-   a separate Cloud evidence field is supplied by a runtime owner.
+4. The contract preserves a metadata-only no-pixel source policy:
+   `current_article_media_metadata_only_no_pixel_vision` by default,
+   `operator_supplied_media_metadata_only_no_pixel_vision` for supplied
+   snapshots, or `media_library_metadata_only_no_pixel_vision` only when the
+   operator explicitly chooses the media-library sample fallback.
 5. It creates no proposal, execution, queue, scheduler, media derivative run,
    or direct WordPress write.
 6. It does not update ALT, caption, description, attachment files, featured

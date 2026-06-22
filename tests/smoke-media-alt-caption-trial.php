@@ -278,6 +278,7 @@ $data = toolbox_media_alt_trial_rest_request(
 	array(
 		'intent'           => 'media_alt_suggestions',
 		'focus'            => 'Local real media library operator trial',
+		'media_scope'      => 'media_library_sample',
 		'review_set_limit' => $max_items,
 		'source_policy'    => 'media_library_metadata_only_no_pixel_vision',
 	)

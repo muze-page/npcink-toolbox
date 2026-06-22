@@ -2044,7 +2044,7 @@
 			content_snapshot_suggestions: 'Content snapshot suggestions'
 		};
 		const summaryByIntent = {
-			media_alt_suggestions: 'Review ALT and caption ideas against the actual image before any media-library edit.',
+			media_alt_suggestions: 'Review ALT and caption ideas for images used by the selected article before any media-library edit.',
 			content_snapshot_suggestions: 'Use these as content opportunities from a bounded sample, not as a full site audit.'
 		};
 		const result = renderShell(
@@ -2091,6 +2091,7 @@
 		const blockedItems = asArray(reviewSet.blocked_items);
 		const imageContextRequest = asObject(reviewSet.image_context_evidence_request);
 		const imageContextRequestItems = asArray(imageContextRequest.items);
+		const postContext = asObject(reviewSet.post_context);
 		const meta = el('div', 'npcink-toolbox__result-meta');
 		appendMeta(meta, 'Eligible', eligibility.eligible_count);
 		appendMeta(meta, 'Selected', eligibility.selected_count || selectedItems.length);
@@ -2098,6 +2099,8 @@
 		appendMeta(meta, 'Scanned', eligibility.scanned_count);
 		appendMeta(meta, 'Contract', reviewSet.contract_version);
 		appendMeta(meta, 'Source', reviewSet.source_policy ? formatLabel(reviewSet.source_policy) : '');
+		appendMeta(meta, 'Scope', reviewSet.media_scope ? formatLabel(reviewSet.media_scope) : '');
+		appendMeta(meta, 'Post', postContext.post_id || '');
 		appendMeta(meta, 'Retryable', reviewSet.retryable === true ? 'Yes' : 'No');
 		if (meta.childNodes.length) {
 			section.appendChild(meta);

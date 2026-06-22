@@ -6,8 +6,9 @@ Status: P0 review-only contract.
 
 The media ALT/caption review set turns the existing **AI Site Helpers -> Media
 ALT suggestions** flow into a bounded operator artifact. It helps an operator
-find attachments with missing or weak media metadata and review possible ALT or
-caption text before any governed write path exists.
+review images already used by one article and inspect possible ALT or caption
+text before any governed write path exists. Recent media-library sampling stays
+available only as an explicit advanced fallback.
 
 This stage is intentionally not a media metadata writer.
 
@@ -25,7 +26,15 @@ Required posture:
 - `direct_wordpress_write`: `false`;
 - `proposal_created`: `false`;
 - `execution_created`: `false`;
-- `source_policy`: `media_library_metadata_only_no_pixel_vision`.
+- `source_policy`: defaults to
+  `current_article_media_metadata_only_no_pixel_vision`.
+
+Other allowed source policies:
+
+- `operator_supplied_media_metadata_only_no_pixel_vision` for editor or eval
+  supplied bounded snapshots;
+- `media_library_metadata_only_no_pixel_vision` only for the explicit recent
+  media-library sample fallback.
 
 Optional weak-metadata follow-up:
 
@@ -48,9 +57,15 @@ Required operational fields:
 
 ## Source Boundary
 
-The review set uses a bounded sample of WordPress media-library metadata:
+The default review set uses only images already attached to, featured by, or
+embedded in one current article. The admin form requires a Post ID for this
+default path and records `media_scope: current_article_used_images` plus
+`post_context`.
+
+Each review item is still metadata-first:
 
 - attachment id;
+- source within the article, such as featured media or content image;
 - title;
 - caption;
 - description excerpt;
@@ -59,6 +74,11 @@ The review set uses a bounded sample of WordPress media-library metadata:
 - MIME type;
 - thumbnail URL;
 - attachment URL.
+
+The advanced `media_scope: media_library_sample` fallback may inspect a bounded
+recent media-library metadata sample when the operator intentionally chooses
+that scope. It is not a site-wide batch runner, media-library indexing job, or
+write path.
 
 It does not inspect image pixels. Every selected item has
 `needs_human_visual_check: true`, and operators must visually confirm ALT and

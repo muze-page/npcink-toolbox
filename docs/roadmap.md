@@ -147,8 +147,10 @@ Candidate buttons:
 The next batch candidate starts with a review-only P0:
 `media_alt_caption_review_set.v1`. It extends the existing AI Site Helpers
 media ALT suggestions response with bounded eligibility, selected items,
-blocked reasons, retry guidance, and an explicit no-write posture. It uses
-media-library metadata only and requires human visual confirmation.
+blocked reasons, retry guidance, and an explicit no-write posture. It defaults
+to current article used image metadata only; the recent media-library metadata
+sample remains an explicit advanced fallback. Every selected item requires
+human visual confirmation.
 Before extracting any reusable logic to Toolkit, run the
 [Media ALT/Caption Toolkit Validation Plan](media-alt-caption-toolkit-validation-plan.md).
 

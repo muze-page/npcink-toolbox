@@ -3631,9 +3631,9 @@ final class Provider_Client {
 		$focus            = sanitize_textarea_field( (string) ( $input['focus'] ?? '' ) );
 		$quality_contract = $this->hosted_ai_site_helper_quality_contract( $intent );
 		$context          = $this->settings->get_content_context_for_ability();
-		$media_snapshot   = is_array( $input['media_snapshot'] ?? null )
-			? $this->sanitize_payload( $input['media_snapshot'] )
-			: $this->collect_hosted_ai_media_alt_snapshot( 10 );
+		$media_snapshot   = 'media_alt_suggestions' === $intent
+			? $this->hosted_ai_media_alt_snapshot_from_input( $input, 10 )
+			: array();
 		$image_context_evidence = is_array( $input['image_context_evidence'] ?? null )
 			? $this->sanitize_payload( $input['image_context_evidence'] )
 			: array();
@@ -3656,7 +3656,7 @@ final class Provider_Client {
 			'site_snapshot'          => 'content_snapshot_suggestions' === $intent ? $this->collect_hosted_ai_site_snapshot() : array(),
 			'media_snapshot'         => 'media_alt_suggestions' === $intent ? $media_snapshot : array(),
 			'image_context_evidence' => 'media_alt_suggestions' === $intent ? $image_context_evidence : array(),
-			'source_policy'          => sanitize_key( (string) ( $input['source_policy'] ?? 'bounded_public_or_media_metadata_sample_only' ) ),
+			'source_policy'          => sanitize_key( (string) ( $input['source_policy'] ?? ( 'media_alt_suggestions' === $intent ? ( $media_snapshot['snapshot_policy'] ?? 'current_article_media_metadata_only' ) : 'bounded_public_content_sample_only' ) ) ),
 		);
 		$prompt           = $this->hosted_ai_site_helper_prompt( $intent, $source, $context );
 
@@ -5169,6 +5169,178 @@ final class Provider_Client {
 		);
 	}
 
+	private function hosted_ai_media_alt_snapshot_from_input( array $input, int $limit ): array {
+		if ( is_array( $input['media_snapshot'] ?? null ) ) {
+			$snapshot                    = $this->sanitize_payload( $input['media_snapshot'] );
+			$snapshot['snapshot_policy'] = sanitize_key( (string) ( $snapshot['snapshot_policy'] ?? 'operator_supplied_media_metadata_only' ) );
+			return $snapshot;
+		}
+
+		$scope = sanitize_key( (string) ( $input['media_scope'] ?? 'current_article_used_images' ) );
+		if ( ! in_array( $scope, array( 'current_article_used_images', 'media_library_sample' ), true ) ) {
+			$scope = 'current_article_used_images';
+		}
+
+		if ( 'media_library_sample' === $scope ) {
+			return $this->collect_hosted_ai_media_alt_snapshot( $limit );
+		}
+
+		return $this->collect_hosted_ai_current_article_media_alt_snapshot( absint( $input['post_id'] ?? 0 ), $limit );
+	}
+
+	private function collect_hosted_ai_current_article_media_alt_snapshot( int $post_id, int $limit ): array {
+		$items = array();
+		$seen  = array();
+		$post  = $post_id > 0 && function_exists( 'get_post' ) ? get_post( $post_id ) : null;
+
+		if ( $post && function_exists( 'get_post_thumbnail_id' ) ) {
+			$thumbnail_id = absint( get_post_thumbnail_id( $post_id ) );
+			if ( $thumbnail_id > 0 ) {
+				$item = $this->hosted_ai_media_alt_snapshot_item( $thumbnail_id, 'featured_media' );
+				if ( ! empty( $item ) ) {
+					$items[] = $item;
+					$seen[]  = $thumbnail_id;
+				}
+			}
+		}
+
+		$content = $post ? (string) ( $post->post_content ?? '' ) : '';
+		foreach ( $this->hosted_ai_content_image_attachment_ids( $content ) as $attachment_id ) {
+			if ( in_array( $attachment_id, $seen, true ) ) {
+				continue;
+			}
+			$item = $this->hosted_ai_media_alt_snapshot_item( $attachment_id, 'content_image' );
+			if ( empty( $item ) ) {
+				continue;
+			}
+			$items[] = $item;
+			$seen[]  = $attachment_id;
+			if ( count( $items ) >= max( 1, $limit ) ) {
+				break;
+			}
+		}
+
+		$items       = array_slice( $items, 0, max( 1, $limit ) );
+		$missing_alt = count(
+			array_filter(
+				$items,
+				static function ( array $item ): bool {
+					return ! empty( $item['missing_alt'] );
+				}
+			)
+		);
+
+		return array(
+			'sample_size'       => count( $items ),
+			'missing_alt_count' => $missing_alt,
+			'items'             => $items,
+			'snapshot_policy'   => 'current_article_media_metadata_only',
+			'media_scope'       => 'current_article_used_images',
+			'post_context'      => array(
+				'post_id' => $post_id,
+				'title'   => $post ? sanitize_text_field( (string) ( $post->post_title ?? '' ) ) : '',
+				'status'  => $post ? sanitize_key( (string) ( $post->post_status ?? '' ) ) : '',
+			),
+		);
+	}
+
+	private function hosted_ai_content_image_attachment_ids( string $content ): array {
+		$ids = array();
+		if ( '' === trim( $content ) ) {
+			return $ids;
+		}
+
+		if ( function_exists( 'parse_blocks' ) ) {
+			$ids = array_merge( $ids, $this->hosted_ai_block_image_attachment_ids( parse_blocks( $content ) ) );
+		}
+
+		if ( preg_match_all( '/wp-image-([0-9]+)/', $content, $matches ) ) {
+			foreach ( $matches[1] as $id ) {
+				$ids[] = absint( $id );
+			}
+		}
+
+		return array_values(
+			array_unique(
+				array_filter(
+					array_map( 'absint', $ids ),
+					static function ( int $id ): bool {
+						return $id > 0;
+					}
+				)
+			)
+		);
+	}
+
+	private function hosted_ai_block_image_attachment_ids( array $blocks ): array {
+		$ids = array();
+		foreach ( $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+			$attrs = is_array( $block['attrs'] ?? null ) ? $block['attrs'] : array();
+			foreach ( array( 'id', 'mediaId' ) as $attr_key ) {
+				$id = absint( $attrs[ $attr_key ] ?? 0 );
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
+			}
+			if ( is_array( $attrs['ids'] ?? null ) ) {
+				foreach ( $attrs['ids'] as $id ) {
+					$id = absint( $id );
+					if ( $id > 0 ) {
+						$ids[] = $id;
+					}
+				}
+			}
+			if ( is_array( $block['innerBlocks'] ?? null ) ) {
+				$ids = array_merge( $ids, $this->hosted_ai_block_image_attachment_ids( $block['innerBlocks'] ) );
+			}
+		}
+
+		return $ids;
+	}
+
+	private function hosted_ai_media_alt_snapshot_item( int $attachment_id, string $source ): array {
+		if ( 0 >= $attachment_id ) {
+			return array();
+		}
+		if ( function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $attachment_id ) ) {
+			return array();
+		}
+		$attachment = function_exists( 'get_post' ) ? get_post( $attachment_id ) : null;
+		if ( ! is_object( $attachment ) ) {
+			return array();
+		}
+		if ( function_exists( 'get_post_type' ) && 'attachment' !== get_post_type( $attachment ) ) {
+			return array();
+		}
+
+		$alt       = function_exists( 'get_post_meta' ) ? sanitize_text_field( (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) ) : '';
+		$image_src = function_exists( 'wp_get_attachment_image_src' ) ? wp_get_attachment_image_src( $attachment_id, 'thumbnail' ) : false;
+		$url       = function_exists( 'wp_get_attachment_url' ) ? esc_url_raw( (string) wp_get_attachment_url( $attachment_id ) ) : '';
+		$filename  = '';
+		if ( '' !== $url ) {
+			$filename = function_exists( 'wp_basename' ) ? wp_basename( $url ) : basename( $url );
+		}
+
+		return array(
+			'source'          => sanitize_key( $source ),
+			'attachment_id'   => $attachment_id,
+			'title'           => sanitize_text_field( (string) ( $attachment->post_title ?? '' ) ),
+			'caption'         => sanitize_textarea_field( (string) ( $attachment->post_excerpt ?? '' ) ),
+			'description'     => $this->trim_chars( sanitize_textarea_field( wp_strip_all_tags( (string) ( $attachment->post_content ?? '' ) ) ), 240 ),
+			'alt'             => $alt,
+			'alt_length'      => $this->hosted_ai_text_length( $alt ),
+			'missing_alt'     => '' === $alt,
+			'missing_caption' => '' === trim( (string) ( $attachment->post_excerpt ?? '' ) ),
+			'filename'        => sanitize_file_name( $filename ),
+			'mime_type'       => function_exists( 'get_post_mime_type' ) ? sanitize_text_field( (string) get_post_mime_type( $attachment_id ) ) : '',
+			'thumbnail_url'   => is_array( $image_src ) ? esc_url_raw( (string) ( $image_src[0] ?? '' ) ) : '',
+			'url'             => $url,
+		);
+	}
+
 	private function collect_hosted_ai_media_alt_snapshot( int $limit ): array {
 		$attachments = function_exists( 'get_posts' ) ? get_posts(
 			array(
@@ -5191,33 +5363,17 @@ final class Provider_Client {
 			if ( 0 >= $attachment_id ) {
 				continue;
 			}
-			$alt = function_exists( 'get_post_meta' ) ? sanitize_text_field( (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) ) : '';
-			if ( '' === $alt ) {
-				++$missing_alt;
-			}
-			if ( count( $items ) >= $limit && '' !== $alt ) {
+			$item = $this->hosted_ai_media_alt_snapshot_item( $attachment_id, 'media_library_sample' );
+			if ( empty( $item ) ) {
 				continue;
 			}
-			$image_src = function_exists( 'wp_get_attachment_image_src' ) ? wp_get_attachment_image_src( $attachment_id, 'thumbnail' ) : false;
-			$url       = function_exists( 'wp_get_attachment_url' ) ? esc_url_raw( (string) wp_get_attachment_url( $attachment_id ) ) : '';
-			$filename  = '';
-			if ( '' !== $url ) {
-				$filename = function_exists( 'wp_basename' ) ? wp_basename( $url ) : basename( $url );
+			if ( ! empty( $item['missing_alt'] ) ) {
+				++$missing_alt;
 			}
-			$items[] = array(
-				'attachment_id' => $attachment_id,
-				'title'         => sanitize_text_field( (string) ( $attachment->post_title ?? '' ) ),
-				'caption'       => sanitize_textarea_field( (string) ( $attachment->post_excerpt ?? '' ) ),
-				'description'   => $this->trim_chars( sanitize_textarea_field( wp_strip_all_tags( (string) ( $attachment->post_content ?? '' ) ) ), 240 ),
-				'alt'           => $alt,
-				'alt_length'    => $this->hosted_ai_text_length( $alt ),
-				'missing_alt'   => '' === $alt,
-				'missing_caption' => '' === trim( (string) ( $attachment->post_excerpt ?? '' ) ),
-				'filename'      => sanitize_file_name( $filename ),
-				'mime_type'     => function_exists( 'get_post_mime_type' ) ? sanitize_text_field( (string) get_post_mime_type( $attachment_id ) ) : '',
-				'thumbnail_url' => is_array( $image_src ) ? esc_url_raw( (string) ( $image_src[0] ?? '' ) ) : '',
-				'url'           => $url,
-			);
+			if ( count( $items ) >= $limit && empty( $item['missing_alt'] ) ) {
+				continue;
+			}
+			$items[] = $item;
 			if ( count( $items ) >= $limit && $missing_alt >= $limit ) {
 				break;
 			}
@@ -5228,12 +5384,16 @@ final class Provider_Client {
 			'missing_alt_count' => $missing_alt,
 			'items'             => array_slice( $items, 0, $limit ),
 			'snapshot_policy'   => 'media_library_metadata_sample_only',
+			'media_scope'       => 'media_library_sample',
 		);
 	}
 
 	private function build_media_alt_caption_review_set( array $media_snapshot, int $max_items, array $image_context_evidence = array() ): array {
 		$items                     = is_array( $media_snapshot['items'] ?? null ) ? $media_snapshot['items'] : array();
 		$image_context_evidence_by_id = $this->media_alt_caption_index_image_context_evidence( $image_context_evidence );
+		$source_policy             = $this->media_alt_caption_review_source_policy( $media_snapshot );
+		$media_scope               = sanitize_key( (string) ( $media_snapshot['media_scope'] ?? ( 'current_article_media_metadata_only' === (string) ( $media_snapshot['snapshot_policy'] ?? '' ) ? 'current_article_used_images' : 'media_library_sample' ) ) );
+		$post_context              = is_array( $media_snapshot['post_context'] ?? null ) ? $this->sanitize_payload( $media_snapshot['post_context'] ) : array();
 		$selected                  = array();
 		$blocked                   = array();
 		$scanned                   = 0;
@@ -5341,7 +5501,9 @@ final class Provider_Client {
 			'direct_wordpress_write' => false,
 			'proposal_created'      => false,
 			'execution_created'     => false,
-			'source_policy'         => 'media_library_metadata_only_no_pixel_vision',
+			'source_policy'         => $source_policy,
+			'media_scope'           => $media_scope,
+			'post_context'          => $post_context,
 			'eligibility_summary'   => array(
 				'scanned_count'  => $scanned,
 				'eligible_count' => count( $selected ) + count(
@@ -5379,6 +5541,18 @@ final class Provider_Client {
 				'blocked_direct_apply_reason' => 'Toolbox does not own media metadata writes.',
 			),
 		);
+	}
+
+	private function media_alt_caption_review_source_policy( array $media_snapshot ): string {
+		$snapshot_policy = sanitize_key( (string) ( $media_snapshot['snapshot_policy'] ?? '' ) );
+		if ( 'current_article_media_metadata_only' === $snapshot_policy ) {
+			return 'current_article_media_metadata_only_no_pixel_vision';
+		}
+		if ( 'operator_supplied_media_metadata_only' === $snapshot_policy ) {
+			return 'operator_supplied_media_metadata_only_no_pixel_vision';
+		}
+
+		return 'media_library_metadata_only_no_pixel_vision';
 	}
 
 	private function maybe_request_media_alt_caption_image_context_evidence( array $review_set ): array {
@@ -5439,10 +5613,10 @@ final class Provider_Client {
 	}
 
 	private function media_alt_caption_apply_image_context_evidence( array $item, array $evidence ): array {
-		$summary = $this->media_alt_caption_clean_candidate( (string) ( $evidence['visual_summary'] ?? '' ) );
+		$summary = $this->media_alt_caption_clean_candidate( (string) ( $evidence['visual_summary'] ?? ( $evidence['alt_text_basis'] ?? '' ) ) );
 		$scene   = $this->media_alt_caption_clean_candidate( (string) ( $evidence['scene'] ?? '' ) );
-		$objects = $this->sanitize_string_list( $evidence['objects'] ?? array() );
-		$text    = $this->sanitize_string_list( $evidence['text_seen'] ?? array() );
+		$objects = $this->sanitize_string_list( $evidence['objects'] ?? ( $evidence['subject_tags'] ?? array() ) );
+		$text    = $this->sanitize_string_list( $evidence['text_seen'] ?? ( $evidence['visible_text'] ?? array() ) );
 
 		if ( '' !== $summary ) {
 			$item['image_context_visual_summary'] = $summary;
@@ -5464,10 +5638,10 @@ final class Provider_Client {
 		return array(
 			'contract_version'         => 'image_context_evidence.v1',
 			'source'                   => sanitize_key( (string) ( $evidence['source'] ?? 'cloud_or_host_runtime' ) ),
-			'visual_summary'           => $this->trim_chars( $this->media_alt_caption_clean_candidate( (string) ( $evidence['visual_summary'] ?? '' ) ), 180 ),
+			'visual_summary'           => $this->trim_chars( $this->media_alt_caption_clean_candidate( (string) ( $evidence['visual_summary'] ?? ( $evidence['alt_text_basis'] ?? '' ) ) ), 180 ),
 			'scene'                    => $this->trim_chars( $this->media_alt_caption_clean_candidate( (string) ( $evidence['scene'] ?? '' ) ), 120 ),
-			'objects'                  => array_slice( $this->sanitize_string_list( $evidence['objects'] ?? array() ), 0, 8 ),
-			'text_seen'                => array_slice( $this->sanitize_string_list( $evidence['text_seen'] ?? array() ), 0, 5 ),
+			'objects'                  => array_slice( $this->sanitize_string_list( $evidence['objects'] ?? ( $evidence['subject_tags'] ?? array() ) ), 0, 8 ),
+			'text_seen'                => array_slice( $this->sanitize_string_list( $evidence['text_seen'] ?? ( $evidence['visible_text'] ?? array() ) ), 0, 5 ),
 			'confidence'               => sanitize_text_field( (string) ( $evidence['confidence'] ?? '' ) ),
 			'write_posture'            => 'suggestion_only',
 			'direct_wordpress_write'   => false,
@@ -6010,7 +6184,7 @@ final class Provider_Client {
 
 	private function hosted_ai_site_helper_prompt( string $intent, array $source, array $context ): string {
 		$task = array(
-			'media_alt_suggestions'      => 'Generate reviewable ALT and caption suggestions from sampled media-library metadata only. Do not claim to see the image pixels; require human visual confirmation for each item.',
+			'media_alt_suggestions'      => 'Generate reviewable ALT and caption suggestions from the supplied current-article image metadata, or from an explicitly requested media-library sample. Do not claim to see the image pixels; require human visual confirmation for each item.',
 			'content_snapshot_suggestions' => 'Generate 3 to 5 content opportunity suggestions from a bounded public site-content snapshot only. Do not return a full site audit, crawler report, health score, or write plan.',
 		)[ $intent ] ?? 'Generate reviewable WordPress site-helper suggestions from the supplied sample only.';
 		$quality_contract = $this->hosted_ai_site_helper_quality_contract( $intent );

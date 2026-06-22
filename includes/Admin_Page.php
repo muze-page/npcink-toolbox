@@ -1487,7 +1487,7 @@ final class Admin_Page {
 				'id'          => 'ai-media-alt-suggestions',
 				'endpoint'    => 'ai/site-helpers',
 				'title'       => __( 'Media ALT Suggestions', 'npcink-toolbox' ),
-				'description' => __( 'Sample recent image metadata with missing or weak ALT and return reviewable ALT/caption ideas.', 'npcink-toolbox' ),
+				'description' => __( 'Review images already used by one article and return ALT/caption ideas without changing media metadata.', 'npcink-toolbox' ),
 				'intent'      => 'media_alt_suggestions',
 				'button'      => __( 'Suggest media ALT', 'npcink-toolbox' ),
 				'custom'      => 'hosted_ai_site_helper',
@@ -1752,6 +1752,23 @@ final class Admin_Page {
 				<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before running AI site helpers.', 'npcink-toolbox' ); ?></div>
 			<?php endif; ?>
 			<input type="hidden" name="intent" value="<?php echo esc_attr( $intent ); ?>" />
+			<?php if ( 'media_alt_suggestions' === $intent ) : ?>
+				<div class="npcink-toolbox__example">
+					<strong><?php esc_html_e( 'Article-used images first', 'npcink-toolbox' ); ?></strong>
+					<span><?php esc_html_e( 'Default scope is images already used by one article. Recent media-library sampling is an advanced fallback for review only.', 'npcink-toolbox' ); ?></span>
+				</div>
+				<label>
+					<span><?php esc_html_e( 'Post ID', 'npcink-toolbox' ); ?></span>
+					<input type="number" min="1" step="1" name="post_id" placeholder="<?php esc_attr_e( 'Article post ID', 'npcink-toolbox' ); ?>" />
+				</label>
+				<label>
+					<span><?php esc_html_e( 'Media scope', 'npcink-toolbox' ); ?></span>
+					<select name="media_scope">
+						<option value="current_article_used_images" selected><?php esc_html_e( 'Current article images (recommended)', 'npcink-toolbox' ); ?></option>
+						<option value="media_library_sample"><?php esc_html_e( 'Recent media library sample (advanced)', 'npcink-toolbox' ); ?></option>
+					</select>
+				</label>
+			<?php endif; ?>
 			<label>
 				<span><?php esc_html_e( 'Optional focus', 'npcink-toolbox' ); ?></span>
 				<textarea name="focus" rows="3" placeholder="<?php esc_attr_e( 'Optional priority, audience, image type, or content area to review', 'npcink-toolbox' ); ?>"></textarea>
