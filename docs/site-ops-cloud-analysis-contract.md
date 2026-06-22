@@ -63,3 +63,11 @@ display returned priority queues, trend notes, blocked items, evidence refs,
 Core handoff candidates, and operator next actions. It must not add local
 queues, custom run tables, Action Scheduler, automatic proposal creation, or
 WordPress writes in Toolbox.
+
+When Cloud returns failed runtime detail, Toolbox may display the Cloud
+`error_code`, `error_message`, run status, and copyable result JSON. It must not
+retry locally, create a local run table, create Core proposals, or write
+WordPress data. When Cloud returns low-confidence or low-signal detail, Toolbox
+may show the confidence level, blockers, and operator next actions as review
+guidance; it must not invent findings or convert those hints into automatic
+handoffs.

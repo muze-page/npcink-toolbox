@@ -1047,6 +1047,13 @@ final class Provider_Client {
 					'task_backend'  => is_array( $data['task_backend'] ?? null ) ? $this->sanitize_payload( $data['task_backend'] ) : array(),
 					'run_lifecycle' => is_array( $data['run_lifecycle'] ?? null ) ? $this->sanitize_payload( $data['run_lifecycle'] ) : array(),
 				),
+				'cloud_error'           => array(
+					'error_code'      => sanitize_key( (string) ( $data['error_code'] ?? $response['error_code'] ?? '' ) ),
+					'error_message'   => sanitize_text_field( (string) ( $data['error_message'] ?? $response['message'] ?? '' ) ),
+					'error_stage'     => sanitize_key( (string) ( $data['error_stage'] ?? '' ) ),
+					'retryable'       => (bool) ( $data['retryable'] ?? false ),
+					'retry_exhausted' => (bool) ( $data['retry_exhausted'] ?? false ),
+				),
 				'result'                => is_array( $result ) ? $this->sanitize_payload( $result ) : array(),
 				'safety'                => array(
 					'direct_wordpress_write' => false,
