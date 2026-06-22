@@ -54,7 +54,7 @@ function toolbox_metadata_delta_smoke_admin_user_id(): int {
 function toolbox_metadata_delta_smoke_track_rest_fixture( string $route, $data ): void {
 	global $toolbox_metadata_delta_smoke_proposal_ids;
 
-	if ( '/npcink-governance-core/v1/proposals/from-plan' !== $route || ! is_array( $data ) ) {
+	if ( ! in_array( $route, array( '/npcink-governance-core/v1/proposals/from-plan', '/npcink-openclaw-adapter/v1/proposals/from-plan' ), true ) || ! is_array( $data ) ) {
 		return;
 	}
 
@@ -164,9 +164,23 @@ function toolbox_metadata_delta_smoke_rest( string $route, array $params ): arra
 
 	$data = $response->get_data();
 	toolbox_metadata_delta_smoke_track_rest_fixture( $route, $data );
-	toolbox_metadata_delta_smoke_assert( $response->get_status() >= 200 && $response->get_status() < 300, 'REST dispatch succeeds for ' . $route . '.' );
+	if ( $response->get_status() < 200 || $response->get_status() >= 300 ) {
+		$error = is_array( $data )
+			? (string) ( $data['code'] ?? '' ) . ' ' . (string) ( $data['message'] ?? '' )
+			: '';
+		toolbox_metadata_delta_smoke_fail( trim( 'REST dispatch failed for ' . $route . ' with HTTP ' . $response->get_status() . ' ' . $error ) );
+	}
+
+	toolbox_metadata_delta_smoke_pass( 'REST dispatch succeeds for ' . $route . '.' );
 
 	return is_array( $data ) ? $data : array();
+}
+
+function toolbox_metadata_delta_smoke_rest_route_exists( string $route ): bool {
+	$server = rest_get_server();
+	$routes = $server instanceof WP_REST_Server ? $server->get_routes() : array();
+
+	return isset( $routes[ $route ] );
 }
 
 $script_args = isset( $args ) && is_array( $args ) ? $args : array();
@@ -320,6 +334,40 @@ toolbox_metadata_delta_smoke_assert( 'core_proposal_required' === (string) ( $pr
 toolbox_metadata_delta_smoke_assert( count( $apply_actions ) === count( (array) ( $proposal_input['write_actions'] ?? array() ) ), 'Core metadata proposal input stores all reviewed write actions.' );
 toolbox_metadata_delta_smoke_assert( true === (bool) ( $proposal_input['dry_run'] ?? false ) && false === (bool) ( $proposal_input['commit'] ?? true ), 'Core metadata proposal input remains dry-run and non-commit.' );
 toolbox_metadata_delta_smoke_assert( false === (bool) ( $proposal_preview['commit_execution'] ?? true ), 'Core metadata proposal preview disables Core execution.' );
+
+if ( toolbox_metadata_delta_smoke_rest_route_exists( '/npcink-openclaw-adapter/v1/proposals/from-plan' ) ) {
+	$adapter_created = toolbox_metadata_delta_smoke_rest(
+		'/npcink-openclaw-adapter/v1/proposals/from-plan',
+		array(
+			'plan_ability_id' => 'npcink-abilities-toolkit/build-content-metadata-apply-plan',
+			'plan'            => $apply_plan,
+			'plan_input'      => array(
+				'post_id'      => $sample_post_id,
+				'excerpt'      => $reviewed_excerpt,
+				'category_ids' => is_array( $category_ids ) ? $category_ids : array(),
+				'tag_ids'      => is_array( $tag_ids ) ? $tag_ids : array(),
+			),
+			'caller'          => array(
+				'surface'            => 'toolbox_editor_content_support',
+				'external_thread_id' => 'toolbox-editor-content-metadata-delta-smoke',
+				'source'             => 'tests/smoke-content-metadata-delta.php',
+			),
+		)
+	);
+
+	$adapter_proposals = is_array( $adapter_created['proposals'] ?? null ) ? $adapter_created['proposals'] : array();
+	$adapter_proposal = is_array( $adapter_proposals[0] ?? null ) ? $adapter_proposals[0] : array();
+	$adapter_preview = is_array( $adapter_proposal['preview'] ?? null ) ? $adapter_proposal['preview'] : array();
+	toolbox_metadata_delta_smoke_assert( 'npcink-abilities-toolkit/build-content-metadata-apply-plan' === (string) ( $adapter_created['plan_ability_id'] ?? '' ), 'Adapter response records the Toolkit metadata planning ability.' );
+	toolbox_metadata_delta_smoke_assert( 1 === (int) ( $adapter_created['proposal_count'] ?? 0 ), 'Adapter creates one Core batch proposal from the Toolbox metadata apply plan.' );
+	toolbox_metadata_delta_smoke_assert( count( $apply_actions ) === (int) ( $adapter_created['action_count'] ?? 0 ), 'Adapter response preserves the metadata action count.' );
+	toolbox_metadata_delta_smoke_assert( false === (bool) ( $adapter_created['commit_execution'] ?? true ), 'Adapter metadata from-plan intake remains non-commit.' );
+	toolbox_metadata_delta_smoke_assert( 'pending' === (string) ( $adapter_proposal['status'] ?? '' ), 'Adapter metadata proposal starts pending approval.' );
+	toolbox_metadata_delta_smoke_assert( 'plan_to_proposal_batch' === (string) ( $adapter_preview['source']['type'] ?? '' ), 'Adapter metadata proposal stores a batch source preview.' );
+	toolbox_metadata_delta_smoke_assert( isset( $adapter_preview['content_metadata_apply'] ), 'Adapter metadata proposal preserves content_metadata_apply review evidence.' );
+} else {
+	toolbox_metadata_delta_smoke_info( 'Adapter from-plan route is not registered; skipped optional Adapter bridge assertion.' );
+}
 
 $after = toolbox_metadata_delta_smoke_post_snapshot( $sample_post_id );
 toolbox_metadata_delta_smoke_assert( $post_count === toolbox_metadata_delta_smoke_post_count(), 'Metadata delta smoke does not create or delete posts.' );
