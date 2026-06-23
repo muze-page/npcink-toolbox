@@ -3806,6 +3806,36 @@ msgstr "审阅 %d 个站点分析问题"
 msgid "%1$d Core-ready planning hints, %2$d manual-review items. Local report does not auto-call Cloud, schedule work, store a local run, create Core proposals, or write WordPress data."
 msgstr "%1$d 个 Core 规划提示，%2$d 个需人工复核项。本地报告不会自动调用 Cloud、调度任务、存储本地运行、创建 Core 提案或写入 WordPress 数据。"
 
+msgid "Local analysis summary"
+msgstr "本地分析摘要"
+
+msgid "This current snapshot found %1$d findings across content, media, comments, and structure. Focus first on %2$s."
+msgstr "当前快照在内容、媒体、评论和结构中发现 %1$d 个问题。请先关注：%2$s。"
+
+msgid "This is deterministic local analysis for operator review. Use Cloud only for AI summary, semantic ranking, trends, or heavier runtime detail."
+msgstr "这是供运营者审阅的确定性本地分析。只有需要 AI 摘要、语义排序、趋势或更重的运行时详情时才使用 Cloud。"
+
+msgid "%d high priority"
+msgstr "%d 个高优先级"
+
+msgid "%d taxonomy terms"
+msgstr "%d 个分类/标签词条"
+
+msgid "Local coverage by area"
+msgstr "按区域划分的本地覆盖"
+
+msgid "Content coverage"
+msgstr "内容覆盖"
+
+msgid "Media coverage"
+msgstr "媒体覆盖"
+
+msgid "Comment coverage"
+msgstr "评论覆盖"
+
+msgid "Structure coverage"
+msgstr "结构覆盖"
+
 msgid "No priority site analysis findings were produced from this bounded local sample."
 msgstr "这个有限本地样本未生成高优先级站点分析问题。"
 
@@ -3856,6 +3886,21 @@ msgstr "站点分析问题"
 
 msgid "No local trend chart is shown because Toolbox does not store historical Full-site Insights runs. Cross-run trend analysis belongs in Cloud runtime/detail output."
 msgstr "未显示本地趋势图，因为 Toolbox 不存储历史全站洞察运行。跨运行趋势分析属于 Cloud 运行时/详情输出。"
+
+msgid "Cloud analysis has not run for this local preview. Run it only when AI summary, semantic ranking, trend explanation, or heavier runtime/detail analysis is needed."
+msgstr "此本地预览尚未运行 Cloud 分析。只有需要 AI 摘要、语义排序、趋势解释或更重的运行时/详情分析时才运行。"
+
+msgid "the current evidence sample"
+msgstr "当前证据样本"
+
+msgid "No priority findings"
+msgstr "无高优先级问题"
+
+msgid "Needs focused review"
+msgstr "需要重点复核"
+
+msgid "Review when planning"
+msgstr "规划时复核"
 
 msgid "Operations Insights"
 msgstr "运营洞察"

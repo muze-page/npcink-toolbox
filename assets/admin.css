@@ -563,7 +563,24 @@
 }
 
 .npcink-toolbox__ops-detail-grid > div {
+	display: grid;
+	gap: 4px;
 	min-width: 0;
+	padding: 10px 12px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+}
+
+.npcink-toolbox__ops-detail-grid > div > strong {
+	color: #1d2327;
+	font-size: 13px;
+	line-height: 1.35;
+}
+
+.npcink-toolbox__ops-detail-grid > div > span {
+	color: #50575e;
+	line-height: 1.4;
 }
 
 .npcink-toolbox__ops-chart-grid {

@@ -98,9 +98,10 @@ The Full-site Insights tab is the site-level analysis surface. It builds a
 manual local `site_ops_insight_pack.v1` from bounded public content,
 approved-comment signal counts, media metadata, taxonomy summaries, Site
 Context readiness, and Cloud availability, then presents the current run as
-content, media, comments, structure, findings, Cloud analysis, and advanced
-data views. It does not call Cloud, persist run state, schedule jobs, create
-Core proposals, or write WordPress data. It may also render a copyable
+coverage metrics, lightweight charts, deterministic local summary, content,
+media, comments, structure, findings, Cloud analysis, and advanced data views.
+It does not call Cloud, persist run state, schedule jobs, create Core proposals,
+or write WordPress data. It may also render a copyable
 `site_ops_cloud_analysis_request.v1`; generating that request still does not
 send it or create local runtime state. When Cloud is ready, an administrator
 can explicitly run Cloud analysis and review the suggestion-only

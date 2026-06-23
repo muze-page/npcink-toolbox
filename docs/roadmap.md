@@ -41,8 +41,9 @@ Target features:
 - Full-site Insights tab for a manual local `site_ops_insight_pack.v1` that
   presents a current-run site analysis report across content,
   approved-comment, media, taxonomy, Site Context, and Cloud readiness findings
-  without Cloud calls, persistence, Core proposals, scheduling, or WordPress
-  writes. It may also prepare
+  with coverage metrics, lightweight charts, deterministic local summary, and
+  dimension views, without Cloud calls, persistence, Core proposals,
+  scheduling, or WordPress writes. It may also prepare
   `site_ops_cloud_analysis_request.v1` as a Cloud runtime/detail contract. When
   Cloud is ready, an administrator may explicitly run Cloud analysis for a
   suggestion-only `site_ops_cloud_analysis_result.v1`, without Toolbox owning a
@@ -116,8 +117,9 @@ Target features:
 
 - Cloud-managed site knowledge Abilities for search, status, and sync;
 - Cloud implementation of `site_ops_cloud_analysis_result.v1` for heavier
-  Full-site Insights ranking, trend explanation, and operator next-action
-  detail, using the Toolbox-prepared `site_ops_cloud_analysis_request.v1`;
+  Full-site Insights AI summary, semantic ranking, trend explanation, and
+  operator next-action detail, using the Toolbox-prepared
+  `site_ops_cloud_analysis_request.v1`;
 - site-content indexing plan;
 - Cloud operator vector provider configuration and migration paths;
 - manual re-index button;

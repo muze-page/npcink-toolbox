@@ -285,16 +285,17 @@ posts/pages, approved comment signal counts, media metadata, category/tag
 summaries, Site Context readiness, and Cloud availability. It must not return
 comment author emails, IP addresses, user agents, or full comment text.
 
-The output is a read-only full-site analysis report: current-run metrics,
-content findings, media findings, comment findings, structure findings,
-evidence summaries, impact, recommended actions, blocked items, and handoff
-candidates. It is not a site automation runner. The local preview does not call
+The output is a read-only full-site analysis report: current-run coverage
+metrics, lightweight charts, deterministic local summary, content findings,
+media findings, comment findings, structure findings, evidence summaries,
+impact, recommended actions, blocked items, and handoff candidates. It is not a
+site automation runner. The local preview does not call
 Cloud, schedule jobs, persist run state, create Core proposals, submit Adapter
 actions, mutate comments, update media, write SEO fields, create taxonomy
 terms, or publish content. Explicit Cloud analysis may add semantic,
-cross-run, trend, and external-data detail, but Cloud remains runtime detail
-and must not become a second WordPress write owner, approval store, or control
-plane.
+cross-run, trend, AI-summary, and external-data detail, but Cloud remains
+runtime detail and must not become a second WordPress write owner, approval
+store, or control plane.
 
 Toolbox may prepare a copyable `site_ops_cloud_analysis_request.v1` from the
 local pack. When Cloud is ready and an administrator explicitly clicks **Run

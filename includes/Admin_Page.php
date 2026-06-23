@@ -672,6 +672,7 @@ final class Admin_Page {
 								<span><?php printf( esc_html__( '%d findings', 'npcink-toolbox' ), (int) ( $summary['top_finding_count'] ?? 0 ) ); ?></span>
 							</div>
 						</div>
+						<?php $this->render_site_ops_local_analysis_summary( $summary, $findings ); ?>
 						<?php $this->render_site_ops_visual_summary( $summary, $findings ); ?>
 						<?php if ( array() === $findings ) : ?>
 							<div class="npcink-toolbox__result-notice is-success"><?php esc_html_e( 'No priority site analysis findings were produced from this bounded local sample.', 'npcink-toolbox' ); ?></div>
@@ -713,7 +714,7 @@ final class Admin_Page {
 							<?php $this->render_site_ops_cloud_analysis_result( $cloud_analysis ); ?>
 						<?php else : ?>
 							<div class="npcink-toolbox__result-notice">
-								<?php esc_html_e( 'Cloud analysis has not run for this local preview. Run it only when deeper runtime/detail ranking is needed.', 'npcink-toolbox' ); ?>
+								<?php esc_html_e( 'Cloud analysis has not run for this local preview. Run it only when AI summary, semantic ranking, trend explanation, or heavier runtime/detail analysis is needed.', 'npcink-toolbox' ); ?>
 							</div>
 						<?php endif; ?>
 					</section>
@@ -735,6 +736,52 @@ final class Admin_Page {
 				</div>
 			<?php endif; ?>
 		</section>
+		<?php
+	}
+
+	/**
+	 * @param array<string,mixed> $summary Summary payload.
+	 * @param array<int,mixed>    $findings Findings.
+	 */
+	private function render_site_ops_local_analysis_summary( array $summary, array $findings ): void {
+		$finding_count  = count( $findings );
+		$high_count     = (int) ( $summary['high_priority_findings'] ?? $this->count_site_ops_findings_by_priority( $findings, 90, 101 ) );
+		$taxonomy_terms = (int) ( $summary['category_terms'] ?? 0 ) + (int) ( $summary['tag_terms'] ?? 0 );
+		$dimension_counts = array(
+			__( 'Content coverage', 'npcink-toolbox' )   => count( $this->site_ops_findings_by_category( $findings, array( 'content_freshness', 'content_quality', 'metadata' ) ) ),
+			__( 'Media coverage', 'npcink-toolbox' )     => count( $this->site_ops_findings_by_category( $findings, array( 'media' ) ) ),
+			__( 'Comment coverage', 'npcink-toolbox' )   => count( $this->site_ops_findings_by_category( $findings, array( 'comments' ) ) ),
+			__( 'Structure coverage', 'npcink-toolbox' ) => count( $this->site_ops_findings_by_category( $findings, array( 'taxonomy', 'site_context', 'site_knowledge' ) ) ),
+		);
+		?>
+		<div class="npcink-toolbox__ops-summary-bar" aria-label="<?php esc_attr_e( 'Local analysis summary', 'npcink-toolbox' ); ?>">
+			<div>
+				<strong><?php esc_html_e( 'Local analysis summary', 'npcink-toolbox' ); ?></strong>
+				<span>
+					<?php
+					printf(
+						esc_html__( 'This current snapshot found %1$d findings across content, media, comments, and structure. Focus first on %2$s.', 'npcink-toolbox' ),
+						(int) $finding_count,
+						esc_html( $this->site_ops_analysis_focus_label( $findings ) )
+					);
+					?>
+				</span>
+				<span><?php esc_html_e( 'This is deterministic local analysis for operator review. Use Cloud only for AI summary, semantic ranking, trends, or heavier runtime detail.', 'npcink-toolbox' ); ?></span>
+			</div>
+			<div class="npcink-toolbox__ops-scope">
+				<span><?php printf( esc_html__( '%d high priority', 'npcink-toolbox' ), (int) $high_count ); ?></span>
+				<span><?php printf( esc_html__( '%d taxonomy terms', 'npcink-toolbox' ), (int) $taxonomy_terms ); ?></span>
+				<span><?php echo esc_html( $this->site_ops_local_report_status( $finding_count, $high_count ) ); ?></span>
+			</div>
+		</div>
+		<div class="npcink-toolbox__ops-detail-grid" aria-label="<?php esc_attr_e( 'Local coverage by area', 'npcink-toolbox' ); ?>">
+			<?php foreach ( $dimension_counts as $label => $count ) : ?>
+				<div>
+					<strong><?php echo esc_html( (string) $label ); ?></strong>
+					<span><?php printf( esc_html__( '%d findings', 'npcink-toolbox' ), (int) $count ); ?></span>
+				</div>
+			<?php endforeach; ?>
+		</div>
 		<?php
 	}
 
@@ -937,6 +984,27 @@ final class Admin_Page {
 			}
 		}
 		return $matches;
+	}
+
+	/**
+	 * @param array<int,mixed> $findings Findings.
+	 */
+	private function site_ops_analysis_focus_label( array $findings ): string {
+		$priority_titles = $this->site_ops_priority_titles( $findings, 1 );
+		if ( array() !== $priority_titles ) {
+			return $priority_titles[0];
+		}
+		return __( 'the current evidence sample', 'npcink-toolbox' );
+	}
+
+	private function site_ops_local_report_status( int $finding_count, int $high_count ): string {
+		if ( 0 === $finding_count ) {
+			return __( 'No priority findings', 'npcink-toolbox' );
+		}
+		if ( $high_count > 0 ) {
+			return __( 'Needs focused review', 'npcink-toolbox' );
+		}
+		return __( 'Review when planning', 'npcink-toolbox' );
 	}
 
 	/**

@@ -475,8 +475,9 @@ diagnostics: **Site Context**, **Site Knowledge**, **Full-site Insights**,
 `site_ops_insight_pack.v1` from bounded public content, approved comment signal
 counts, media metadata, taxonomy summaries, Site Context readiness, and Cloud
 availability, then presents it as a current-run full-site analysis report with
-content, media, comments, structure, findings, Cloud analysis, and advanced
-data views. It can also prepare a copyable
+coverage metrics, lightweight charts, deterministic local summary, content,
+media, comments, structure, findings, Cloud analysis, and advanced data views.
+It can also prepare a copyable
 `site_ops_cloud_analysis_request.v1` for Cloud runtime/detail analysis. The
 local preview does not auto-send the request; when Cloud is ready, the
 administrator may explicitly run Cloud analysis and render the suggestion-only
