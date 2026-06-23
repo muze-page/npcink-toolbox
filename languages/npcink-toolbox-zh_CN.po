@@ -3161,6 +3161,9 @@ msgstr "常用下一步"
 msgid "Use these entry points for the main operator jobs; diagnostics and fallback controls stay folded below."
 msgstr "主要操作任务使用这些入口；诊断和降级控制折叠在下方。"
 
+msgid "Use these entry points for site operations and media review; diagnostics and fallback controls stay folded below."
+msgstr "站点操作和媒体审阅使用这些入口；诊断和降级控制折叠在下方。"
+
 msgid "Manage Site Knowledge"
 msgstr "管理站点知识"
 
