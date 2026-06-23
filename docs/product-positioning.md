@@ -64,9 +64,9 @@ semantics.
 8. Treat `media_optimization_v1` as the fixed governed Optimize Existing Image
    workflow, improving the existing Toolbox surface rather than creating a
    duplicate runner.
-9. Surface site-level operations insights that turn content, approved comment,
-   media, taxonomy, context, and runtime signals into prioritized review-only
-   action guidance.
+9. Surface full-site insights that turn content, approved comment, media,
+   taxonomy, context, and runtime signals into a prioritized review-only site
+   analysis report.
 10. Preserve Core and Abilities boundaries for final WordPress writes.
 
 ## Non-Goals

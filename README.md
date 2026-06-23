@@ -24,11 +24,11 @@ The first version provides:
   selected-paragraph toolbar checks that do not replace body text;
 - an **AI Site Helpers** entry group for lightweight media ALT suggestions and
   bounded public-content snapshot opportunities;
-- an **Operations Insights** tab that builds a local
+- a **Full-site Insights** tab that builds a local
   `site_ops_insight_pack.v1` from bounded public content, approved comment
   signals, media metadata, taxonomy summaries, Site Context readiness, and
-  Cloud availability, without Cloud calls, Core proposals, persistence, or
-  WordPress writes, and prepares a copyable
+  Cloud availability into a read-only site analysis report, without Cloud
+  calls, Core proposals, persistence, or WordPress writes, and prepares a copyable
   `site_ops_cloud_analysis_request.v1` contract. When Cloud is connected and
   the administrator explicitly clicks **Run Cloud analysis**, Toolbox may send
   that request to Cloud runtime for a suggestion-only

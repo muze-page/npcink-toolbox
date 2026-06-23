@@ -94,16 +94,18 @@ publish preflight, summary suggestions, category suggestions, tag suggestions,
 internal links, and image candidates. Related existing-post review is folded
 into publish preflight duplicate-risk checks and internal-link candidates, so
 `writing_support` remains route-compatible but is not a default editor button.
-The Operations Insights tab is the site-level decision surface. It builds a
+The Full-site Insights tab is the site-level analysis surface. It builds a
 manual local `site_ops_insight_pack.v1` from bounded public content,
 approved-comment signal counts, media metadata, taxonomy summaries, Site
-Context readiness, and Cloud availability. It does not call Cloud, persist run
-state, schedule jobs, create Core proposals, or write WordPress data. It may
-also render a copyable `site_ops_cloud_analysis_request.v1`; generating that
-request still does not send it or create local runtime state. When Cloud is
-ready, an administrator can explicitly run Cloud analysis and review the
-suggestion-only `site_ops_cloud_analysis_result.v1` without Toolbox creating a
-local queue, local run table, Core proposal, or WordPress write.
+Context readiness, and Cloud availability, then presents the current run as
+content, media, comments, structure, findings, Cloud analysis, and advanced
+data views. It does not call Cloud, persist run state, schedule jobs, create
+Core proposals, or write WordPress data. It may also render a copyable
+`site_ops_cloud_analysis_request.v1`; generating that request still does not
+send it or create local runtime state. When Cloud is ready, an administrator
+can explicitly run Cloud analysis and review the suggestion-only
+`site_ops_cloud_analysis_result.v1` without Toolbox creating a local queue,
+local run table, Core proposal, or WordPress write.
 The admin Workflows tab defaults to Media, with Optimize Existing Image as the
 first visible tool, and keeps Site Helpers as a secondary low-frequency group.
 Governed Handoffs and Fallback Bundles sit under the folded advanced/fallback

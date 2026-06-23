@@ -3755,6 +3755,108 @@ msgstr "工具列表"
 msgid "No high-confidence local article checkup issues were found."
 msgstr "本地启发式未发现高置信文章体检问题。"
 
+msgid "Full-site Insights"
+msgstr "全站洞察"
+
+msgid "Full-site insights"
+msgstr "全站洞察"
+
+msgid "Use these entry points for full-site analysis, site knowledge, and media review; diagnostics and fallback controls stay folded below."
+msgstr "使用这些入口处理全站分析、站点知识和媒体复核；诊断和回退控制保持折叠。"
+
+msgid "Review Full-site Insights"
+msgstr "查看全站洞察"
+
+msgid "Review a site-wide analysis across content, comments, media, taxonomy, Site Context, and Cloud readiness."
+msgstr "查看覆盖内容、评论、媒体、分类法、站点上下文和 Cloud 就绪状态的全站分析。"
+
+msgid "Build a read-only site analysis report from bounded WordPress data. Findings stay suggestion-only and do not create Core proposals or WordPress writes."
+msgstr "基于有限 WordPress 数据生成只读站点分析报告。结果仅作为建议，不会创建 Core 提案或 WordPress 写入。"
+
+msgid "Full-site Insights readiness"
+msgstr "全站洞察就绪状态"
+
+msgid "Local data"
+msgstr "本地数据"
+
+msgid "Site analysis report"
+msgstr "站点分析报告"
+
+msgid "Generate a local `site_ops_insight_pack.v1` with site-wide metrics, problem summaries, suggested actions, and handoff boundaries."
+msgstr "生成本地 `site_ops_insight_pack.v1`，包含全站指标、问题摘要、建议动作和交接边界。"
+
+msgid "Generate full-site report"
+msgstr "生成全站报告"
+
+msgid "No scan has run in this view yet. Generate a local report when you want a current full-site analysis snapshot."
+msgstr "此视图尚未运行扫描。需要当前全站分析快照时，请生成本地报告。"
+
+msgid "Full-site Insights views"
+msgstr "全站洞察视图"
+
+msgid "Content"
+msgstr "内容"
+
+msgid "Full-site Insights summary"
+msgstr "全站洞察摘要"
+
+msgid "Review %d site analysis findings"
+msgstr "审阅 %d 个站点分析问题"
+
+msgid "%1$d Core-ready planning hints, %2$d manual-review items. Local report does not auto-call Cloud, schedule work, store a local run, create Core proposals, or write WordPress data."
+msgstr "%1$d 个 Core 规划提示，%2$d 个需人工复核项。本地报告不会自动调用 Cloud、调度任务、存储本地运行、创建 Core 提案或写入 WordPress 数据。"
+
+msgid "No priority site analysis findings were produced from this bounded local sample."
+msgstr "这个有限本地样本未生成高优先级站点分析问题。"
+
+msgid "Content analysis"
+msgstr "内容分析"
+
+msgid "Posts and pages: freshness, depth, metadata, and internal paths."
+msgstr "文章和页面：新鲜度、内容深度、元数据和内部路径。"
+
+msgid "Media analysis"
+msgstr "媒体分析"
+
+msgid "Image attachments and referenced media metadata, including ALT and captions."
+msgstr "图片附件和被引用媒体元数据，包括 ALT 和说明文字。"
+
+msgid "Comment analysis"
+msgstr "评论分析"
+
+msgid "Approved comment signals, question-like comments, long comments, and pending moderation load."
+msgstr "已批准评论信号、问题型评论、长评论和待审核压力。"
+
+msgid "Structure analysis"
+msgstr "结构分析"
+
+msgid "Taxonomy shape, Site Context readiness, and Cloud-managed Site Knowledge readiness."
+msgstr "分类法结构、站点上下文就绪状态和 Cloud 托管站点知识就绪状态。"
+
+msgid "%d related findings"
+msgstr "%d 个相关问题"
+
+msgid "No priority findings were produced for this analysis area from the current bounded sample."
+msgstr "当前有限样本未在此分析区域生成高优先级问题。"
+
+msgid "The Full-site Insights preview link expired. Reload the page and try again."
+msgstr "全站洞察预览链接已过期。请刷新页面后重试。"
+
+msgid "Connect or verify Npcink Cloud before running Cloud Full-site Insights analysis."
+msgstr "运行 Cloud 全站洞察分析前，请先连接或验证 Npcink Cloud。"
+
+msgid "Could not build the local Full-site Insights preview."
+msgstr "无法生成本地全站洞察预览。"
+
+msgid "Full-site Insights charts"
+msgstr "全站洞察图表"
+
+msgid "Site analysis finding"
+msgstr "站点分析问题"
+
+msgid "No local trend chart is shown because Toolbox does not store historical Full-site Insights runs. Cross-run trend analysis belongs in Cloud runtime/detail output."
+msgstr "未显示本地趋势图，因为 Toolbox 不存储历史全站洞察运行。跨运行趋势分析属于 Cloud 运行时/详情输出。"
+
 msgid "Operations Insights"
 msgstr "运营洞察"
 

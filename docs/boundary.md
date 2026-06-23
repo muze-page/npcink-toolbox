@@ -275,22 +275,26 @@ the current article context and selected or operator-supplied comment text, but
 does not publish replies, approve comments, mutate comment status, or own
 comment workflow governance.
 
-## Operations Insights Boundary
+## Full-site Insights Boundary
 
-The **Operations Insights** tab builds one administrator-requested local
-`site_ops_insight_pack.v1` preview. It may read bounded public posts/pages,
-approved comment signal counts, media metadata, category/tag summaries, Site
-Context readiness, and Cloud availability. It must not return comment author
-emails, IP addresses, user agents, or full comment text.
+The **Full-site Insights** tab is the operator-facing site analysis surface.
+It builds one administrator-requested local `site_ops_insight_pack.v1` preview.
+The underlying contract keeps the Site Ops name for compatibility, but the
+product surface is broader than operations: it may read bounded public
+posts/pages, approved comment signal counts, media metadata, category/tag
+summaries, Site Context readiness, and Cloud availability. It must not return
+comment author emails, IP addresses, user agents, or full comment text.
 
-The output is a ranked decision aid: top findings, evidence summaries, impact,
-recommended actions, blocked items, and handoff candidates. It is not a site
-automation runner. The local preview does not call Cloud, schedule jobs,
-persist run state, create Core proposals, submit Adapter actions, mutate
-comments, update media, write SEO fields, create taxonomy terms, or publish
-content. Explicit Cloud analysis may add semantic and external-data detail, but
-Cloud remains runtime detail and must not become a second WordPress write
-owner, approval store, or control plane.
+The output is a read-only full-site analysis report: current-run metrics,
+content findings, media findings, comment findings, structure findings,
+evidence summaries, impact, recommended actions, blocked items, and handoff
+candidates. It is not a site automation runner. The local preview does not call
+Cloud, schedule jobs, persist run state, create Core proposals, submit Adapter
+actions, mutate comments, update media, write SEO fields, create taxonomy
+terms, or publish content. Explicit Cloud analysis may add semantic,
+cross-run, trend, and external-data detail, but Cloud remains runtime detail
+and must not become a second WordPress write owner, approval store, or control
+plane.
 
 Toolbox may prepare a copyable `site_ops_cloud_analysis_request.v1` from the
 local pack. When Cloud is ready and an administrator explicitly clicks **Run

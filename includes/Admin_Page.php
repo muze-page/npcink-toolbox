@@ -383,7 +383,7 @@ final class Admin_Page {
 				<button type="button" class="npcink-toolbox__tab is-active" data-toolbox-tab-target="start" aria-selected="true"><?php esc_html_e( 'Start', 'npcink-toolbox' ); ?></button>
 				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="context" aria-selected="false"><?php esc_html_e( 'Site Context', 'npcink-toolbox' ); ?></button>
 				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="site-knowledge" aria-selected="false"><?php esc_html_e( 'Site Knowledge', 'npcink-toolbox' ); ?></button>
-				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="operations-insights" aria-selected="false"><?php esc_html_e( 'Operations Insights', 'npcink-toolbox' ); ?></button>
+				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="operations-insights" aria-selected="false"><?php esc_html_e( 'Full-site Insights', 'npcink-toolbox' ); ?></button>
 				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="tools" aria-selected="false"><?php esc_html_e( 'Workflows', 'npcink-toolbox' ); ?></button>
 				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="cloud-checks" aria-selected="false"><?php esc_html_e( 'Cloud Checks', 'npcink-toolbox' ); ?></button>
 			</nav>
@@ -400,7 +400,7 @@ final class Admin_Page {
 				<?php $this->render_site_knowledge_panel( $cloud_ready ); ?>
 			</section>
 
-			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="operations-insights" aria-label="<?php esc_attr_e( 'Operations insights', 'npcink-toolbox' ); ?>" hidden>
+			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="operations-insights" aria-label="<?php esc_attr_e( 'Full-site insights', 'npcink-toolbox' ); ?>" hidden>
 				<?php $this->render_operations_insights_panel( $site_ops_preview, $content_context, $cloud_ready ); ?>
 			</section>
 
@@ -456,13 +456,13 @@ final class Admin_Page {
 			<div class="npcink-toolbox__section-heading npcink-toolbox__section-heading--compact">
 				<div>
 					<h3><?php esc_html_e( 'Common next steps', 'npcink-toolbox' ); ?></h3>
-					<p><?php esc_html_e( 'Use these entry points for site operations and media review; diagnostics and fallback controls stay folded below.', 'npcink-toolbox' ); ?></p>
+					<p><?php esc_html_e( 'Use these entry points for full-site analysis, site knowledge, and media review; diagnostics and fallback controls stay folded below.', 'npcink-toolbox' ); ?></p>
 				</div>
 			</div>
 			<section class="npcink-toolbox__start-actions" aria-label="<?php esc_attr_e( 'Next actions', 'npcink-toolbox' ); ?>">
 				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=operations-insights' ) ); ?>">
-					<strong><?php esc_html_e( 'Review Operations Insights', 'npcink-toolbox' ); ?></strong>
-					<span><?php esc_html_e( 'Find priority issues across content, comments, media, taxonomy, and site context.', 'npcink-toolbox' ); ?></span>
+					<strong><?php esc_html_e( 'Review Full-site Insights', 'npcink-toolbox' ); ?></strong>
+					<span><?php esc_html_e( 'Review a site-wide analysis across content, comments, media, taxonomy, Site Context, and Cloud readiness.', 'npcink-toolbox' ); ?></span>
 				</a>
 				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=site-knowledge' ) ); ?>">
 					<strong><?php esc_html_e( 'Manage Site Knowledge', 'npcink-toolbox' ); ?></strong>
@@ -541,7 +541,7 @@ final class Admin_Page {
 		$nonce = is_scalar( $nonce ) ? (string) $nonce : '';
 		if ( ! wp_verify_nonce( $nonce, 'npcink_toolbox_site_ops_insights_preview' ) ) {
 			return array(
-				'error' => __( 'The Operations Insights preview link expired. Reload the page and try again.', 'npcink-toolbox' ),
+				'error' => __( 'The Full-site Insights preview link expired. Reload the page and try again.', 'npcink-toolbox' ),
 			);
 		}
 
@@ -569,7 +569,7 @@ final class Admin_Page {
 				if ( ! $cloud_ready ) {
 					$cloud_analysis = new \WP_Error(
 						'npcink_toolbox_site_ops_cloud_not_ready',
-						__( 'Connect or verify Npcink Cloud before running Cloud Operations Insights analysis.', 'npcink-toolbox' ),
+						__( 'Connect or verify Npcink Cloud before running Cloud Full-site Insights analysis.', 'npcink-toolbox' ),
 						array( 'status' => 503 )
 					);
 				} else {
@@ -586,7 +586,7 @@ final class Admin_Page {
 			);
 		} catch ( \Throwable $throwable ) {
 			return array(
-				'error' => __( 'Could not build the local Operations Insights preview.', 'npcink-toolbox' ),
+				'error' => __( 'Could not build the local Full-site Insights preview.', 'npcink-toolbox' ),
 			);
 		}
 	}
@@ -609,12 +609,12 @@ final class Admin_Page {
 		$has_cloud_analysis = null !== $cloud_analysis;
 		?>
 		<div class="npcink-toolbox__panel-header">
-			<h2><?php esc_html_e( 'Operations Insights', 'npcink-toolbox' ); ?></h2>
-			<p><?php esc_html_e( 'Build a read-only site operations brief from bounded local evidence. Findings stay suggestion-only and do not create Core proposals or WordPress writes.', 'npcink-toolbox' ); ?></p>
+			<h2><?php esc_html_e( 'Full-site Insights', 'npcink-toolbox' ); ?></h2>
+			<p><?php esc_html_e( 'Build a read-only site analysis report from bounded WordPress data. Findings stay suggestion-only and do not create Core proposals or WordPress writes.', 'npcink-toolbox' ); ?></p>
 		</div>
 
-		<section class="npcink-toolbox__ops-status-row" aria-label="<?php esc_attr_e( 'Operations Insights readiness', 'npcink-toolbox' ); ?>">
-			<span><strong><?php esc_html_e( 'Local evidence', 'npcink-toolbox' ); ?></strong><?php echo esc_html( null === $preview ? __( 'Ready to scan', 'npcink-toolbox' ) : __( 'Scanned', 'npcink-toolbox' ) ); ?></span>
+		<section class="npcink-toolbox__ops-status-row" aria-label="<?php esc_attr_e( 'Full-site Insights readiness', 'npcink-toolbox' ); ?>">
+			<span><strong><?php esc_html_e( 'Local data', 'npcink-toolbox' ); ?></strong><?php echo esc_html( null === $preview ? __( 'Ready to scan', 'npcink-toolbox' ) : __( 'Scanned', 'npcink-toolbox' ) ); ?></span>
 			<span><strong><?php esc_html_e( 'Site Context', 'npcink-toolbox' ); ?></strong><?php echo esc_html( $context_ready ? __( 'Ready', 'npcink-toolbox' ) : __( 'Needs brief', 'npcink-toolbox' ) ); ?></span>
 			<span><strong><?php esc_html_e( 'Cloud', 'npcink-toolbox' ); ?></strong><?php echo esc_html( $cloud_ready ? __( 'Ready on request', 'npcink-toolbox' ) : __( 'Optional', 'npcink-toolbox' ) ); ?></span>
 			<span><strong><?php esc_html_e( 'Writes', 'npcink-toolbox' ); ?></strong><?php esc_html_e( 'Disabled', 'npcink-toolbox' ); ?></span>
@@ -623,11 +623,11 @@ final class Admin_Page {
 		<section class="npcink-toolbox__card" data-toolbox-site-ops-insights>
 			<div class="npcink-toolbox__section-heading">
 				<div>
-					<h3><?php esc_html_e( 'Site operations brief', 'npcink-toolbox' ); ?></h3>
-					<p><?php esc_html_e( 'Generate a local `site_ops_insight_pack.v1` with top findings, evidence summaries, suggested actions, and handoff boundaries.', 'npcink-toolbox' ); ?></p>
+					<h3><?php esc_html_e( 'Site analysis report', 'npcink-toolbox' ); ?></h3>
+					<p><?php esc_html_e( 'Generate a local `site_ops_insight_pack.v1` with site-wide metrics, problem summaries, suggested actions, and handoff boundaries.', 'npcink-toolbox' ); ?></p>
 				</div>
 				<div class="npcink-toolbox__section-actions">
-					<a class="button button-primary" href="<?php echo esc_url( $this->site_ops_insights_preview_url() ); ?>"><?php esc_html_e( 'Generate local insights', 'npcink-toolbox' ); ?></a>
+					<a class="button button-primary" href="<?php echo esc_url( $this->site_ops_insights_preview_url() ); ?>"><?php esc_html_e( 'Generate full-site report', 'npcink-toolbox' ); ?></a>
 					<?php if ( null !== $preview && $cloud_ready ) : ?>
 						<a class="button" href="<?php echo esc_url( $this->site_ops_cloud_analysis_url() ); ?>"><?php esc_html_e( 'Run Cloud analysis', 'npcink-toolbox' ); ?></a>
 					<?php endif; ?>
@@ -637,24 +637,28 @@ final class Admin_Page {
 			<?php if ( isset( $preview['error'] ) ) : ?>
 				<div class="npcink-toolbox__result-notice is-warning"><?php echo esc_html( (string) $preview['error'] ); ?></div>
 			<?php elseif ( null === $preview ) : ?>
-				<div class="npcink-toolbox__result-notice"><?php esc_html_e( 'No scan has run in this view yet. Generate a local preview when you want a current operations snapshot.', 'npcink-toolbox' ); ?></div>
+				<div class="npcink-toolbox__result-notice"><?php esc_html_e( 'No scan has run in this view yet. Generate a local report when you want a current full-site analysis snapshot.', 'npcink-toolbox' ); ?></div>
 			<?php else : ?>
 				<div class="npcink-toolbox__ops-workspace" data-toolbox-ops-tabs>
-					<nav class="npcink-toolbox__ops-tabs" aria-label="<?php esc_attr_e( 'Operations Insights views', 'npcink-toolbox' ); ?>">
+					<nav class="npcink-toolbox__ops-tabs" aria-label="<?php esc_attr_e( 'Full-site Insights views', 'npcink-toolbox' ); ?>">
 						<button type="button" class="npcink-toolbox__ops-tab is-active" data-toolbox-ops-target="overview" aria-selected="true"><?php esc_html_e( 'Overview', 'npcink-toolbox' ); ?></button>
+						<button type="button" class="npcink-toolbox__ops-tab" data-toolbox-ops-target="content" aria-selected="false"><?php esc_html_e( 'Content', 'npcink-toolbox' ); ?></button>
+						<button type="button" class="npcink-toolbox__ops-tab" data-toolbox-ops-target="media" aria-selected="false"><?php esc_html_e( 'Media', 'npcink-toolbox' ); ?></button>
+						<button type="button" class="npcink-toolbox__ops-tab" data-toolbox-ops-target="comments" aria-selected="false"><?php esc_html_e( 'Comments', 'npcink-toolbox' ); ?></button>
+						<button type="button" class="npcink-toolbox__ops-tab" data-toolbox-ops-target="structure" aria-selected="false"><?php esc_html_e( 'Structure', 'npcink-toolbox' ); ?></button>
 						<button type="button" class="npcink-toolbox__ops-tab" data-toolbox-ops-target="findings" aria-selected="false"><?php esc_html_e( 'Findings', 'npcink-toolbox' ); ?></button>
 						<button type="button" class="npcink-toolbox__ops-tab" data-toolbox-ops-target="evidence" aria-selected="false"><?php esc_html_e( 'Evidence', 'npcink-toolbox' ); ?></button>
 						<button type="button" class="npcink-toolbox__ops-tab" data-toolbox-ops-target="cloud" aria-selected="false"><?php esc_html_e( 'Cloud analysis', 'npcink-toolbox' ); ?></button>
 						<button type="button" class="npcink-toolbox__ops-tab" data-toolbox-ops-target="advanced" aria-selected="false"><?php esc_html_e( 'Advanced', 'npcink-toolbox' ); ?></button>
 					</nav>
 					<section class="npcink-toolbox__ops-panel" data-toolbox-ops-panel="overview">
-						<div class="npcink-toolbox__ops-summary-bar" aria-label="<?php esc_attr_e( 'Operations Insights summary', 'npcink-toolbox' ); ?>">
+						<div class="npcink-toolbox__ops-summary-bar" aria-label="<?php esc_attr_e( 'Full-site Insights summary', 'npcink-toolbox' ); ?>">
 							<div>
-								<strong><?php printf( esc_html__( 'Review %d operations findings', 'npcink-toolbox' ), (int) $finding_count ); ?></strong>
+								<strong><?php printf( esc_html__( 'Review %d site analysis findings', 'npcink-toolbox' ), (int) $finding_count ); ?></strong>
 								<span>
 									<?php
 									printf(
-										esc_html__( '%1$d Core-ready planning hints, %2$d manual-review items. Local preview does not auto-call Cloud, schedule work, store a local run, create Core proposals, or write WordPress data.', 'npcink-toolbox' ),
+										esc_html__( '%1$d Core-ready planning hints, %2$d manual-review items. Local report does not auto-call Cloud, schedule work, store a local run, create Core proposals, or write WordPress data.', 'npcink-toolbox' ),
 										(int) $core_handoff_count,
 										(int) $manual_review_count
 									);
@@ -670,7 +674,7 @@ final class Admin_Page {
 						</div>
 						<?php $this->render_site_ops_visual_summary( $summary, $findings ); ?>
 						<?php if ( array() === $findings ) : ?>
-							<div class="npcink-toolbox__result-notice is-success"><?php esc_html_e( 'No priority operations findings were produced from this bounded local sample.', 'npcink-toolbox' ); ?></div>
+							<div class="npcink-toolbox__result-notice is-success"><?php esc_html_e( 'No priority site analysis findings were produced from this bounded local sample.', 'npcink-toolbox' ); ?></div>
 						<?php elseif ( array() !== $priority_titles ) : ?>
 							<div class="npcink-toolbox__ops-focus">
 								<strong><?php esc_html_e( 'Start with', 'npcink-toolbox' ); ?></strong>
@@ -678,9 +682,21 @@ final class Admin_Page {
 							</div>
 						<?php endif; ?>
 					</section>
+					<section class="npcink-toolbox__ops-panel" data-toolbox-ops-panel="content" hidden>
+						<?php $this->render_site_ops_dimension_panel( __( 'Content analysis', 'npcink-toolbox' ), __( 'Posts and pages: freshness, depth, metadata, and internal paths.', 'npcink-toolbox' ), $summary, $findings, array( 'content_freshness', 'content_quality', 'metadata' ) ); ?>
+					</section>
+					<section class="npcink-toolbox__ops-panel" data-toolbox-ops-panel="media" hidden>
+						<?php $this->render_site_ops_dimension_panel( __( 'Media analysis', 'npcink-toolbox' ), __( 'Image attachments and referenced media metadata, including ALT and captions.', 'npcink-toolbox' ), $summary, $findings, array( 'media' ) ); ?>
+					</section>
+					<section class="npcink-toolbox__ops-panel" data-toolbox-ops-panel="comments" hidden>
+						<?php $this->render_site_ops_dimension_panel( __( 'Comment analysis', 'npcink-toolbox' ), __( 'Approved comment signals, question-like comments, long comments, and pending moderation load.', 'npcink-toolbox' ), $summary, $findings, array( 'comments' ) ); ?>
+					</section>
+					<section class="npcink-toolbox__ops-panel" data-toolbox-ops-panel="structure" hidden>
+						<?php $this->render_site_ops_dimension_panel( __( 'Structure analysis', 'npcink-toolbox' ), __( 'Taxonomy shape, Site Context readiness, and Cloud-managed Site Knowledge readiness.', 'npcink-toolbox' ), $summary, $findings, array( 'taxonomy', 'site_context', 'site_knowledge' ) ); ?>
+					</section>
 					<section class="npcink-toolbox__ops-panel" data-toolbox-ops-panel="findings" hidden>
 						<?php if ( array() === $findings ) : ?>
-							<div class="npcink-toolbox__result-notice is-success"><?php esc_html_e( 'No priority operations findings were produced from this bounded local sample.', 'npcink-toolbox' ); ?></div>
+							<div class="npcink-toolbox__result-notice is-success"><?php esc_html_e( 'No priority site analysis findings were produced from this bounded local sample.', 'npcink-toolbox' ); ?></div>
 						<?php else : ?>
 							<div class="npcink-toolbox__ops-priority-list">
 								<?php foreach ( $findings as $finding ) : ?>
@@ -714,7 +730,7 @@ final class Admin_Page {
 								<textarea class="large-text code" rows="12" readonly><?php echo esc_textarea( (string) wp_json_encode( $cloud_request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ); ?></textarea>
 							</details>
 						<?php endif; ?>
-						<p class="description"><?php esc_html_e( 'No local trend chart is shown because Toolbox does not store historical Operations Insights runs. Cross-run trend analysis belongs in Cloud runtime/detail output.', 'npcink-toolbox' ); ?></p>
+						<p class="description"><?php esc_html_e( 'No local trend chart is shown because Toolbox does not store historical Full-site Insights runs. Cross-run trend analysis belongs in Cloud runtime/detail output.', 'npcink-toolbox' ); ?></p>
 					</section>
 				</div>
 			<?php endif; ?>
@@ -747,7 +763,7 @@ final class Admin_Page {
 		);
 		$scope_max = max( 1, ...array_values( $scope_counts ) );
 		?>
-		<div class="npcink-toolbox__ops-chart-grid" aria-label="<?php esc_attr_e( 'Operations Insights charts', 'npcink-toolbox' ); ?>">
+		<div class="npcink-toolbox__ops-chart-grid" aria-label="<?php esc_attr_e( 'Full-site Insights charts', 'npcink-toolbox' ); ?>">
 			<section class="npcink-toolbox__ops-chart">
 				<h4><?php esc_html_e( 'Priority distribution', 'npcink-toolbox' ); ?></h4>
 				<div class="npcink-toolbox__ops-bar-chart" aria-label="<?php esc_attr_e( 'Findings by priority', 'npcink-toolbox' ); ?>">
@@ -785,6 +801,38 @@ final class Admin_Page {
 				</div>
 			</section>
 		</div>
+		<?php
+	}
+
+	/**
+	 * @param array<string,mixed> $summary Summary payload.
+	 * @param array<int,mixed>    $findings Findings.
+	 * @param array<int,string>   $categories Finding categories.
+	 */
+	private function render_site_ops_dimension_panel( string $title, string $description, array $summary, array $findings, array $categories ): void {
+		$dimension_findings = $this->site_ops_findings_by_category( $findings, $categories );
+		?>
+		<div class="npcink-toolbox__ops-summary-bar">
+			<div>
+				<strong><?php echo esc_html( $title ); ?></strong>
+				<span><?php echo esc_html( $description ); ?></span>
+			</div>
+			<div class="npcink-toolbox__ops-scope">
+				<span><?php printf( esc_html__( '%d posts/pages', 'npcink-toolbox' ), (int) ( $summary['scanned_posts'] ?? 0 ) ); ?></span>
+				<span><?php printf( esc_html__( '%d media', 'npcink-toolbox' ), (int) ( $summary['scanned_media'] ?? 0 ) ); ?></span>
+				<span><?php printf( esc_html__( '%d comments', 'npcink-toolbox' ), (int) ( $summary['recent_comment_sample'] ?? 0 ) ); ?></span>
+				<span><?php printf( esc_html__( '%d related findings', 'npcink-toolbox' ), (int) count( $dimension_findings ) ); ?></span>
+			</div>
+		</div>
+		<?php if ( array() === $dimension_findings ) : ?>
+			<div class="npcink-toolbox__result-notice is-success"><?php esc_html_e( 'No priority findings were produced for this analysis area from the current bounded sample.', 'npcink-toolbox' ); ?></div>
+		<?php else : ?>
+			<div class="npcink-toolbox__ops-priority-list">
+				<?php foreach ( $dimension_findings as $finding ) : ?>
+					<?php $this->render_site_ops_finding_row( $finding ); ?>
+				<?php endforeach; ?>
+			</div>
+		<?php endif; ?>
 		<?php
 	}
 
@@ -869,6 +917,26 @@ final class Admin_Page {
 			}
 		}
 		return $count;
+	}
+
+	/**
+	 * @param array<int,mixed>  $findings Findings.
+	 * @param array<int,string> $categories Finding categories.
+	 * @return array<int,array<string,mixed>>
+	 */
+	private function site_ops_findings_by_category( array $findings, array $categories ): array {
+		$category_map = array_fill_keys( $categories, true );
+		$matches      = array();
+		foreach ( $findings as $finding ) {
+			if ( ! is_array( $finding ) ) {
+				continue;
+			}
+			$category = (string) ( $finding['category'] ?? '' );
+			if ( isset( $category_map[ $category ] ) ) {
+				$matches[] = $finding;
+			}
+		}
+		return $matches;
 	}
 
 	/**
@@ -971,7 +1039,7 @@ final class Admin_Page {
 			return $this->site_ops_dynamic_label( $title );
 		}
 
-		return '' !== $fallback ? $fallback : __( 'Operations finding', 'npcink-toolbox' );
+		return '' !== $fallback ? $fallback : __( 'Site analysis finding', 'npcink-toolbox' );
 	}
 
 	/**
