@@ -602,39 +602,21 @@ final class Admin_Page {
 		$cloud_analysis = $preview['cloud_analysis'] ?? null;
 		$summary       = isset( $pack['summary'] ) && is_array( $pack['summary'] ) ? $pack['summary'] : array();
 		$findings      = isset( $pack['top_findings'] ) && is_array( $pack['top_findings'] ) ? array_slice( $pack['top_findings'], 0, 8 ) : array();
+		$finding_count = count( $findings );
+		$core_handoff_count = $this->count_site_ops_findings_by_boundary( $findings, 'core_handoff_candidate' );
+		$manual_review_count = $this->count_site_ops_findings_by_boundary( $findings, 'manual_review_only' );
+		$priority_titles = $this->site_ops_priority_titles( $findings, 3 );
 		?>
 		<div class="npcink-toolbox__panel-header">
 			<h2><?php esc_html_e( 'Operations Insights', 'npcink-toolbox' ); ?></h2>
 			<p><?php esc_html_e( 'Build a read-only site operations brief from bounded local evidence. Findings stay suggestion-only and do not create Core proposals or WordPress writes.', 'npcink-toolbox' ); ?></p>
 		</div>
 
-		<section class="npcink-toolbox__readiness-strip" aria-label="<?php esc_attr_e( 'Operations Insights readiness', 'npcink-toolbox' ); ?>">
-			<?php
-			$this->render_start_status_item(
-				__( 'Local evidence', 'npcink-toolbox' ),
-				null === $preview ? 'neutral' : 'ok',
-				null === $preview ? __( 'Ready to scan', 'npcink-toolbox' ) : __( 'Scanned', 'npcink-toolbox' ),
-				__( 'Reads bounded public posts, approved comment signals, media metadata, and taxonomy summaries.', 'npcink-toolbox' )
-			);
-			$this->render_start_status_item(
-				__( 'Site Context', 'npcink-toolbox' ),
-				$context_ready ? 'ok' : 'warning',
-				$context_ready ? __( 'Ready', 'npcink-toolbox' ) : __( 'Needs brief', 'npcink-toolbox' ),
-				__( 'Used only as local suggestion guidance for the insight pack.', 'npcink-toolbox' )
-			);
-			$this->render_start_status_item(
-				__( 'Cloud', 'npcink-toolbox' ),
-				$cloud_ready ? 'ok' : 'neutral',
-				$cloud_ready ? __( 'Ready on request', 'npcink-toolbox' ) : __( 'Not required', 'npcink-toolbox' ),
-				__( 'Local preview does not auto-call Cloud. Use Run Cloud analysis only when deeper runtime/detail ranking is needed.', 'npcink-toolbox' )
-			);
-			$this->render_start_status_item(
-				__( 'Writes', 'npcink-toolbox' ),
-				'ok',
-				__( 'Disabled', 'npcink-toolbox' ),
-				__( 'No posts, comments, media, SEO fields, schedules, queues, or proposals are changed.', 'npcink-toolbox' )
-			);
-			?>
+		<section class="npcink-toolbox__ops-status-row" aria-label="<?php esc_attr_e( 'Operations Insights readiness', 'npcink-toolbox' ); ?>">
+			<span><strong><?php esc_html_e( 'Local evidence', 'npcink-toolbox' ); ?></strong><?php echo esc_html( null === $preview ? __( 'Ready to scan', 'npcink-toolbox' ) : __( 'Scanned', 'npcink-toolbox' ) ); ?></span>
+			<span><strong><?php esc_html_e( 'Site Context', 'npcink-toolbox' ); ?></strong><?php echo esc_html( $context_ready ? __( 'Ready', 'npcink-toolbox' ) : __( 'Needs brief', 'npcink-toolbox' ) ); ?></span>
+			<span><strong><?php esc_html_e( 'Cloud', 'npcink-toolbox' ); ?></strong><?php echo esc_html( $cloud_ready ? __( 'Ready on request', 'npcink-toolbox' ) : __( 'Optional', 'npcink-toolbox' ) ); ?></span>
+			<span><strong><?php esc_html_e( 'Writes', 'npcink-toolbox' ); ?></strong><?php esc_html_e( 'Disabled', 'npcink-toolbox' ); ?></span>
 		</section>
 
 		<section class="npcink-toolbox__card" data-toolbox-site-ops-insights>
@@ -656,47 +638,58 @@ final class Admin_Page {
 			<?php elseif ( null === $preview ) : ?>
 				<div class="npcink-toolbox__result-notice"><?php esc_html_e( 'No scan has run in this view yet. Generate a local preview when you want a current operations snapshot.', 'npcink-toolbox' ); ?></div>
 			<?php else : ?>
-				<div class="npcink-toolbox__readiness-strip" aria-label="<?php esc_attr_e( 'Operations Insights summary', 'npcink-toolbox' ); ?>">
-					<?php
-					$this->render_start_status_item( __( 'Posts/pages', 'npcink-toolbox' ), 'neutral', (string) (int) ( $summary['scanned_posts'] ?? 0 ), __( 'Oldest modified public content sample.', 'npcink-toolbox' ) );
-					$this->render_start_status_item( __( 'Media', 'npcink-toolbox' ), 'neutral', (string) (int) ( $summary['scanned_media'] ?? 0 ), __( 'Recent image attachment metadata sample.', 'npcink-toolbox' ) );
-					$this->render_start_status_item( __( 'Comments', 'npcink-toolbox' ), 'neutral', (string) (int) ( $summary['recent_comment_sample'] ?? 0 ), __( 'Approved public comment signal sample; private fields omitted.', 'npcink-toolbox' ) );
-					$this->render_start_status_item( __( 'Findings', 'npcink-toolbox' ), (int) ( $summary['high_priority_findings'] ?? 0 ) > 0 ? 'warning' : 'ok', (string) (int) ( $summary['top_finding_count'] ?? 0 ), __( 'Review-only operations priorities.', 'npcink-toolbox' ) );
-					?>
+				<div class="npcink-toolbox__ops-summary-bar" aria-label="<?php esc_attr_e( 'Operations Insights summary', 'npcink-toolbox' ); ?>">
+					<div>
+						<strong><?php printf( esc_html__( 'Review %d operations findings', 'npcink-toolbox' ), (int) $finding_count ); ?></strong>
+						<span>
+							<?php
+							printf(
+								esc_html__( '%1$d Core-ready planning hints, %2$d manual-review items. Local preview does not auto-call Cloud, schedule work, store a local run, create Core proposals, or write WordPress data.', 'npcink-toolbox' ),
+								(int) $core_handoff_count,
+								(int) $manual_review_count
+							);
+							?>
+						</span>
+					</div>
+					<div class="npcink-toolbox__ops-scope">
+						<span><?php printf( esc_html__( '%d posts/pages', 'npcink-toolbox' ), (int) ( $summary['scanned_posts'] ?? 0 ) ); ?></span>
+						<span><?php printf( esc_html__( '%d media', 'npcink-toolbox' ), (int) ( $summary['scanned_media'] ?? 0 ) ); ?></span>
+						<span><?php printf( esc_html__( '%d comments', 'npcink-toolbox' ), (int) ( $summary['recent_comment_sample'] ?? 0 ) ); ?></span>
+						<span><?php printf( esc_html__( '%d findings', 'npcink-toolbox' ), (int) ( $summary['top_finding_count'] ?? 0 ) ); ?></span>
+					</div>
 				</div>
 
 				<?php if ( array() === $findings ) : ?>
 					<div class="npcink-toolbox__result-notice is-success"><?php esc_html_e( 'No priority operations findings were produced from this bounded local sample.', 'npcink-toolbox' ); ?></div>
 				<?php else : ?>
-					<div class="npcink-toolbox__insight-list">
+					<?php if ( array() !== $priority_titles ) : ?>
+						<div class="npcink-toolbox__ops-focus">
+							<strong><?php esc_html_e( 'Start with', 'npcink-toolbox' ); ?></strong>
+							<span><?php echo esc_html( implode( ' / ', $priority_titles ) ); ?></span>
+						</div>
+					<?php endif; ?>
+					<div class="npcink-toolbox__ops-priority-list">
 						<?php foreach ( $findings as $finding ) : ?>
 							<?php if ( ! is_array( $finding ) ) { continue; } ?>
-							<article class="npcink-toolbox__insight-card">
-								<div class="npcink-toolbox__insight-card-header">
+							<article class="npcink-toolbox__ops-priority-row">
+								<div class="npcink-toolbox__ops-priority-main">
+									<span class="npcink-toolbox__priority-label"><?php echo esc_html( $this->site_ops_priority_label( (int) ( $finding['priority_score'] ?? 0 ) ) ); ?></span>
 									<div>
 										<h3><?php echo esc_html( (string) ( $finding['title'] ?? __( 'Operations finding', 'npcink-toolbox' ) ) ); ?></h3>
 										<p><?php echo esc_html( (string) ( $finding['evidence_summary'] ?? '' ) ); ?></p>
 									</div>
-									<span class="npcink-toolbox__insight-score"><?php echo esc_html( (string) (int) ( $finding['priority_score'] ?? 0 ) ); ?></span>
+									<span class="npcink-toolbox__priority-score"><?php echo esc_html( (string) (int) ( $finding['priority_score'] ?? 0 ) ); ?></span>
 								</div>
-								<dl class="npcink-toolbox__insight-details">
-									<div>
-										<dt><?php esc_html_e( 'Impact', 'npcink-toolbox' ); ?></dt>
-										<dd><?php echo esc_html( (string) ( $finding['impact'] ?? '' ) ); ?></dd>
-									</div>
-									<div>
-										<dt><?php esc_html_e( 'Recommended action', 'npcink-toolbox' ); ?></dt>
-										<dd><?php echo esc_html( (string) ( $finding['recommended_action'] ?? '' ) ); ?></dd>
-									</div>
-									<div>
-										<dt><?php esc_html_e( 'Boundary', 'npcink-toolbox' ); ?></dt>
-										<dd><?php echo esc_html( (string) ( $finding['write_boundary'] ?? 'suggestion_only' ) ); ?></dd>
-									</div>
-								</dl>
+								<div class="npcink-toolbox__ops-action-line">
+									<strong><?php esc_html_e( 'Next', 'npcink-toolbox' ); ?></strong>
+									<span><?php echo esc_html( (string) ( $finding['recommended_action'] ?? '' ) ); ?></span>
+									<em><?php echo esc_html( $this->site_ops_boundary_label( (string) ( $finding['write_boundary'] ?? 'suggestion_only' ) ) ); ?></em>
+								</div>
 								<?php $source_refs = isset( $finding['source_refs'] ) && is_array( $finding['source_refs'] ) ? $finding['source_refs'] : array(); ?>
-								<?php if ( array() !== $source_refs ) : ?>
-									<details class="npcink-toolbox__result-details">
-										<summary><?php esc_html_e( 'Evidence refs', 'npcink-toolbox' ); ?></summary>
+								<details class="npcink-toolbox__result-details">
+									<summary><?php esc_html_e( 'Impact and evidence', 'npcink-toolbox' ); ?></summary>
+									<p><?php echo esc_html( (string) ( $finding['impact'] ?? '' ) ); ?></p>
+									<?php if ( array() !== $source_refs ) : ?>
 										<ul class="npcink-toolbox__usage-list">
 											<?php foreach ( $source_refs as $ref ) : ?>
 												<?php if ( ! is_array( $ref ) ) { continue; } ?>
@@ -706,8 +699,8 @@ final class Admin_Page {
 												</li>
 											<?php endforeach; ?>
 										</ul>
-									</details>
-								<?php endif; ?>
+									<?php endif; ?>
+								</details>
 							</article>
 						<?php endforeach; ?>
 					</div>
@@ -728,6 +721,60 @@ final class Admin_Page {
 			<?php endif; ?>
 		</section>
 		<?php
+	}
+
+	/**
+	 * @param array<int,mixed> $findings Findings.
+	 */
+	private function count_site_ops_findings_by_boundary( array $findings, string $boundary ): int {
+		$count = 0;
+		foreach ( $findings as $finding ) {
+			if ( is_array( $finding ) && $boundary === (string) ( $finding['write_boundary'] ?? '' ) ) {
+				++$count;
+			}
+		}
+		return $count;
+	}
+
+	/**
+	 * @param array<int,mixed> $findings Findings.
+	 * @return array<int,string>
+	 */
+	private function site_ops_priority_titles( array $findings, int $limit ): array {
+		$titles = array();
+		foreach ( $findings as $finding ) {
+			if ( ! is_array( $finding ) ) {
+				continue;
+			}
+			$title = trim( (string) ( $finding['title'] ?? '' ) );
+			if ( '' !== $title ) {
+				$titles[] = $title;
+			}
+			if ( count( $titles ) >= $limit ) {
+				break;
+			}
+		}
+		return $titles;
+	}
+
+	private function site_ops_priority_label( int $score ): string {
+		if ( $score >= 90 ) {
+			return __( 'High', 'npcink-toolbox' );
+		}
+		if ( $score >= 75 ) {
+			return __( 'Medium', 'npcink-toolbox' );
+		}
+		return __( 'Review', 'npcink-toolbox' );
+	}
+
+	private function site_ops_boundary_label( string $boundary ): string {
+		if ( 'core_handoff_candidate' === $boundary ) {
+			return __( 'Core planning hint', 'npcink-toolbox' );
+		}
+		if ( 'manual_review_only' === $boundary ) {
+			return __( 'Manual review only', 'npcink-toolbox' );
+		}
+		return __( 'Suggestion only', 'npcink-toolbox' );
 	}
 
 	/**
@@ -761,6 +808,19 @@ final class Admin_Page {
 		$error_message      = (string) ( $cloud_error['error_message'] ?? '' );
 		$confidence_level   = sanitize_key( (string) ( $confidence['level'] ?? '' ) );
 		$is_failed          = in_array( $status, array( 'failed', 'error' ), true ) || '' !== $error_code;
+		$cloud_focus        = array();
+		foreach ( $priority_queue as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			$label = trim( (string) ( $item['finding_id'] ?? '' ) );
+			if ( '' !== $label ) {
+				$cloud_focus[] = $label;
+			}
+			if ( count( $cloud_focus ) >= 3 ) {
+				break;
+			}
+		}
 		?>
 		<section class="npcink-toolbox__card npcink-toolbox__insight-cloud-result">
 			<div class="npcink-toolbox__section-heading">
@@ -770,20 +830,19 @@ final class Admin_Page {
 				</div>
 				<span class="npcink-toolbox__pill"><?php echo esc_html( '' !== $status ? $status : 'submitted' ); ?></span>
 			</div>
-			<div class="npcink-toolbox__result-meta">
-				<span class="npcink-toolbox__result-meta-item">
-					<span class="npcink-toolbox__result-meta-label"><?php esc_html_e( 'Run', 'npcink-toolbox' ); ?></span>
-					<?php echo esc_html( (string) ( $cloud_run['run_id'] ?? __( 'not returned', 'npcink-toolbox' ) ) ); ?>
-				</span>
-				<span class="npcink-toolbox__result-meta-item">
-					<span class="npcink-toolbox__result-meta-label"><?php esc_html_e( 'Confidence', 'npcink-toolbox' ); ?></span>
-					<?php echo esc_html( '' !== $confidence_level ? $confidence_level : __( 'not reported', 'npcink-toolbox' ) ); ?>
-				</span>
-				<span class="npcink-toolbox__result-meta-item">
-					<span class="npcink-toolbox__result-meta-label"><?php esc_html_e( 'Review', 'npcink-toolbox' ); ?></span>
-					<?php esc_html_e( 'local operator required', 'npcink-toolbox' ); ?>
-				</span>
+
+			<div class="npcink-toolbox__ops-summary-bar">
+				<div>
+					<strong><?php printf( esc_html__( 'Cloud returned %d priority items', 'npcink-toolbox' ), (int) count( $priority_queue ) ); ?></strong>
+					<span><?php esc_html_e( 'Runtime/detail output is review guidance only and does not create Core proposals or WordPress writes.', 'npcink-toolbox' ); ?></span>
+				</div>
+				<div class="npcink-toolbox__ops-scope">
+					<span><?php printf( esc_html__( 'Run: %s', 'npcink-toolbox' ), esc_html( (string) ( $cloud_run['run_id'] ?? __( 'not returned', 'npcink-toolbox' ) ) ) ); ?></span>
+					<span><?php printf( esc_html__( 'Confidence: %s', 'npcink-toolbox' ), esc_html( '' !== $confidence_level ? $confidence_level : __( 'not reported', 'npcink-toolbox' ) ) ); ?></span>
+					<span><?php esc_html_e( 'Review: local operator required', 'npcink-toolbox' ); ?></span>
+				</div>
 			</div>
+
 			<?php if ( $is_failed ) : ?>
 				<div class="npcink-toolbox__result-notice is-error">
 					<strong><?php esc_html_e( 'Cloud analysis failed in runtime/detail.', 'npcink-toolbox' ); ?></strong>
@@ -802,82 +861,99 @@ final class Admin_Page {
 					<?php esc_html_e( 'Cloud returned no priority queue or trend notes for this bounded request.', 'npcink-toolbox' ); ?>
 				</div>
 			<?php endif; ?>
+			<?php if ( array() !== $cloud_focus ) : ?>
+				<div class="npcink-toolbox__ops-focus">
+					<strong><?php esc_html_e( 'Cloud focus', 'npcink-toolbox' ); ?></strong>
+					<span><?php echo esc_html( implode( ' / ', $cloud_focus ) ); ?></span>
+				</div>
+			<?php endif; ?>
 			<?php if ( array() !== $priority_queue ) : ?>
-				<div class="npcink-toolbox__insight-list">
+				<div class="npcink-toolbox__ops-priority-list">
 					<?php foreach ( $priority_queue as $item ) : ?>
 						<?php if ( ! is_array( $item ) ) { continue; } ?>
-						<article class="npcink-toolbox__insight-card">
-							<div class="npcink-toolbox__insight-card-header">
+						<article class="npcink-toolbox__ops-priority-row">
+							<div class="npcink-toolbox__ops-priority-main">
+								<span class="npcink-toolbox__priority-label"><?php echo esc_html( $this->site_ops_priority_label( (int) ( $item['cloud_priority_score'] ?? 0 ) ) ); ?></span>
 								<div>
 									<h3><?php echo esc_html( (string) ( $item['finding_id'] ?? __( 'Cloud priority', 'npcink-toolbox' ) ) ); ?></h3>
 									<p><?php echo esc_html( (string) ( $item['evidence_summary'] ?? '' ) ); ?></p>
 								</div>
-								<span class="npcink-toolbox__insight-score"><?php echo esc_html( (string) (int) ( $item['cloud_priority_score'] ?? 0 ) ); ?></span>
+								<span class="npcink-toolbox__priority-score"><?php echo esc_html( (string) (int) ( $item['cloud_priority_score'] ?? 0 ) ); ?></span>
 							</div>
-							<p><?php echo esc_html( (string) ( $item['recommended_action'] ?? '' ) ); ?></p>
+							<div class="npcink-toolbox__ops-action-line">
+								<strong><?php esc_html_e( 'Next', 'npcink-toolbox' ); ?></strong>
+								<span><?php echo esc_html( (string) ( $item['recommended_action'] ?? '' ) ); ?></span>
+								<em><?php esc_html_e( 'Cloud-ranked suggestion', 'npcink-toolbox' ); ?></em>
+							</div>
 						</article>
 					<?php endforeach; ?>
 				</div>
 			<?php endif; ?>
 			<?php if ( array() !== $trend_notes ) : ?>
-				<ul class="npcink-toolbox__usage-list">
-					<?php foreach ( $trend_notes as $note ) : ?>
-						<?php if ( ! is_array( $note ) ) { continue; } ?>
-						<li>
-							<strong><?php echo esc_html( (string) ( $note['id'] ?? __( 'Trend note', 'npcink-toolbox' ) ) ); ?></strong>
-							<span><?php echo esc_html( (string) ( $note['summary'] ?? '' ) ); ?></span>
-						</li>
-					<?php endforeach; ?>
-				</ul>
+				<details class="npcink-toolbox__result-details">
+					<summary><?php esc_html_e( 'Trend notes', 'npcink-toolbox' ); ?></summary>
+					<ul class="npcink-toolbox__usage-list">
+						<?php foreach ( $trend_notes as $note ) : ?>
+							<?php if ( ! is_array( $note ) ) { continue; } ?>
+							<li>
+								<strong><?php echo esc_html( (string) ( $note['id'] ?? __( 'Trend note', 'npcink-toolbox' ) ) ); ?></strong>
+								<span><?php echo esc_html( (string) ( $note['summary'] ?? '' ) ); ?></span>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</details>
 			<?php endif; ?>
 			<?php if ( array() !== $blocked_items || array() !== $next_actions || array() !== $handoff_candidates ) : ?>
-				<div class="npcink-toolbox__readiness-strip" aria-label="<?php esc_attr_e( 'Cloud analysis review detail', 'npcink-toolbox' ); ?>">
-					<?php if ( array() !== $blocked_items ) : ?>
-						<div>
-							<strong><?php esc_html_e( 'Blocked items', 'npcink-toolbox' ); ?></strong>
-							<ul class="npcink-toolbox__usage-list">
-								<?php foreach ( $blocked_items as $item ) : ?>
-									<?php if ( ! is_array( $item ) ) { continue; } ?>
-									<li>
-										<strong><?php echo esc_html( (string) ( $item['id'] ?? __( 'Blocked item', 'npcink-toolbox' ) ) ); ?></strong>
-										<span><?php echo esc_html( (string) ( $item['reason'] ?? '' ) . ( isset( $item['next'] ) ? ' -> ' . (string) $item['next'] : '' ) ); ?></span>
-									</li>
-								<?php endforeach; ?>
-							</ul>
-						</div>
-					<?php endif; ?>
-					<?php if ( array() !== $next_actions ) : ?>
-						<div>
-							<strong><?php esc_html_e( 'Operator next actions', 'npcink-toolbox' ); ?></strong>
-							<ul class="npcink-toolbox__usage-list">
-								<?php foreach ( $next_actions as $action ) : ?>
-									<?php if ( ! is_array( $action ) ) { continue; } ?>
-									<li>
-										<strong><?php echo esc_html( (string) ( $action['id'] ?? __( 'Review action', 'npcink-toolbox' ) ) ); ?></strong>
-										<span><?php echo esc_html( (string) ( $action['label'] ?? $action['target'] ?? '' ) ); ?></span>
-									</li>
-								<?php endforeach; ?>
-							</ul>
-						</div>
-					<?php endif; ?>
-					<?php if ( array() !== $handoff_candidates ) : ?>
-						<div>
-							<strong><?php esc_html_e( 'Core handoff candidates', 'npcink-toolbox' ); ?></strong>
-							<ul class="npcink-toolbox__usage-list">
-								<?php foreach ( $handoff_candidates as $candidate ) : ?>
-									<?php if ( ! is_array( $candidate ) ) { continue; } ?>
-									<li>
-										<strong><?php echo esc_html( (string) ( $candidate['finding_id'] ?? __( 'Handoff candidate', 'npcink-toolbox' ) ) ); ?></strong>
-										<span><?php esc_html_e( 'Planning hint only; proposal_ready=false and Core still owns review.', 'npcink-toolbox' ); ?></span>
-									</li>
-								<?php endforeach; ?>
-							</ul>
-						</div>
-					<?php endif; ?>
-				</div>
+				<details class="npcink-toolbox__result-details">
+					<summary><?php esc_html_e( 'Blocked items, next actions, and Core handoff candidates', 'npcink-toolbox' ); ?></summary>
+					<div class="npcink-toolbox__ops-detail-grid" aria-label="<?php esc_attr_e( 'Cloud analysis review detail', 'npcink-toolbox' ); ?>">
+						<?php if ( array() !== $blocked_items ) : ?>
+							<div>
+								<strong><?php esc_html_e( 'Blocked items', 'npcink-toolbox' ); ?></strong>
+								<ul class="npcink-toolbox__usage-list">
+									<?php foreach ( $blocked_items as $item ) : ?>
+										<?php if ( ! is_array( $item ) ) { continue; } ?>
+										<li>
+											<strong><?php echo esc_html( (string) ( $item['id'] ?? __( 'Blocked item', 'npcink-toolbox' ) ) ); ?></strong>
+											<span><?php echo esc_html( (string) ( $item['reason'] ?? '' ) . ( isset( $item['next'] ) ? ' -> ' . (string) $item['next'] : '' ) ); ?></span>
+										</li>
+									<?php endforeach; ?>
+								</ul>
+							</div>
+						<?php endif; ?>
+						<?php if ( array() !== $next_actions ) : ?>
+							<div>
+								<strong><?php esc_html_e( 'Operator next actions', 'npcink-toolbox' ); ?></strong>
+								<ul class="npcink-toolbox__usage-list">
+									<?php foreach ( $next_actions as $action ) : ?>
+										<?php if ( ! is_array( $action ) ) { continue; } ?>
+										<li>
+											<strong><?php echo esc_html( (string) ( $action['id'] ?? __( 'Review action', 'npcink-toolbox' ) ) ); ?></strong>
+											<span><?php echo esc_html( (string) ( $action['label'] ?? $action['target'] ?? '' ) ); ?></span>
+										</li>
+									<?php endforeach; ?>
+								</ul>
+							</div>
+						<?php endif; ?>
+						<?php if ( array() !== $handoff_candidates ) : ?>
+							<div>
+								<strong><?php esc_html_e( 'Core handoff candidates', 'npcink-toolbox' ); ?></strong>
+								<ul class="npcink-toolbox__usage-list">
+									<?php foreach ( $handoff_candidates as $candidate ) : ?>
+										<?php if ( ! is_array( $candidate ) ) { continue; } ?>
+										<li>
+											<strong><?php echo esc_html( (string) ( $candidate['finding_id'] ?? __( 'Handoff candidate', 'npcink-toolbox' ) ) ); ?></strong>
+											<span><?php esc_html_e( 'Planning hint only; proposal_ready=false and Core still owns review.', 'npcink-toolbox' ); ?></span>
+										</li>
+									<?php endforeach; ?>
+								</ul>
+							</div>
+						<?php endif; ?>
+					</div>
+				</details>
 			<?php endif; ?>
 			<details class="npcink-toolbox__result-details">
-				<summary><?php esc_html_e( 'Copy Cloud result JSON', 'npcink-toolbox' ); ?></summary>
+				<summary><?php esc_html_e( 'Advanced: Copy Cloud result JSON', 'npcink-toolbox' ); ?></summary>
 				<p class="description"><?php esc_html_e( 'This result is suggestion-only and does not create Core proposals or WordPress writes.', 'npcink-toolbox' ); ?></p>
 				<textarea class="large-text code" rows="12" readonly><?php echo esc_textarea( (string) wp_json_encode( $cloud_analysis, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ); ?></textarea>
 			</details>

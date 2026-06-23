@@ -339,6 +339,179 @@
 	line-height: 1.4;
 }
 
+.npcink-toolbox__ops-status-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin: 0 0 10px;
+	padding: 10px 12px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+}
+
+.npcink-toolbox__ops-status-row span {
+	display: inline-flex;
+	gap: 6px;
+	align-items: center;
+	color: #50575e;
+	font-size: 12px;
+	line-height: 1.35;
+}
+
+.npcink-toolbox__ops-status-row span:not(:last-child)::after {
+	content: "";
+	display: inline-block;
+	width: 1px;
+	height: 16px;
+	margin-left: 2px;
+	background: #dcdcde;
+}
+
+.npcink-toolbox__ops-status-row strong {
+	color: #1d2327;
+	font-weight: 600;
+}
+
+.npcink-toolbox__ops-summary-bar {
+	display: flex;
+	gap: 14px;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin: 0 0 12px;
+	padding: 12px 14px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-left: 4px solid #2271b1;
+}
+
+.npcink-toolbox__ops-summary-bar > div:first-child {
+	display: grid;
+	gap: 3px;
+	min-width: 0;
+}
+
+.npcink-toolbox__ops-summary-bar strong {
+	color: #1d2327;
+	font-size: 15px;
+	line-height: 1.35;
+}
+
+.npcink-toolbox__ops-summary-bar span {
+	color: #50575e;
+	line-height: 1.4;
+}
+
+.npcink-toolbox__ops-scope {
+	display: flex;
+	flex: 0 0 auto;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: flex-end;
+	max-width: 420px;
+}
+
+.npcink-toolbox__ops-scope span,
+.npcink-toolbox__priority-label,
+.npcink-toolbox__ops-action-line em {
+	display: inline-flex;
+	align-items: center;
+	min-height: 24px;
+	padding: 2px 7px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	color: #50575e;
+	font-size: 12px;
+	font-style: normal;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.npcink-toolbox__ops-focus {
+	display: flex;
+	gap: 8px;
+	align-items: baseline;
+	margin: 0 0 10px;
+	color: #50575e;
+}
+
+.npcink-toolbox__ops-focus strong {
+	flex: 0 0 auto;
+	color: #1d2327;
+}
+
+.npcink-toolbox__ops-priority-list {
+	display: grid;
+	gap: 8px;
+	margin: 10px 0;
+}
+
+.npcink-toolbox__ops-priority-row {
+	display: grid;
+	gap: 8px;
+	padding: 12px 14px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-left: 3px solid #2271b1;
+	border-radius: 6px;
+}
+
+.npcink-toolbox__ops-priority-main {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	gap: 10px;
+	align-items: start;
+}
+
+.npcink-toolbox__ops-priority-main h3 {
+	margin: 0 0 2px;
+	font-size: 14px;
+	line-height: 1.35;
+}
+
+.npcink-toolbox__ops-priority-main p,
+.npcink-toolbox__ops-action-line span {
+	margin: 0;
+	color: #50575e;
+	line-height: 1.4;
+}
+
+.npcink-toolbox__priority-score {
+	color: #50575e;
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
+.npcink-toolbox__ops-action-line {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	gap: 8px;
+	align-items: start;
+	padding-top: 8px;
+	border-top: 1px solid #f0f0f1;
+}
+
+.npcink-toolbox__ops-action-line strong {
+	color: #1d2327;
+	font-size: 12px;
+	line-height: 1.4;
+	text-transform: uppercase;
+}
+
+.npcink-toolbox__ops-detail-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+	margin-top: 10px;
+}
+
+.npcink-toolbox__ops-detail-grid > div {
+	min-width: 0;
+}
+
 .npcink-toolbox__example.is-ai {
 	border-left-color: #008a20;
 }
@@ -1401,6 +1574,19 @@ pre.npcink-toolbox__result {
 		grid-template-columns: 1fr;
 	}
 
+	.npcink-toolbox__ops-summary-bar {
+		display: grid;
+	}
+
+	.npcink-toolbox__ops-scope {
+		justify-content: flex-start;
+		max-width: none;
+	}
+
+	.npcink-toolbox__ops-detail-grid {
+		grid-template-columns: 1fr;
+	}
+
 	.npcink-toolbox__readiness-strip {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
@@ -1420,6 +1606,19 @@ pre.npcink-toolbox__result {
 	.npcink-toolbox__insight-details {
 		display: grid;
 		grid-template-columns: 1fr;
+	}
+
+	.npcink-toolbox__ops-priority-main,
+	.npcink-toolbox__ops-action-line {
+		grid-template-columns: 1fr;
+	}
+
+	.npcink-toolbox__ops-status-row {
+		display: grid;
+	}
+
+	.npcink-toolbox__ops-status-row span:not(:last-child)::after {
+		display: none;
 	}
 
 	.npcink-toolbox__workflow-scope {
