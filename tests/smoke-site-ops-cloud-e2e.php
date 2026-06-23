@@ -95,6 +95,32 @@ $run_id = sanitize_text_field( (string) ( $cloud_run['run_id'] ?? '' ) );
 $assert( '' !== $run_id, 'Cloud analysis returns a run id.' );
 $assert( 1 <= count( is_array( $analysis['priority_queue'] ?? null ) ? $analysis['priority_queue'] : array() ), 'Cloud analysis returns priority recommendations.' );
 $assert( 1 <= count( is_array( $analysis['trend_notes'] ?? null ) ? $analysis['trend_notes'] : array() ), 'Cloud analysis returns trend notes.' );
+$assert( is_array( $analysis['executive_summary'] ?? null ) && '' !== (string) ( $analysis['executive_summary']['headline'] ?? '' ), 'Cloud analysis returns an executive summary headline.' );
+$assert( 1 <= count( is_array( $analysis['dimension_summaries'] ?? null ) ? $analysis['dimension_summaries'] : array() ), 'Cloud analysis returns dimension summaries.' );
+$assert( 1 <= count( is_array( $analysis['semantic_ranked_findings'] ?? null ) ? $analysis['semantic_ranked_findings'] : array() ), 'Cloud analysis returns semantic ranked findings.' );
+$assert( 1 <= count( is_array( $analysis['trend_explanations'] ?? null ) ? $analysis['trend_explanations'] : array() ), 'Cloud analysis returns trend explanations.' );
+$assert( is_array( $analysis['analysis_closure'] ?? null ) && '' !== (string) ( $analysis['analysis_closure']['loop_status'] ?? '' ), 'Cloud analysis returns analysis closure state.' );
 $assert( 1 <= (int) ( $result['cloud_request_summary']['finding_count'] ?? 0 ), 'Cloud analysis echoes a bounded finding count.' );
+
+if ( defined( 'NPCINK_TOOLBOX_DIR' ) && function_exists( 'load_textdomain' ) ) {
+	if ( function_exists( 'unload_textdomain' ) ) {
+		unload_textdomain( 'npcink-toolbox', true );
+	}
+	load_textdomain( 'npcink-toolbox', NPCINK_TOOLBOX_DIR . 'languages/npcink-toolbox-zh_CN.mo' );
+}
+
+$admin_page    = new \Npcink_Toolbox\Admin_Page( $settings );
+$render_method = new ReflectionMethod( $admin_page, 'render_site_ops_cloud_analysis_result' );
+
+ob_start();
+$render_method->invoke( $admin_page, $result );
+$rendered_html = (string) ob_get_clean();
+
+$assert( false !== strpos( $rendered_html, 'Cloud 执行摘要' ), 'Rendered Cloud result exposes the Chinese executive summary label.' );
+$assert( false !== strpos( $rendered_html, 'Cloud 维度摘要' ), 'Rendered Cloud result exposes the Chinese dimension summary label.' );
+$assert( false !== strpos( $rendered_html, '语义排序详情' ), 'Rendered Cloud result exposes the Chinese semantic ranking detail label.' );
+$assert( false !== strpos( $rendered_html, '趋势解释' ), 'Rendered Cloud result exposes the Chinese trend explanation label.' );
+$assert( false !== strpos( $rendered_html, '分析闭环' ), 'Rendered Cloud result exposes the Chinese analysis closure label.' );
+$assert( false !== strpos( $rendered_html, '仅 Cloud 详情；Core 与 WordPress 写入仍由本地治理。' ), 'Rendered Cloud result keeps the Chinese local-governed boundary copy.' );
 
 echo 'Site Ops Cloud analysis E2E smoke passed: ' . $run_id . "\n";
