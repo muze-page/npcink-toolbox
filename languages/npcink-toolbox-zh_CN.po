@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Npcink Toolbox 0.1.1\n"
 "Report-Msgid-Bugs-To: https://npc.ink/\n"
 "POT-Creation-Date: 2026-06-06 00:00+0800\n"
-"PO-Revision-Date: 2026-06-07 01:20+0800\n"
+"PO-Revision-Date: 2026-06-23 10:20+0800\n"
 "Last-Translator: Npcink\n"
 "Language-Team: Npcink\n"
 "Language: zh_CN\n"
@@ -3754,3 +3754,252 @@ msgstr "工具列表"
 
 msgid "No high-confidence local article checkup issues were found."
 msgstr "本地启发式未发现高置信文章体检问题。"
+
+msgid "Operations Insights"
+msgstr "运营洞察"
+
+msgid "Build a read-only site operations brief from bounded local evidence. Findings stay suggestion-only and do not create Core proposals or WordPress writes."
+msgstr "基于有限本地证据生成只读站点运营简报。结果仅作为建议，不会创建 Core 提案或 WordPress 写入。"
+
+msgid "Operations Insights readiness"
+msgstr "运营洞察就绪状态"
+
+msgid "Local evidence"
+msgstr "本地证据"
+
+msgid "Ready to scan"
+msgstr "可扫描"
+
+msgid "Scanned"
+msgstr "已扫描"
+
+msgid "Ready on request"
+msgstr "按需可用"
+
+msgid "Optional"
+msgstr "可选"
+
+msgid "Writes"
+msgstr "写入"
+
+msgid "Disabled"
+msgstr "已禁用"
+
+msgid "Site operations brief"
+msgstr "站点运营简报"
+
+msgid "Generate a local `site_ops_insight_pack.v1` with top findings, evidence summaries, suggested actions, and handoff boundaries."
+msgstr "生成本地 `site_ops_insight_pack.v1`，包含重点发现、证据摘要、建议动作和交接边界。"
+
+msgid "Generate local insights"
+msgstr "生成本地洞察"
+
+msgid "Run Cloud analysis"
+msgstr "运行 Cloud 分析"
+
+msgid "No scan has run in this view yet. Generate a local preview when you want a current operations snapshot."
+msgstr "此视图尚未运行扫描。需要当前运营快照时，请生成本地预览。"
+
+msgid "Operations Insights views"
+msgstr "运营洞察视图"
+
+msgid "Overview"
+msgstr "概览"
+
+msgid "Findings"
+msgstr "问题清单"
+
+msgid "Cloud analysis"
+msgstr "Cloud 分析"
+
+msgid "Advanced"
+msgstr "高级"
+
+msgid "Operations Insights summary"
+msgstr "运营洞察摘要"
+
+msgid "Review %d operations findings"
+msgstr "审阅 %d 个运营问题"
+
+msgid "%1$d Core-ready planning hints, %2$d manual-review items. Local preview does not auto-call Cloud, schedule work, store a local run, create Core proposals, or write WordPress data."
+msgstr "%1$d 个 Core 规划提示，%2$d 个需人工复核项。本地预览不会自动调用 Cloud、调度任务、存储本地运行、创建 Core 提案或写入 WordPress 数据。"
+
+msgid "%d posts/pages"
+msgstr "%d 篇文章/页面"
+
+msgid "%d media"
+msgstr "%d 个媒体"
+
+msgid "%d comments"
+msgstr "%d 条评论"
+
+msgid "%d findings"
+msgstr "%d 个问题"
+
+msgid "Operations Insights charts"
+msgstr "运营洞察图表"
+
+msgid "Priority distribution"
+msgstr "优先级分布"
+
+msgid "Findings by priority"
+msgstr "按优先级统计问题"
+
+msgid "Review"
+msgstr "复核"
+
+msgid "Review path mix"
+msgstr "处理路径占比"
+
+msgid "%d Core planning"
+msgstr "%d 个 Core 规划"
+
+msgid "%d manual review"
+msgstr "%d 个人工复核"
+
+msgid "%d suggestion only"
+msgstr "%d 个仅建议"
+
+msgid "Scan scope"
+msgstr "扫描范围"
+
+msgid "Posts/pages"
+msgstr "文章/页面"
+
+msgid "Comments"
+msgstr "评论"
+
+msgid "No priority operations findings were produced from this bounded local sample."
+msgstr "这个有限本地样本未生成高优先级运营问题。"
+
+msgid "Start with"
+msgstr "优先处理"
+
+msgid "Operations finding"
+msgstr "运营问题"
+
+msgid "Next"
+msgstr "下一步"
+
+msgid "Core planning hint"
+msgstr "Core 规划提示"
+
+msgid "Manual review only"
+msgstr "仅人工复核"
+
+msgid "Impact and evidence"
+msgstr "影响和证据"
+
+msgid "Untitled item"
+msgstr "未命名项目"
+
+msgid "No evidence references were returned for this local preview."
+msgstr "本地预览未返回证据引用。"
+
+msgid "Cloud analysis has not run for this local preview. Run it only when deeper runtime/detail ranking is needed."
+msgstr "此本地预览尚未运行 Cloud 分析。只有需要更深入的运行时/详情排序时才运行。"
+
+msgid "Copy insight pack JSON"
+msgstr "复制洞察包 JSON"
+
+msgid "This local preview is not stored automatically and does not create a run, queue, Core proposal, or WordPress write."
+msgstr "本地预览不会自动存储，也不会创建运行、队列、Core 提案或 WordPress 写入。"
+
+msgid "Copy Cloud analysis request JSON"
+msgstr "复制 Cloud 分析请求 JSON"
+
+msgid "This contract is prepared for Cloud runtime analysis. Copying it does not call Cloud, schedule work, store a local run, create Core proposals, or write WordPress data."
+msgstr "此契约用于 Cloud 运行时分析。复制它不会调用 Cloud、调度任务、存储本地运行、创建 Core 提案或写入 WordPress 数据。"
+
+msgid "No local trend chart is shown because Toolbox does not store historical Operations Insights runs. Cross-run trend analysis belongs in Cloud runtime/detail output."
+msgstr "未显示本地趋势图，因为 Toolbox 不存储历史运营洞察运行。跨运行趋势分析属于 Cloud 运行时/详情输出。"
+
+msgid "Cloud analysis result"
+msgstr "Cloud 分析结果"
+
+msgid "Cloud adds runtime/detail ranking only. Review results locally before any Core handoff."
+msgstr "Cloud 只补充运行时/详情排序。任何 Core 交接前都需要在本地审阅结果。"
+
+msgid "Cloud returned %d priority items"
+msgstr "Cloud 返回 %d 个优先项"
+
+msgid "Runtime/detail output is review guidance only and does not create Core proposals or WordPress writes."
+msgstr "运行时/详情输出仅作为审阅指引，不会创建 Core 提案或 WordPress 写入。"
+
+msgid "Run: %s"
+msgstr "运行：%s"
+
+msgid "not returned"
+msgstr "未返回"
+
+msgid "Confidence: %s"
+msgstr "置信度：%s"
+
+msgid "not reported"
+msgstr "未报告"
+
+msgid "Review: local operator required"
+msgstr "审阅：需要本地运营者"
+
+msgid "Cloud analysis failed in runtime/detail."
+msgstr "Cloud 分析在运行时/详情阶段失败。"
+
+msgid "Toolbox did not retry locally, create a local run table, create Core proposals, or write WordPress data."
+msgstr "Toolbox 未在本地重试，未创建本地运行表，未创建 Core 提案，也未写入 WordPress 数据。"
+
+msgid "Cloud returned low-confidence detail."
+msgstr "Cloud 返回了低置信度详情。"
+
+msgid "Review the blockers and Site Context before treating the result as an operations priority list."
+msgstr "在把结果当作运营优先级清单之前，请先审阅阻塞项和站点上下文。"
+
+msgid "Cloud returned no priority queue or trend notes for this bounded request."
+msgstr "Cloud 未针对这个有限请求返回优先队列或趋势备注。"
+
+msgid "Cloud focus"
+msgstr "Cloud 重点"
+
+msgid "Cloud priority"
+msgstr "Cloud 优先项"
+
+msgid "Cloud-ranked suggestion"
+msgstr "Cloud 排序建议"
+
+msgid "Trend notes"
+msgstr "趋势备注"
+
+msgid "Trend note"
+msgstr "趋势备注"
+
+msgid "Blocked items, next actions, and Core handoff candidates"
+msgstr "阻塞项、下一步动作和 Core 交接候选"
+
+msgid "Cloud analysis review detail"
+msgstr "Cloud 分析审阅详情"
+
+msgid "Blocked items"
+msgstr "阻塞项"
+
+msgid "Blocked item"
+msgstr "阻塞项"
+
+msgid "Operator next actions"
+msgstr "运营者下一步动作"
+
+msgid "Review action"
+msgstr "审阅动作"
+
+msgid "Core handoff candidates"
+msgstr "Core 交接候选"
+
+msgid "Handoff candidate"
+msgstr "交接候选"
+
+msgid "Planning hint only; proposal_ready=false and Core still owns review."
+msgstr "仅为规划提示；proposal_ready=false，Core 仍负责审阅。"
+
+msgid "Advanced: Copy Cloud result JSON"
+msgstr "高级：复制 Cloud 结果 JSON"
+
+msgid "This result is suggestion-only and does not create Core proposals or WordPress writes."
+msgstr "此结果仅作为建议，不会创建 Core 提案或 WordPress 写入。"

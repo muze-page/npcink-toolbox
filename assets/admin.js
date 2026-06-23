@@ -6570,6 +6570,30 @@
 		});
 	}
 
+	function initOperationsInsightsTabs() {
+		document.querySelectorAll('[data-toolbox-ops-tabs]').forEach((workspace) => {
+			workspace.addEventListener('click', (event) => {
+				if (!(event.target instanceof Element)) {
+					return;
+				}
+
+				const button = event.target.closest('[data-toolbox-ops-target]');
+				if (!button || !workspace.contains(button)) {
+					return;
+				}
+
+				activateTarget(
+					workspace,
+					'[data-toolbox-ops-target]',
+					'[data-toolbox-ops-panel]',
+					'data-toolbox-ops-target',
+					'data-toolbox-ops-panel',
+					button.getAttribute('data-toolbox-ops-target')
+				);
+			});
+		});
+	}
+
 	function setContextField(form, key, value) {
 		const option = config.contextOption || 'npcink_toolbox_content_context';
 		const fieldName = option + '[' + key + ']';
@@ -6841,6 +6865,7 @@
 	initCloudCheckGroupSwitcher();
 	initContextSectionSwitcher();
 	initContextGroupSwitcher();
+	initOperationsInsightsTabs();
 	initContextDrafts();
 	initWebSearchPresets();
 	initNightlyCloudBatch();
