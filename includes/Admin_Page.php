@@ -633,6 +633,7 @@ final class Admin_Page {
 						<button type="button" class="npcink-toolbox__ops-tab" data-toolbox-ops-target="advanced" aria-selected="false"><?php esc_html_e( 'Advanced', 'npcink-toolbox' ); ?></button>
 					</nav>
 					<section class="npcink-toolbox__ops-panel" data-toolbox-ops-panel="overview">
+						<?php $this->render_site_ops_operator_brief( $findings, $summary, $cloud_analysis, $cloud_ready ); ?>
 						<div class="npcink-toolbox__ops-summary-bar npcink-toolbox__ops-summary-bar--compact" aria-label="<?php esc_attr_e( 'Full-site Insights summary', 'npcink-toolbox' ); ?>">
 							<div>
 								<?php /* translators: %d: number of site analysis findings. */ ?>
@@ -721,6 +722,112 @@ final class Admin_Page {
 					</section>
 				</div>
 			<?php endif; ?>
+		</section>
+		<?php
+	}
+
+	/**
+	 * @param array<int,mixed>         $findings Findings.
+	 * @param array<string,mixed>      $summary Summary payload.
+	 * @param array<string,mixed>|null $cloud_analysis Cloud analysis payload.
+	 */
+	private function render_site_ops_operator_brief( array $findings, array $summary, ?array $cloud_analysis, bool $cloud_ready ): void {
+		$queue = array();
+		foreach ( $findings as $finding ) {
+			if ( is_array( $finding ) ) {
+				$queue[] = $finding;
+			}
+			if ( count( $queue ) >= 3 ) {
+				break;
+			}
+		}
+		$deferred = array();
+		foreach ( array_slice( $findings, 3 ) as $finding ) {
+			if ( is_array( $finding ) ) {
+				$deferred[] = $finding;
+			}
+			if ( count( $deferred ) >= 2 ) {
+				break;
+			}
+		}
+		$primary = is_array( $queue[0] ?? null ) ? $queue[0] : array();
+		$primary_title = array() !== $primary ? $this->site_ops_finding_title( $primary ) : __( 'No urgent site issue found', 'npcink-toolbox' );
+		$review_count = $this->count_site_ops_findings_by_boundary( $findings, 'core_handoff_candidate' );
+		$manual_count = $this->count_site_ops_findings_by_boundary( $findings, 'manual_review_only' );
+		$cloud_result = is_array( $cloud_analysis['result'] ?? null ) ? $cloud_analysis['result'] : array();
+		$executive_summary = is_array( $cloud_result['executive_summary'] ?? null ) ? $cloud_result['executive_summary'] : array();
+		$cloud_headline = trim( (string) ( $executive_summary['headline'] ?? '' ) );
+		$cloud_has_detail = null !== $cloud_analysis;
+		?>
+		<section class="npcink-toolbox__ops-operator-brief" aria-label="<?php esc_attr_e( 'Site action brief', 'npcink-toolbox' ); ?>">
+			<div class="npcink-toolbox__ops-operator-brief-header">
+				<div>
+					<h3><?php esc_html_e( 'Site action brief', 'npcink-toolbox' ); ?></h3>
+					<p>
+						<?php
+						printf(
+							/* translators: 1: primary finding title, 2: review-workflow count, 3: manual-check count. */
+							esc_html__( 'Start with %1$s. %2$d items may need a review workflow and %3$d are manual checks.', 'npcink-toolbox' ),
+							esc_html( $primary_title ),
+							(int) $review_count,
+							(int) $manual_count
+						);
+						?>
+					</p>
+					<?php if ( '' !== $cloud_headline ) : ?>
+						<p><?php echo esc_html( $this->site_ops_dynamic_label( $cloud_headline ) ); ?></p>
+					<?php endif; ?>
+				</div>
+				<span class="npcink-toolbox__ops-brief-source">
+					<?php echo esc_html( $cloud_has_detail ? __( 'AI detail added', 'npcink-toolbox' ) : __( 'Local brief', 'npcink-toolbox' ) ); ?>
+				</span>
+			</div>
+			<div class="npcink-toolbox__ops-operator-brief-grid">
+				<div>
+					<strong><?php esc_html_e( 'Do first', 'npcink-toolbox' ); ?></strong>
+					<?php if ( array() === $queue ) : ?>
+						<p><?php esc_html_e( 'No priority task was produced by this bounded scan.', 'npcink-toolbox' ); ?></p>
+					<?php else : ?>
+						<ol>
+							<?php foreach ( $queue as $finding ) : ?>
+								<li>
+									<b><?php echo esc_html( $this->site_ops_finding_title( $finding ) ); ?></b>
+									<span><?php echo esc_html( $this->site_ops_finding_recommended_action( $finding ) ); ?></span>
+								</li>
+							<?php endforeach; ?>
+						</ol>
+					<?php endif; ?>
+				</div>
+				<div>
+					<strong><?php esc_html_e( 'Defer for now', 'npcink-toolbox' ); ?></strong>
+					<?php if ( array() === $deferred ) : ?>
+						<p><?php esc_html_e( 'Do not expand scope until the first tasks are reviewed.', 'npcink-toolbox' ); ?></p>
+					<?php else : ?>
+						<ul>
+							<?php foreach ( $deferred as $finding ) : ?>
+								<li><?php echo esc_html( $this->site_ops_finding_title( $finding ) ); ?></li>
+							<?php endforeach; ?>
+						</ul>
+					<?php endif; ?>
+				</div>
+				<div>
+					<strong><?php esc_html_e( 'AI assist', 'npcink-toolbox' ); ?></strong>
+					<?php if ( $cloud_has_detail ) : ?>
+						<p><?php esc_html_e( 'AI summary and ranking are available in the Cloud analysis tab. Use them to confirm priority before expanding work.', 'npcink-toolbox' ); ?></p>
+					<?php elseif ( $cloud_ready ) : ?>
+						<p><?php esc_html_e( 'Need a clearer explanation or semantic ranking? Ask AI for a deeper summary after reviewing the local top items.', 'npcink-toolbox' ); ?></p>
+						<a class="button button-small" href="<?php echo esc_url( $this->site_ops_cloud_analysis_url() ); ?>"><?php esc_html_e( 'Ask AI to summarize deeper', 'npcink-toolbox' ); ?></a>
+					<?php else : ?>
+						<p><?php esc_html_e( 'Cloud is not ready, so this brief uses local rules only. Connect Cloud when you need AI summary or semantic ranking.', 'npcink-toolbox' ); ?></p>
+					<?php endif; ?>
+				</div>
+				<div>
+					<strong><?php esc_html_e( 'Close the loop', 'npcink-toolbox' ); ?></strong>
+					<p><?php esc_html_e( 'Open the affected examples, decide manual handling or review workflow, then leave evidence in the normal editorial path. Nothing changes automatically.', 'npcink-toolbox' ); ?></p>
+					<?php /* translators: %d: number of scanned posts and pages. */ ?>
+					<span><?php printf( esc_html__( 'Current scan: %d posts/pages.', 'npcink-toolbox' ), (int) ( $summary['scanned_posts'] ?? 0 ) ); ?></span>
+				</div>
+			</div>
 		</section>
 		<?php
 	}

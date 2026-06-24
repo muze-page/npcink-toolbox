@@ -548,6 +548,104 @@
 	color: #1d2327;
 }
 
+.npcink-toolbox__ops-operator-brief {
+	display: grid;
+	gap: 12px;
+	padding: 14px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid #2271b1;
+	border-radius: 6px;
+}
+
+.npcink-toolbox__ops-operator-brief-header {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	justify-content: space-between;
+}
+
+.npcink-toolbox__ops-operator-brief-header h3 {
+	margin: 0 0 4px;
+	color: #1d2327;
+	font-size: 16px;
+	line-height: 1.35;
+}
+
+.npcink-toolbox__ops-operator-brief-header p {
+	margin: 0;
+	color: #50575e;
+	line-height: 1.45;
+}
+
+.npcink-toolbox__ops-brief-source {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	min-height: 24px;
+	padding: 2px 8px;
+	background: #eef6fc;
+	border-radius: 999px;
+	color: #135e96;
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
+.npcink-toolbox__ops-operator-brief-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr));
+	gap: 10px;
+}
+
+.npcink-toolbox__ops-operator-brief-grid > div {
+	display: grid;
+	align-content: start;
+	gap: 6px;
+	min-width: 0;
+	padding: 10px;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.npcink-toolbox__ops-operator-brief-grid strong {
+	color: #1d2327;
+	font-size: 13px;
+	line-height: 1.35;
+}
+
+.npcink-toolbox__ops-operator-brief-grid p,
+.npcink-toolbox__ops-operator-brief-grid span {
+	margin: 0;
+	color: #50575e;
+	line-height: 1.4;
+}
+
+.npcink-toolbox__ops-operator-brief-grid ol,
+.npcink-toolbox__ops-operator-brief-grid ul {
+	display: grid;
+	gap: 6px;
+	margin: 0;
+	padding-left: 18px;
+}
+
+.npcink-toolbox__ops-operator-brief-grid li {
+	margin: 0;
+	color: #50575e;
+	line-height: 1.4;
+}
+
+.npcink-toolbox__ops-operator-brief-grid li b {
+	display: block;
+	color: #1d2327;
+	font-weight: 700;
+}
+
+.npcink-toolbox__ops-operator-brief-grid .button {
+	width: fit-content;
+}
+
 .npcink-toolbox__ops-decision-queue {
 	display: grid;
 	gap: 10px;
@@ -2133,6 +2231,14 @@ pre.npcink-toolbox__result {
 	.npcink-toolbox__ops-status-row,
 	.npcink-toolbox__ops-status-actions {
 		justify-content: flex-start;
+	}
+
+	.npcink-toolbox__ops-operator-brief-header {
+		display: grid;
+	}
+
+	.npcink-toolbox__ops-operator-brief-grid {
+		grid-template-columns: 1fr;
 	}
 
 	.npcink-toolbox__ops-priority-main,

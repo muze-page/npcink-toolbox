@@ -4691,6 +4691,54 @@ msgstr "选择任何后续工作流之前都需要运营者判断。"
 msgid "No automatic action, proposal, queue, or WordPress write is created."
 msgstr "不会创建自动动作、提案、队列或 WordPress 写入。"
 
+msgid "Site action brief"
+msgstr "站点待办摘要"
+
+msgid "Start with %1$s. %2$d items may need a review workflow and %3$d are manual checks."
+msgstr "先从「%1$s」开始。%2$d 个问题可能需要审核流程，%3$d 个适合人工检查。"
+
+msgid "AI detail added"
+msgstr "已加入 AI 详情"
+
+msgid "Local brief"
+msgstr "本地摘要"
+
+msgid "Do first"
+msgstr "先做这些"
+
+msgid "No priority task was produced by this bounded scan."
+msgstr "这次有限扫描没有生成优先任务。"
+
+msgid "Defer for now"
+msgstr "暂时不做"
+
+msgid "Do not expand scope until the first tasks are reviewed."
+msgstr "先把前几个任务审阅完，再扩大处理范围。"
+
+msgid "AI assist"
+msgstr "AI 辅助"
+
+msgid "AI summary and ranking are available in the Cloud analysis tab. Use them to confirm priority before expanding work."
+msgstr "Cloud 分析页已有 AI 摘要和排序。扩大处理范围前，先用它确认优先级。"
+
+msgid "Need a clearer explanation or semantic ranking? Ask AI for a deeper summary after reviewing the local top items."
+msgstr "需要更清楚的解释或语义排序时，先审阅本地优先项，再让 AI 深度总结。"
+
+msgid "Cloud is not ready, so this brief uses local rules only. Connect Cloud when you need AI summary or semantic ranking."
+msgstr "Cloud 尚未就绪，因此此摘要只使用本地规则。需要 AI 摘要或语义排序时，请先连接 Cloud。"
+
+msgid "Close the loop"
+msgstr "形成闭环"
+
+msgid "Open the affected examples, decide manual handling or review workflow, then leave evidence in the normal editorial path. Nothing changes automatically."
+msgstr "打开受影响示例，决定人工处理或进入审核流程，并在正常编辑路径中留下依据。不会自动更改任何内容。"
+
+msgid "Current scan: %d posts/pages."
+msgstr "当前扫描：%d 篇文章/页面。"
+
+msgid "No urgent site issue found"
+msgstr "未发现紧急站点问题"
+
 msgid "Article narration"
 msgstr "文章朗读"
 

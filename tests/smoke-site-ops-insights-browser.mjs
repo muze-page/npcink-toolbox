@@ -230,6 +230,10 @@ try {
 
 		const overviewText = await page.locator('[data-toolbox-ops-panel="overview"]').innerText();
 		const overviewRawText = await page.locator('[data-toolbox-ops-panel="overview"]').textContent();
+		assert(/Site action brief|站点待办摘要/.test(overviewText), 'Overview starts with a site action brief.');
+		assert(/Do first|先做这些/.test(overviewText) && /Defer for now|暂时不做/.test(overviewText), 'Site action brief separates first tasks from deferred scope.');
+		assert(/AI assist|AI 辅助/.test(overviewText) && /Ask AI to summarize deeper|让 AI 深度总结/.test(overviewText), 'Site action brief makes optional AI assist visible without auto-running it.');
+		assert(/Close the loop|形成闭环/.test(overviewText), 'Site action brief tells the operator how to close the loop.');
 		assert(/Handle these first|优先处理这些问题|先处理/.test(overviewText), 'Overview tells the operator where to start.');
 		assert(/Why it matters|为什么重要|为何重要/.test(overviewText) && /Affected examples|受影响示例/.test(overviewText), 'Decision queue explains why each issue matters and who is affected.');
 		assert(/First safe action|第一步安全操作|先做什么/.test(overviewText) && /Handling|处理方式/.test(overviewText), 'Decision queue explains the first safe action and handling path.');
