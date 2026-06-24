@@ -3012,6 +3012,8 @@ final class Provider_Client {
 		$model_id                = sanitize_text_field( (string) ( $candidate['model_id'] ?? ( $source_audio_generation['model_id'] ?? '' ) ) );
 		$provider                = sanitize_key( (string) ( $candidate['provider'] ?? ( $source_audio_generation['provider'] ?? 'cloud_audio' ) ) );
 		$trace_id                = sanitize_text_field( (string) ( $source_audio_generation['trace_id'] ?? ( $source_audio_generation['trace'] ?? '' ) ) );
+		$import_media            = array_key_exists( 'import_media', $input ) ? ! empty( $input['import_media'] ) : true;
+		$media_file_name         = sanitize_text_field( (string) ( $input['media_file_name'] ?? '' ) );
 		$planner_id              = 'npcink-abilities-toolkit/build-article-audio-adoption-plan';
 		$write_ability_id        = 'npcink-abilities-toolkit/adopt-article-audio';
 		$planner_available       = $this->registered_ability_callable( $planner_id );
@@ -3089,6 +3091,7 @@ final class Provider_Client {
 					'voice_id'    => $voice_id,
 					'trace_id'    => $trace_id,
 					'url_host'    => sanitize_text_field( (string) wp_parse_url( $audio_url, PHP_URL_HOST ) ),
+					'import_media' => $import_media,
 					'script_hash' => '' !== $script ? md5( $script ) : '',
 					'source_content_hash' => $source_content_hash,
 					'source_word_count' => $source_word_count,
@@ -3102,6 +3105,7 @@ final class Provider_Client {
 					'candidate_type'   => $candidate_type,
 					'audio_title'      => $title,
 					'audio_url'        => $audio_url,
+					'storage_mode'     => $import_media ? 'wordpress_media_library' : 'remote_url',
 					'meta_projection'  => $meta_projection,
 					'audio_freshness'  => array(
 						'initial_status'      => '' !== $source_content_hash ? 'current' : 'unknown',
@@ -3133,6 +3137,8 @@ final class Provider_Client {
 						'provider'            => $provider,
 						'model'               => $model_id,
 						'trace_id'            => $trace_id,
+						'import_media'        => $import_media,
+						'media_file_name'     => $media_file_name,
 						'dry_run'             => true,
 						'commit'              => false,
 						'idempotency_key'     => $idempotency_key,
@@ -3141,7 +3147,7 @@ final class Provider_Client {
 					'requires_approval' => true,
 					'commit_execution'  => false,
 					'proposal_ready'    => $proposal_ready,
-					'reason'            => __( 'Adopting generated article audio writes only reviewed playback metadata, so it must go through Core governance before Adapter execution.', 'npcink-toolbox' ),
+					'reason'            => __( 'Adopting generated article audio imports the reviewed audio into the local media library when requested and writes playback metadata through Core governance before Adapter execution.', 'npcink-toolbox' ),
 				),
 			),
 			'blocked_actions'          => array(

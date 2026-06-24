@@ -3613,7 +3613,7 @@
 		]);
 		const blocks = [
 			createElement('h4', { key: 'audio-title' }, section && section.candidate_type === 'article_audio_summary' ? __('Audio summary', 'npcink-toolbox') : __('Article narration', 'npcink-toolbox')),
-			createElement('p', { key: 'audio-help', className: 'npcink-toolbox-editor-support__muted' }, __('Review-only audio candidate. Toolbox does not import media, insert audio, or change the post.', 'npcink-toolbox')),
+			createElement('p', { key: 'audio-help', className: 'npcink-toolbox-editor-support__muted' }, __('Review-only audio candidate. Use audio sends adoption through Core; the governed ability can import the audio into the local media library.', 'npcink-toolbox')),
 		];
 		if (providerParts.length) {
 			blocks.push(createElement('p', { key: 'audio-provider', className: 'npcink-toolbox-editor-support__muted' }, providerParts.join(' / ')));
@@ -6054,6 +6054,8 @@
 				candidate_type: section && section.candidate_type ? section.candidate_type : (activeFlowIntent || 'article_narration'),
 				audio_candidate: item || {},
 				audio_url: item && (item.url || item.audio_url) ? String(item.url || item.audio_url) : '',
+				import_media: true,
+				media_file_name: item && item.name ? String(item.name) : '',
 				script: section && section.script ? String(section.script) : '',
 				source_content: postContext.content || '',
 				source_word_count: wordCount(postContext.content || ''),

@@ -192,9 +192,9 @@ execute writes.
 planner target for one reviewed narration or audio-summary candidate. Toolbox
 may build an `article_audio_adoption_plan.v1` envelope that names the target
 write ability, playback metadata projection, source-content fingerprint, and
-evidence refs, but media import, playback metadata writes, proposal creation,
-approval, preflight, audit, regeneration, and final execution remain outside
-Toolbox.
+evidence refs. The plan may request local media-library import, but media
+import, playback metadata writes, proposal creation, approval, preflight, audit,
+regeneration, and final execution remain outside Toolbox.
 `npcink-abilities-toolkit/build-image-candidate-review-artifact` can normalize
 already retrieved image candidates into `image_candidate_review.v1` and
 `recommendation_candidate.v1` projections for editor or third-party review

@@ -182,8 +182,10 @@ not a WordPress write route and not a Core proposal execution route.
 `/flows/article-audio-adoption-plan` prepares a Core-governed
 `article_audio_adoption_plan.v1` from one reviewed audio candidate. It may
 describe playback metadata projection, evidence refs, and the target Toolkit
-audio adoption ability, but it must not import media, update post meta, create
-or approve a Core proposal, execute a write ability, or patch post content.
+audio adoption ability, including whether the adopted audio should be imported
+into the local WordPress media library. Toolbox itself must not import media,
+update post meta, create or approve a Core proposal, execute a write ability, or
+patch post content.
 It may include lightweight source-content freshness evidence such as content
 hash, word count, and generation timestamp so Core/Abilities can later decide
 whether the adopted audio is current, lightly drifted, review-recommended, or
