@@ -817,6 +817,34 @@
 		}
 	}
 
+	async function postArticleAudioAdoptionToAdapter(plan, planInput) {
+		const bridge = await postJsonToUrl(adapterRestUrl('proposals/from-plan'), {
+			plan_ability_id: 'npcink-abilities-toolkit/build-article-audio-adoption-plan',
+			plan,
+			plan_input: planInput,
+			caller: {
+				surface: 'toolbox_editor_content_support',
+				external_thread_id: 'toolbox-editor-article-audio',
+				source: 'article_audio_adoption_plan',
+			},
+		});
+		const proposalId = extractProposalId(bridge, 0);
+		if (!proposalId) {
+			return { bridge, proposal_id: '', execution_error: {
+				message: __('Core did not create an executable article audio adoption proposal from this plan.', 'npcink-toolbox'),
+			} };
+		}
+		try {
+			const execution = await postJsonToUrl(
+				adapterRestUrl('proposals/' + encodeURIComponent(proposalId) + '/approve-and-execute'),
+				{ note: __('Approved from the post editor article audio adoption action.', 'npcink-toolbox') }
+			);
+			return { bridge, proposal_id: proposalId, execution };
+		} catch (executionError) {
+			return { bridge, proposal_id: proposalId, execution_error: executionError };
+		}
+	}
+
 	function usePostContext() {
 		return useSelect((select) => {
 			const editor = select('core/editor');
@@ -3543,6 +3571,37 @@
 		);
 	}
 
+	function renderAudioAdoptionResult(result) {
+		if (!result || typeof result !== 'object') {
+			return null;
+		}
+		const core = result.core && typeof result.core === 'object' ? result.core : null;
+		const execution = core && core.execution && typeof core.execution === 'object' ? core.execution : null;
+		const executionError = core && core.execution_error ? core.execution_error : null;
+		const proposalId = core && core.proposal_id ? String(core.proposal_id) : '';
+		const adopted = execution && execution.success !== false;
+		const statusText = adopted
+			? __('Article audio adopted.', 'npcink-toolbox')
+			: (proposalId ? __('Core proposal created. Automatic adoption did not complete.', 'npcink-toolbox') : __('Article audio adoption plan prepared.', 'npcink-toolbox'));
+		const rows = [];
+		if (proposalId) {
+			rows.push({ name: __('Proposal', 'npcink-toolbox'), detail: proposalId });
+		}
+		if (execution && execution.ability_id) {
+			rows.push({ name: __('Ability', 'npcink-toolbox'), detail: String(execution.ability_id) });
+		}
+		if (executionError) {
+			rows.push({ name: __('Next step', 'npcink-toolbox'), detail: executionError.message || __('Open Core review and complete the approved adoption from there.', 'npcink-toolbox') });
+		}
+		return createElement(
+			'div',
+			{ className: 'npcink-toolbox-editor-support__handoff-result' + (adopted ? ' is-ok' : '') },
+			createElement('strong', null, statusText),
+			rows.length ? renderItems(rows, '') : null,
+			!adopted ? renderAudioAdoptionPlan(result.plan || result) : null
+		);
+	}
+
 	function renderAudioGenerationSection(section, audioAdoptionControls) {
 		const items = audioGenerationItems(section);
 		const script = String(section && section.script ? section.script : '').trim();
@@ -3594,7 +3653,7 @@
 							disabled: Boolean(audioAdoptionControls.running),
 							onClick: () => audioAdoptionControls.prepare(item, section, adoptionKey),
 						},
-						audioAdoptionControls.running === adoptionKey ? __('Preparing Core review', 'npcink-toolbox') : __('Prepare Core review', 'npcink-toolbox')
+						audioAdoptionControls.running === adoptionKey ? __('Adopting audio', 'npcink-toolbox') : __('Use audio', 'npcink-toolbox')
 					) : null
 				);
 			})
@@ -3603,7 +3662,7 @@
 			blocks.push(createElement('p', { key: 'audio-adoption-error', className: 'npcink-toolbox-editor-support__error' }, audioAdoptionControls.error));
 		}
 		if (audioAdoptionControls && audioAdoptionControls.result) {
-			blocks.push(createElement('div', { key: 'audio-adoption-result' }, renderAudioAdoptionPlan(audioAdoptionControls.result.plan || audioAdoptionControls.result)));
+			blocks.push(createElement('div', { key: 'audio-adoption-result' }, renderAudioAdoptionResult(audioAdoptionControls.result)));
 		}
 		return createElement('div', { className: 'npcink-toolbox-editor-support__audio-generation' }, blocks);
 	}
@@ -6022,10 +6081,18 @@
 			setAudioAdoptionResult(null);
 			try {
 				const plan = await postJson('flows/article-audio-adoption-plan', planInput);
-				setAudioAdoptionResult({ plan, plan_input: planInput });
-				submitContentImplicitFeedback('article_audio_adoption_plan', plan && plan.proposal_ready === false ? 'edited_before_accept' : 'accepted', ['core_handoff_prepared']);
+				let core = null;
+				if (plan && plan.proposal_ready !== false) {
+					try {
+						core = await postArticleAudioAdoptionToAdapter(plan, planInput);
+					} catch (coreError) {
+						core = { bridge: null, proposal_id: '', execution_error: coreError };
+					}
+				}
+				setAudioAdoptionResult({ plan, plan_input: planInput, core });
+				submitContentImplicitFeedback('article_audio_adoption_plan', plan && plan.proposal_ready === false ? 'edited_before_accept' : 'accepted', [core && core.execution && core.execution.success !== false ? 'core_handoff_executed' : 'core_handoff_prepared']);
 			} catch (requestError) {
-				setAudioAdoptionError(requestError && requestError.message ? requestError.message : __('Could not prepare the article audio Core review plan.', 'npcink-toolbox'));
+				setAudioAdoptionError(requestError && requestError.message ? requestError.message : __('Could not adopt the article audio candidate through Core.', 'npcink-toolbox'));
 			} finally {
 				setAudioAdoptionRunning('');
 			}
