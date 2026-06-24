@@ -28,8 +28,10 @@ follow-up path is allowed.
 1. **Scan local data.** Toolbox builds one current
    `site_ops_insight_pack.v1` from bounded WordPress data. This step is local,
    synchronous, and read-only.
-2. **Read the priority queue.** The Overview, charts, dimensions, findings, and
-   evidence tabs show the strongest current issues first.
+2. **Read the priority queue.** The Overview starts with a plain-language action
+   brief, the first few issues, and a treatment path. Scan scope, charts,
+   dimensions, evidence, JSON, and Cloud detail stay behind disclosure or
+   secondary tabs so ordinary operators can start with the next decision.
 3. **Add Cloud detail when useful.** If Cloud is connected and the administrator
    explicitly runs analysis, Toolbox sends a privacy-minimized
    `site_ops_cloud_analysis_request.v1` to Cloud runtime/detail and renders the
@@ -49,6 +51,9 @@ follow-up path is allowed.
   selected.
 - Advanced JSON remains available for debugging and handoff inspection, but the
   default UI starts with the operational priority queue.
+- Coverage metrics and current-run charts remain available, but they are not
+  the default first task. They support audit and orientation after the operator
+  has seen what to handle first.
 
 ## Boundary
 

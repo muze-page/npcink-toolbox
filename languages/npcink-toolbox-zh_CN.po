@@ -4559,6 +4559,12 @@ msgstr "先处理 %d 个站点问题"
 msgid "The report found %1$d items that may need a review workflow and %2$d items that are manual checks. Nothing is changed automatically."
 msgstr "报告发现 %1$d 个可能需要审核流程处理的问题，以及 %2$d 个适合人工检查的问题。不会自动更改任何内容。"
 
+msgid "View scan scope and charts"
+msgstr "查看扫描范围和图表"
+
+msgid "%1$d posts/pages, %2$d media, %3$d comments, %4$d findings"
+msgstr "%1$d 篇文章/页面，%2$d 个媒体，%3$d 条评论，%4$d 个问题"
+
 msgid "Handle these first"
 msgstr "优先处理这些问题"
 

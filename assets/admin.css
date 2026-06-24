@@ -509,6 +509,53 @@
 	line-height: 1.4;
 }
 
+.npcink-toolbox__ops-scan-details {
+	margin: 2px 0 12px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+}
+
+.npcink-toolbox__ops-scan-details summary {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 38px;
+	padding: 8px 12px;
+	color: #1d2327;
+	cursor: pointer;
+	line-height: 1.35;
+}
+
+.npcink-toolbox__ops-scan-details summary:hover {
+	background: #f6f7f7;
+}
+
+.npcink-toolbox__ops-scan-details summary strong {
+	font-size: 13px;
+}
+
+.npcink-toolbox__ops-scan-details summary span {
+	color: #646970;
+	font-size: 12px;
+}
+
+.npcink-toolbox__ops-scan-details[open] {
+	padding-bottom: 12px;
+}
+
+.npcink-toolbox__ops-scan-details[open] summary {
+	margin-bottom: 10px;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.npcink-toolbox__ops-scan-details > .npcink-toolbox__ops-summary-bar,
+.npcink-toolbox__ops-scan-details > .npcink-toolbox__ops-chart-grid {
+	margin-right: 12px;
+	margin-left: 12px;
+}
+
 .npcink-toolbox__ops-scope {
 	display: flex;
 	flex: 0 0 auto;
@@ -2338,6 +2385,11 @@ pre.npcink-toolbox__result {
 
 	.npcink-toolbox__ops-path-head {
 		display: grid;
+	}
+
+	.npcink-toolbox__ops-scan-details summary {
+		display: grid;
+		justify-content: stretch;
 	}
 
 	.npcink-toolbox__ops-priority-main,

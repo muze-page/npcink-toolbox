@@ -557,8 +557,6 @@ final class Admin_Page {
 		$summary       = isset( $pack['summary'] ) && is_array( $pack['summary'] ) ? $pack['summary'] : array();
 		$findings      = isset( $pack['top_findings'] ) && is_array( $pack['top_findings'] ) ? array_slice( $pack['top_findings'], 0, 8 ) : array();
 		$finding_count = count( $findings );
-		$core_handoff_count = $this->count_site_ops_findings_by_boundary( $findings, 'core_handoff_candidate' );
-		$manual_review_count = $this->count_site_ops_findings_by_boundary( $findings, 'manual_review_only' );
 		$has_cloud_analysis = null !== $cloud_analysis;
 		?>
 		<div class="npcink-toolbox__panel-header">
@@ -634,36 +632,27 @@ final class Admin_Page {
 					</nav>
 					<section class="npcink-toolbox__ops-panel" data-toolbox-ops-panel="overview">
 						<?php $this->render_site_ops_operator_brief( $findings, $summary, $cloud_analysis, $cloud_ready ); ?>
+						<?php $this->render_site_ops_decision_queue( $findings ); ?>
 						<?php $this->render_site_ops_handling_path_panel( $findings ); ?>
-						<div class="npcink-toolbox__ops-summary-bar npcink-toolbox__ops-summary-bar--compact" aria-label="<?php esc_attr_e( 'Full-site Insights summary', 'npcink-toolbox' ); ?>">
-							<div>
-								<?php /* translators: %d: number of site analysis findings. */ ?>
-								<strong><?php printf( esc_html__( 'Start with %d site issues', 'npcink-toolbox' ), (int) min( 3, $finding_count ) ); ?></strong>
+						<details class="npcink-toolbox__ops-scan-details">
+							<summary>
+								<strong><?php esc_html_e( 'View scan scope and charts', 'npcink-toolbox' ); ?></strong>
 								<span>
 									<?php
 									printf(
-										/* translators: 1: number of review-workflow candidates, 2: number of manual-check items. */
-										esc_html__( 'The report found %1$d items that may need a review workflow and %2$d items that are manual checks. Nothing is changed automatically.', 'npcink-toolbox' ),
-										(int) $core_handoff_count,
-										(int) $manual_review_count
+										/* translators: 1: number of scanned posts/pages, 2: number of scanned media items, 3: number of sampled comments, 4: number of findings. */
+										esc_html__( '%1$d posts/pages, %2$d media, %3$d comments, %4$d findings', 'npcink-toolbox' ),
+										(int) ( $summary['scanned_posts'] ?? 0 ),
+										(int) ( $summary['scanned_media'] ?? 0 ),
+										(int) ( $summary['recent_comment_sample'] ?? 0 ),
+										(int) ( $summary['top_finding_count'] ?? $finding_count )
 									);
 									?>
 								</span>
-							</div>
-							<div class="npcink-toolbox__ops-scope">
-								<?php /* translators: %d: number of scanned posts and pages. */ ?>
-								<span><?php printf( esc_html__( '%d posts/pages', 'npcink-toolbox' ), (int) ( $summary['scanned_posts'] ?? 0 ) ); ?></span>
-								<?php /* translators: %d: number of scanned media items. */ ?>
-								<span><?php printf( esc_html__( '%d media', 'npcink-toolbox' ), (int) ( $summary['scanned_media'] ?? 0 ) ); ?></span>
-								<?php /* translators: %d: number of sampled comments. */ ?>
-								<span><?php printf( esc_html__( '%d comments', 'npcink-toolbox' ), (int) ( $summary['recent_comment_sample'] ?? 0 ) ); ?></span>
-								<?php /* translators: %d: number of site analysis findings. */ ?>
-								<span><?php printf( esc_html__( '%d findings', 'npcink-toolbox' ), (int) ( $summary['top_finding_count'] ?? 0 ) ); ?></span>
-							</div>
-						</div>
-						<?php $this->render_site_ops_decision_queue( $findings ); ?>
-						<?php $this->render_site_ops_local_analysis_summary( $summary, $findings ); ?>
-						<?php $this->render_site_ops_visual_summary( $summary, $findings ); ?>
+							</summary>
+							<?php $this->render_site_ops_local_analysis_summary( $summary, $findings ); ?>
+							<?php $this->render_site_ops_visual_summary( $summary, $findings ); ?>
+						</details>
 						<?php if ( array() === $findings ) : ?>
 							<div class="npcink-toolbox__result-notice is-success"><?php esc_html_e( 'No priority site analysis findings were produced from this bounded local sample.', 'npcink-toolbox' ); ?></div>
 						<?php endif; ?>
