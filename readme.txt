@@ -81,19 +81,31 @@ Npcink Toolbox can contact external services only after an administrator uses a
 feature that requires the connected service or configures the related runtime.
 The plugin does not load third-party JavaScript or CSS from those services.
 
-= Connected Cloud runtime =
+= Npcink Cloud runtime =
 
 Used for Cloud-managed web search, image-source candidates, site knowledge
 search/sync/status, hosted AI content-support suggestions, reviewed AI image
 candidates, and Pro Cloud Runtime inspection details.
 
-Npcink Toolbox does not include or hard-code a Cloud service endpoint. The
-external service is the Cloud runtime configured by the site administrator
-through a companion connector such as Npcink Cloud Addon, or by the host through
-the documented runtime filters. The configured Cloud service or host runtime is
-responsible for its own terms of service, privacy policy, account/key issuance,
-data retention, and provider subprocessors. Site administrators should review
-that configured service's terms and privacy policy before connecting it to
+Npcink Toolbox is designed to work with Npcink Cloud, the official Npcink hosted
+runtime service. The plugin does not include or hard-code a Cloud service
+endpoint. A site administrator connects to Npcink Cloud through a companion
+connector such as Npcink Cloud Addon, or a host may provide an equivalent
+runtime through documented filters.
+
+Npcink Cloud is responsible for account/key issuance, service terms, privacy
+policy, data retention, hosted runtime execution, and any provider subprocessors
+used behind the Cloud runtime. Site administrators should review these service
+documents before connecting a WordPress site to Npcink Cloud:
+
+Terms of Service: https://cloud.npc.ink/terms/en/terms.html
+Privacy Policy: https://cloud.npc.ink/terms/en/privacy.html
+Data Retention: https://cloud.npc.ink/terms/en/data-retention.html
+
+If a site host configures a non-Npcink runtime through Toolbox filters, that host
+runtime is responsible for its own terms of service, privacy policy, data
+retention, account/key issuance, and provider subprocessors. Site administrators
+should review the configured host runtime's policies before connecting it to
 Toolbox.
 
 Data that may be sent depends on the feature used and may include the submitted
