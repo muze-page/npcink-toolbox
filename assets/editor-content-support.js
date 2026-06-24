@@ -27,6 +27,8 @@
 	const IMAGE_SOURCE_PICKER_SELECTED_EVENT = 'npcink-toolbox:image-source-selected';
 	const PROGRESSIVE_RECOMMENDATION_TIMEOUT_MS = 2500;
 	const PROGRESSIVE_RECOMMENDATION_DEBOUNCE_MS = 1600;
+	const IMAGE_SOURCE_FAST_TIMEOUT_MS = 8000;
+	const IMAGE_SOURCE_AUTO_FALLBACK_MAX_ATTEMPTS = 2;
 	const IMAGE_RESULT_CACHE_TTL = 5 * 60 * 1000;
 	const IMAGE_RESULT_CACHE_MAX_ENTRIES = 20;
 	const IMAGE_CANDIDATE_TARGET_COUNT = 9;
@@ -414,7 +416,7 @@
 		return postJsonToUrl(joinRestUrl(config.restUrl, path), payload);
 	}
 
-	async function postJsonWithTimeout(path, payload, timeoutMs) {
+	async function postJsonWithTimeout(path, payload, timeoutMs, timeoutMessage, timeoutCode) {
 		if (!timeoutMs || typeof window === 'undefined' || typeof window.AbortController !== 'function') {
 			return postJson(path, payload);
 		}
@@ -438,14 +440,24 @@
 		} catch (error) {
 			if (error && error.name === 'AbortError') {
 				throw {
-					code: 'npcink_toolbox_progressive_timeout',
-					message: __('Local suggestions timed out. Showing cached suggestions if available.', 'npcink-toolbox'),
+					code: timeoutCode || 'npcink_toolbox_progressive_timeout',
+					message: timeoutMessage || __('Local suggestions timed out. Showing cached suggestions if available.', 'npcink-toolbox'),
 				};
 			}
 			throw error;
 		} finally {
 			window.clearTimeout(timeout);
 		}
+	}
+
+	async function postImageCandidatesFastFirst(payload) {
+		return postJsonWithTimeout(
+			'image-candidates',
+			payload,
+			IMAGE_SOURCE_FAST_TIMEOUT_MS,
+			__('Cloud image search is taking too long. Try a shorter query or refresh again.', 'npcink-toolbox'),
+			'npcink_toolbox_image_source_timeout'
+		);
 	}
 
 	function submitImplicitAgentFeedback(payload) {
@@ -5954,8 +5966,10 @@
 						refresh_variant: refreshVariant,
 						visual_context: buildImageVisualContext(postContext, activeImageMode, operatorInstruction, imagePickerContextOverride(activePicker), activePicker.imageUse, refreshVariant),
 					};
-					let result = await postJson('image-candidates', requestPayload);
-					const fallbackQueries = !extractImageCandidates(result).length ? imageAutoFallbackQueries(result, query, activePicker) : [];
+					let result = await postImageCandidatesFastFirst(requestPayload);
+					const fallbackQueries = !extractImageCandidates(result).length
+						? imageAutoFallbackQueries(result, query, activePicker).slice(0, IMAGE_SOURCE_AUTO_FALLBACK_MAX_ATTEMPTS)
+						: [];
 					for (let fallbackIndex = 0; fallbackIndex < fallbackQueries.length; fallbackIndex += 1) {
 						const fallbackQuery = fallbackQueries[fallbackIndex];
 						if (!fallbackQuery) {
@@ -5971,7 +5985,7 @@
 							refresh_variant: refreshVariant,
 							visual_context: buildImageVisualContext(postContext, activeImageMode, fallbackQuery, imagePickerContextOverride(activePicker), activePicker.imageUse, refreshVariant),
 						};
-						const fallbackResult = await postJson('image-candidates', fallbackPayload);
+						const fallbackResult = await postImageCandidatesFastFirst(fallbackPayload);
 						if (extractImageCandidates(fallbackResult).length) {
 							result = fallbackResult;
 							requestPayload = fallbackPayload;
@@ -6046,7 +6060,7 @@
 						refresh_variant: refreshVariant,
 						visual_context: buildImageVisualContext(postContext, activePicker.mode, query, imagePickerContextOverride(activePicker), activePicker.imageUse, refreshVariant),
 					};
-					const result = await postJson('image-candidates', requestPayload);
+					const result = await postImageCandidatesFastFirst(requestPayload);
 					if (imageSourceRequestSeqRef.current !== requestSeq) {
 						return;
 					}
