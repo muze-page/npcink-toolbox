@@ -71,6 +71,44 @@ If unexpected files or hunks entered the commit, immediately run
 `git reset --mixed HEAD~1` and recommit the correct scope. This keeps the
 working tree changes intact while fixing the commit boundary.
 
+## AI Development Quality Gate
+
+For AI-assisted changes, start with the
+[AI Development Quality Workflow](ai-development-quality-workflow.md) and fill
+the [AI Change Envelope Template](ai-change-envelope-template.md) before
+editing. The envelope must name the target repositories, focused module,
+non-goals, expected files, areas that must not change, required gates, and
+rollback plan.
+
+Run a fast cross-repo status matrix before and after multi-repo work:
+
+```bash
+composer quality:matrix
+```
+
+Before a multi-repo release or milestone closeout, run the gate matrix:
+
+```bash
+composer quality:matrix:run
+```
+
+`composer quality:matrix` is status-only. `composer quality:matrix:run` runs the
+configured default gates. Add `--fail-on-dirty` for release closeouts that must
+prove no repository has hidden local edits:
+
+```bash
+php scripts/cross-repo-quality-matrix.php --run-gates --fail-on-dirty
+```
+
+Both commands are read-only except when an explicit `--output=PATH` report file
+is requested. They must not fetch, stage, reset, or mutate WordPress.
+
+AI agents must not run `git reset --hard`, `git checkout -- .`, or use
+`git add -A` in mixed worktrees unless the user explicitly requests that exact
+operation. If cleanup is needed, prefer a scoped reverse patch or
+`git reset --mixed HEAD~1` only for correcting the latest bad local commit while
+preserving the working tree.
+
 ## Git Remote Gate
 
 Before creating, pushing, or updating a PR branch, verify that local Git can
