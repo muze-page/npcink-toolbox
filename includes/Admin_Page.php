@@ -750,14 +750,37 @@ final class Admin_Page {
 				break;
 			}
 		}
-		$primary = is_array( $queue[0] ?? null ) ? $queue[0] : array();
-		$primary_title = array() !== $primary ? $this->site_ops_finding_title( $primary ) : __( 'No urgent site issue found', 'npcink-toolbox' );
 		$review_count = $this->count_site_ops_findings_by_boundary( $findings, 'core_handoff_candidate' );
 		$manual_count = $this->count_site_ops_findings_by_boundary( $findings, 'manual_review_only' );
 		$cloud_result = is_array( $cloud_analysis['result'] ?? null ) ? $cloud_analysis['result'] : array();
 		$executive_summary = is_array( $cloud_result['executive_summary'] ?? null ) ? $cloud_result['executive_summary'] : array();
 		$cloud_headline = trim( (string) ( $executive_summary['headline'] ?? '' ) );
+		$cloud_summary = trim( (string) ( $executive_summary['summary'] ?? '' ) );
+		$cloud_priority_queue = is_array( $cloud_result['priority_queue'] ?? null ) ? array_slice( $cloud_result['priority_queue'], 0, 3 ) : array();
+		$semantic_ranked_findings = is_array( $cloud_result['semantic_ranked_findings'] ?? null ) ? array_slice( $cloud_result['semantic_ranked_findings'], 0, 3 ) : array();
+		$cloud_next_actions = is_array( $cloud_result['operator_next_actions'] ?? null ) ? array_slice( $cloud_result['operator_next_actions'], 0, 3 ) : array();
+		$analysis_closure = is_array( $cloud_result['analysis_closure'] ?? null ) ? $cloud_result['analysis_closure'] : array();
+		$confidence = is_array( $cloud_result['confidence'] ?? null ) ? $cloud_result['confidence'] : array();
 		$cloud_has_detail = null !== $cloud_analysis;
+		$cloud_queue = array();
+		foreach ( array_merge( $cloud_priority_queue, $semantic_ranked_findings ) as $finding ) {
+			if ( is_array( $finding ) ) {
+				$cloud_queue[] = $finding;
+			}
+			if ( count( $cloud_queue ) >= 3 ) {
+				break;
+			}
+		}
+		$brief_queue = $cloud_has_detail && array() !== $cloud_queue ? $cloud_queue : $queue;
+		$primary = is_array( $brief_queue[0] ?? null ) ? $brief_queue[0] : array();
+		$primary_title = array() !== $primary ? $this->site_ops_finding_title( $primary ) : __( 'No urgent site issue found', 'npcink-toolbox' );
+		$ai_next_action = '';
+		if ( is_array( $cloud_next_actions[0] ?? null ) ) {
+			$first_next = $cloud_next_actions[0];
+			$ai_next_action = $this->site_ops_dynamic_label( (string) ( $first_next['label'] ?? $first_next['target'] ?? $first_next['id'] ?? '' ) );
+		}
+		$closure_next = $this->site_ops_dynamic_label( (string) ( $analysis_closure['next_step'] ?? $analysis_closure['loop_status'] ?? '' ) );
+		$confidence_level = $this->site_ops_dynamic_label( (string) ( $confidence['level'] ?? '' ) );
 		?>
 		<section class="npcink-toolbox__ops-operator-brief" aria-label="<?php esc_attr_e( 'Site action brief', 'npcink-toolbox' ); ?>">
 			<div class="npcink-toolbox__ops-operator-brief-header">
@@ -777,6 +800,9 @@ final class Admin_Page {
 					<?php if ( '' !== $cloud_headline ) : ?>
 						<p><?php echo esc_html( $this->site_ops_dynamic_label( $cloud_headline ) ); ?></p>
 					<?php endif; ?>
+					<?php if ( '' !== $cloud_summary ) : ?>
+						<p><?php echo esc_html( $this->site_ops_dynamic_label( $cloud_summary ) ); ?></p>
+					<?php endif; ?>
 				</div>
 				<span class="npcink-toolbox__ops-brief-source">
 					<?php echo esc_html( $cloud_has_detail ? __( 'AI detail added', 'npcink-toolbox' ) : __( 'Local brief', 'npcink-toolbox' ) ); ?>
@@ -785,11 +811,11 @@ final class Admin_Page {
 			<div class="npcink-toolbox__ops-operator-brief-grid">
 				<div>
 					<strong><?php esc_html_e( 'Do first', 'npcink-toolbox' ); ?></strong>
-					<?php if ( array() === $queue ) : ?>
+					<?php if ( array() === $brief_queue ) : ?>
 						<p><?php esc_html_e( 'No priority task was produced by this bounded scan.', 'npcink-toolbox' ); ?></p>
 					<?php else : ?>
 						<ol>
-							<?php foreach ( $queue as $finding ) : ?>
+							<?php foreach ( $brief_queue as $finding ) : ?>
 								<li>
 									<b><?php echo esc_html( $this->site_ops_finding_title( $finding ) ); ?></b>
 									<span><?php echo esc_html( $this->site_ops_finding_recommended_action( $finding ) ); ?></span>
@@ -813,7 +839,29 @@ final class Admin_Page {
 				<div>
 					<strong><?php esc_html_e( 'AI assist', 'npcink-toolbox' ); ?></strong>
 					<?php if ( $cloud_has_detail ) : ?>
-						<p><?php esc_html_e( 'AI summary and ranking are available in the Cloud analysis tab. Use them to confirm priority before expanding work.', 'npcink-toolbox' ); ?></p>
+						<p><?php esc_html_e( 'AI summary and ranking are folded into this brief. Use Cloud analysis for the detailed evidence trail before expanding work.', 'npcink-toolbox' ); ?></p>
+						<?php if ( '' !== $ai_next_action ) : ?>
+							<p>
+								<?php
+								printf(
+									/* translators: %s: AI suggested next action. */
+									esc_html__( 'AI next step: %s', 'npcink-toolbox' ),
+									esc_html( $ai_next_action )
+								);
+								?>
+							</p>
+						<?php endif; ?>
+						<?php if ( '' !== $confidence_level ) : ?>
+							<p>
+								<?php
+								printf(
+									/* translators: %s: AI confidence level. */
+									esc_html__( 'AI confidence: %s', 'npcink-toolbox' ),
+									esc_html( $confidence_level )
+								);
+								?>
+							</p>
+						<?php endif; ?>
 					<?php elseif ( $cloud_ready ) : ?>
 						<p><?php esc_html_e( 'Need a clearer explanation or semantic ranking? Ask AI for a deeper summary after reviewing the local top items.', 'npcink-toolbox' ); ?></p>
 						<a class="button button-small" href="<?php echo esc_url( $this->site_ops_cloud_analysis_url() ); ?>"><?php esc_html_e( 'Ask AI to summarize deeper', 'npcink-toolbox' ); ?></a>
@@ -823,7 +871,19 @@ final class Admin_Page {
 				</div>
 				<div>
 					<strong><?php esc_html_e( 'Close the loop', 'npcink-toolbox' ); ?></strong>
-					<p><?php esc_html_e( 'Open the affected examples, decide manual handling or review workflow, then leave evidence in the normal editorial path. Nothing changes automatically.', 'npcink-toolbox' ); ?></p>
+					<?php if ( '' !== $closure_next ) : ?>
+						<p>
+							<?php
+							printf(
+								/* translators: %s: Cloud-reported analysis closure or next step. */
+								esc_html__( 'AI closure: %s', 'npcink-toolbox' ),
+								esc_html( $closure_next )
+							);
+							?>
+						</p>
+					<?php else : ?>
+						<p><?php esc_html_e( 'Open the affected examples, decide manual handling or review workflow, then leave evidence in the normal editorial path. Nothing changes automatically.', 'npcink-toolbox' ); ?></p>
+					<?php endif; ?>
 					<?php /* translators: %d: number of scanned posts and pages. */ ?>
 					<span><?php printf( esc_html__( 'Current scan: %d posts/pages.', 'npcink-toolbox' ), (int) ( $summary['scanned_posts'] ?? 0 ) ); ?></span>
 				</div>

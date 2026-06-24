@@ -4721,6 +4721,18 @@ msgstr "AI 辅助"
 msgid "AI summary and ranking are available in the Cloud analysis tab. Use them to confirm priority before expanding work."
 msgstr "Cloud 分析页已有 AI 摘要和排序。扩大处理范围前，先用它确认优先级。"
 
+msgid "AI summary and ranking are folded into this brief. Use Cloud analysis for the detailed evidence trail before expanding work."
+msgstr "AI 摘要和排序已合并到此摘要。扩大处理范围前，可到 Cloud 分析查看详细证据链。"
+
+msgid "AI next step: %s"
+msgstr "AI 下一步：%s"
+
+msgid "AI confidence: %s"
+msgstr "AI 置信度：%s"
+
+msgid "AI closure: %s"
+msgstr "AI 闭环：%s"
+
 msgid "Need a clearer explanation or semantic ranking? Ask AI for a deeper summary after reviewing the local top items."
 msgstr "需要更清楚的解释或语义排序时，先审阅本地优先项，再让 AI 深度总结。"
 
