@@ -17,6 +17,7 @@ defined( 'ABSPATH' ) || exit;
 final class Rest_Controller {
 	private const REQUIRED_TEXT_MAX_CHARS = 500;
 	private const EDITOR_SUMMARY_FULL_CONTENT_MAX_CHARS = 30000;
+	private const EDITOR_AUDIO_TEXT_MAX_CHARS = 5000;
 	private const EDITOR_SELECTED_TEXT_MAX_CHARS = 2000;
 	private const EDITOR_COMMENT_TEXT_MAX_CHARS = 1200;
 	private const EDITOR_FLOW_CACHE_TTL = 300;
@@ -796,7 +797,7 @@ final class Rest_Controller {
 
 	public function editor_content_support( WP_REST_Request $request ) {
 		$intent = sanitize_key( (string) ( $request->get_param( 'intent' ) ?: '' ) );
-		if ( ! in_array( $intent, array( 'progressive_recommendations', 'writing_support', 'zhihu_research', 'zhihu_hot_topics', 'article_checkup', 'title_suggestions', 'article_outline', 'polish_notes', 'summary_suggestions', 'category_suggestions', 'tag_suggestions', 'summary_terms_optimization', 'taxonomy_tags', 'internal_links', 'image_candidates', 'image_alt_suggestions', 'comment_reply_suggestion', 'publish_preflight', 'discoverability' ), true ) ) {
+		if ( ! in_array( $intent, array( 'progressive_recommendations', 'writing_support', 'zhihu_research', 'zhihu_hot_topics', 'article_checkup', 'title_suggestions', 'article_outline', 'polish_notes', 'summary_suggestions', 'article_narration', 'article_audio_summary', 'category_suggestions', 'tag_suggestions', 'summary_terms_optimization', 'taxonomy_tags', 'internal_links', 'image_candidates', 'image_alt_suggestions', 'comment_reply_suggestion', 'publish_preflight', 'discoverability' ), true ) ) {
 			return new WP_Error(
 				'npcink_toolbox_invalid_editor_support_intent',
 				__( 'A supported editor content-support intent is required.', 'npcink-toolbox' ),
@@ -938,6 +939,14 @@ final class Rest_Controller {
 
 		if ( 'summary_suggestions' === $intent ) {
 			$result['sections']['summary_terms_optimization'] = $this->editor_ai_summary_suggestions( $context, $query );
+		}
+
+		if ( 'article_narration' === $intent ) {
+			$result['sections']['audio_generation'] = $this->editor_article_audio_generation( $context, 'article_narration' );
+		}
+
+		if ( 'article_audio_summary' === $intent ) {
+			$result['sections']['audio_generation'] = $this->editor_article_audio_generation( $context, 'article_audio_summary' );
 		}
 
 		if ( 'category_suggestions' === $intent ) {
@@ -2375,6 +2384,17 @@ final class Rest_Controller {
 		);
 	}
 
+	private function editor_cached_audio_generation( array $input, bool $force_refresh = false ) {
+		return $this->editor_cached_client_result(
+			'audio_generation',
+			$input,
+			function () use ( $input ) {
+				return $this->client->run_audio_generation( $input );
+			},
+			$force_refresh
+		);
+	}
+
 	private function editor_cached_cloud_web_search( array $input ) {
 		return $this->editor_cached_client_result(
 			'cloud_web_search',
@@ -3144,6 +3164,127 @@ final class Rest_Controller {
 			'quality_contract'       => is_array( $summary_ai['quality_contract'] ?? null ) ? $summary_ai['quality_contract'] : array(),
 			'review_checklist'       => is_array( $summary_ai['review_checklist'] ?? null ) ? $summary_ai['review_checklist'] : array(),
 		);
+	}
+
+	private function editor_article_audio_generation( array $context, string $intent ): array {
+		$source_text       = trim( (string) ( $context['content_full_text'] ?? $context['content_text'] ?? '' ) );
+		$force_regenerate = ! empty( $context['force_regenerate'] );
+		$script_source    = array(
+			'artifact_type'          => 'article_audio_script_source.v1',
+			'intent'                 => $intent,
+			'write_posture'          => 'suggestion_only',
+			'direct_wordpress_write' => false,
+		);
+
+		if ( 'article_audio_summary' === $intent ) {
+			$summary_ai = $this->editor_support_section(
+				$this->editor_cached_hosted_ai_content_support(
+					array(
+						'intent'             => 'audio_summary_script',
+						'post_id'            => absint( $context['post_id'] ?? 0 ),
+						'title'              => (string) ( $context['title'] ?? '' ),
+						'excerpt'            => (string) ( $context['excerpt'] ?? '' ),
+						'content'            => (string) ( $context['content_full_text'] ?? $context['content_text'] ?? '' ),
+						'user_instruction'   => (string) ( $context['user_instruction'] ?? '' ),
+						'generation_variant' => (string) ( $context['generation_variant'] ?? '' ),
+						'summary_generation_mode' => 'fast_brief',
+					),
+					$force_regenerate
+				)
+			);
+			$script = $this->editor_audio_summary_script_text( $summary_ai );
+			$script_source['summary_script'] = $summary_ai;
+		} else {
+			$script = $this->editor_audio_source_text( $source_text );
+			$script_source['source_mode'] = 'article_text';
+		}
+
+		$audio = $this->editor_support_section(
+			$this->editor_cached_audio_generation(
+				array(
+					'intent'    => $intent,
+					'text'      => $script,
+					'script'    => $script,
+					'format'    => 'mp3',
+					'context'   => array(
+						'post_id'          => absint( $context['post_id'] ?? 0 ),
+						'post_type'        => sanitize_key( (string) ( $context['post_type'] ?? 'post' ) ),
+						'title'            => sanitize_text_field( (string) ( $context['title'] ?? '' ) ),
+						'excerpt'          => sanitize_textarea_field( (string) ( $context['excerpt'] ?? '' ) ),
+						'source_text_hash' => md5( $source_text ),
+						'surface'          => 'editor_content_support',
+					),
+				),
+				$force_regenerate
+			)
+		);
+
+		return array(
+			'artifact_type'          => 'article_audio_support.v1',
+			'composition_role'       => 'article_audio_support',
+			'candidate_type'         => $intent,
+			'write_posture'          => 'suggestion_only',
+			'final_write_path'       => 'operator_review_only_no_media_import',
+			'direct_wordpress_write' => false,
+			'script'                 => $script,
+			'script_source'          => $script_source,
+			'audio'                  => $audio,
+			'items'                  => is_array( $audio['items'] ?? null ) ? $audio['items'] : array(),
+			'audio_generation'       => $audio,
+			'use_case'               => 'article_audio_summary' === $intent ? 'longform_listening_summary' : 'full_article_narration',
+			'review_policy'          => array(
+				'script_review_required' => true,
+				'media_import_owner'     => 'future_core_governed_handoff',
+				'no_post_content_patch'  => true,
+			),
+			'handoff'                => array(
+				'final_writes'           => 'operator_review_only_no_media_import',
+				'direct_wordpress_write' => false,
+				'blocked_actions'        => array(
+					'no_media_import_in_toolbox',
+					'no_post_content_patch',
+					'no_direct_wordpress_write',
+				),
+			),
+		);
+	}
+
+	private function editor_audio_source_text( string $text ): string {
+		$plain = trim( wp_strip_all_tags( $text ) );
+		if ( '' === $plain ) {
+			return '';
+		}
+		if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+			return mb_strlen( $plain, 'UTF-8' ) > self::EDITOR_AUDIO_TEXT_MAX_CHARS ? mb_substr( $plain, 0, self::EDITOR_AUDIO_TEXT_MAX_CHARS, 'UTF-8' ) : $plain;
+		}
+		return strlen( $plain ) > self::EDITOR_AUDIO_TEXT_MAX_CHARS ? substr( $plain, 0, self::EDITOR_AUDIO_TEXT_MAX_CHARS ) : $plain;
+	}
+
+	private function editor_audio_summary_script_text( array $summary_ai ): string {
+		$output_json = is_array( $summary_ai['output_json'] ?? null ) ? $summary_ai['output_json'] : array();
+		$parts       = array();
+		foreach ( array( 'opening', 'script', 'closing' ) as $key ) {
+			$value = trim( sanitize_textarea_field( (string) ( $output_json[ $key ] ?? '' ) ) );
+			if ( '' !== $value ) {
+				$parts[] = $value;
+			}
+		}
+		if ( is_array( $output_json['key_points'] ?? null ) ) {
+			foreach ( array_slice( $output_json['key_points'], 0, 5 ) as $point ) {
+				$value = trim( sanitize_textarea_field( (string) $point ) );
+				if ( '' !== $value ) {
+					$parts[] = $value;
+				}
+			}
+		}
+		$script = trim( implode( "\n\n", array_values( array_unique( $parts ) ) ) );
+		if ( '' === $script ) {
+			$script = trim( sanitize_textarea_field( (string) ( $summary_ai['output_text'] ?? '' ) ) );
+		}
+		if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+			return mb_strlen( $script, 'UTF-8' ) > self::EDITOR_AUDIO_TEXT_MAX_CHARS ? mb_substr( $script, 0, self::EDITOR_AUDIO_TEXT_MAX_CHARS, 'UTF-8' ) : $script;
+		}
+		return strlen( $script ) > self::EDITOR_AUDIO_TEXT_MAX_CHARS ? substr( $script, 0, self::EDITOR_AUDIO_TEXT_MAX_CHARS ) : $script;
 	}
 
 	private function editor_article_checkup_section( array $context ): array {

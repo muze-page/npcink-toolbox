@@ -206,6 +206,18 @@
 			group: 'common_recommendations',
 		},
 		{
+			intent: 'article_narration',
+			label: __('Article narration', 'npcink-toolbox'),
+			description: __('Generate a review-only audio narration candidate from the current article text.', 'npcink-toolbox'),
+			group: 'common_recommendations',
+		},
+		{
+			intent: 'article_audio_summary',
+			label: __('Audio summary', 'npcink-toolbox'),
+			description: __('Create a short listening summary script, then generate an audio candidate through Cloud.', 'npcink-toolbox'),
+			group: 'common_recommendations',
+		},
+		{
 			intent: 'tag_suggestions',
 			label: __('Tag suggestions', 'npcink-toolbox'),
 			description: __('Find matching existing tags without creating new vocabulary.', 'npcink-toolbox'),
@@ -1525,6 +1537,8 @@
 			core_proposal_required: __('Core review required', 'npcink-toolbox'),
 			content_metadata_delta_handoff: __('Content metadata handoff', 'npcink-toolbox'),
 			summary_suggestions: __('Summary suggestions', 'npcink-toolbox'),
+			article_narration: __('Article narration', 'npcink-toolbox'),
+			article_audio_summary: __('Audio summary', 'npcink-toolbox'),
 			category_suggestions: __('Category suggestions', 'npcink-toolbox'),
 			tag_suggestions: __('Tag suggestions', 'npcink-toolbox'),
 			metadata_suggestions: __('Metadata suggestions', 'npcink-toolbox'),
@@ -1684,6 +1698,12 @@
 		if (value === 'summary_suggestions') {
 			return __('AI generate summary', 'npcink-toolbox');
 		}
+		if (value === 'article_narration') {
+			return __('Article narration', 'npcink-toolbox');
+		}
+		if (value === 'article_audio_summary') {
+			return __('Audio summary', 'npcink-toolbox');
+		}
 		if (value === 'category_suggestions') {
 			return __('Category suggestions', 'npcink-toolbox');
 		}
@@ -1726,6 +1746,12 @@
 		}
 		if (value === 'summary_suggestions') {
 			return __('AI reads the current draft and returns an editor-ready excerpt candidate.', 'npcink-toolbox');
+		}
+		if (value === 'article_narration') {
+			return __('Generate a review-only narration candidate from the current article text. Toolbox does not import audio or edit the post.', 'npcink-toolbox');
+		}
+		if (value === 'article_audio_summary') {
+			return __('Generate a short listening summary script first, then an audio candidate. Review the script before using the audio elsewhere.', 'npcink-toolbox');
 		}
 		if (value === 'category_suggestions' || value === 'tag_suggestions') {
 			return __('Review suggestions here, then confirm existing terms in the editor.', 'npcink-toolbox');
@@ -3474,10 +3500,65 @@
 		);
 	}
 
+	function audioGenerationItems(section) {
+		const audio = section && section.audio && typeof section.audio === 'object' ? section.audio : (section || {});
+		const items = Array.isArray(audio.items) ? audio.items : (Array.isArray(audio.audios) ? audio.audios : []);
+		return items.filter((item) => item && typeof item === 'object');
+	}
+
+	function renderAudioGenerationSection(section) {
+		const items = audioGenerationItems(section);
+		const script = String(section && section.script ? section.script : '').trim();
+		const audio = section && section.audio && typeof section.audio === 'object' ? section.audio : {};
+		const providerParts = compactLabelParts([
+			audio.hosted_profile,
+			audio.model_id,
+			audio.provider_response_format,
+		]);
+		const blocks = [
+			createElement('h4', { key: 'audio-title' }, section && section.candidate_type === 'article_audio_summary' ? __('Audio summary', 'npcink-toolbox') : __('Article narration', 'npcink-toolbox')),
+			createElement('p', { key: 'audio-help', className: 'npcink-toolbox-editor-support__muted' }, __('Review-only audio candidate. Toolbox does not import media, insert audio, or change the post.', 'npcink-toolbox')),
+		];
+		if (providerParts.length) {
+			blocks.push(createElement('p', { key: 'audio-provider', className: 'npcink-toolbox-editor-support__muted' }, providerParts.join(' / ')));
+		}
+		if (script) {
+			blocks.push(createElement('pre', { key: 'audio-script', className: 'npcink-toolbox-editor-support__code' }, truncateText(script, 1200)));
+		}
+		if (!items.length) {
+			blocks.push(renderItems([], __('No audio candidate returned.', 'npcink-toolbox')));
+			return createElement('div', { className: 'npcink-toolbox-editor-support__audio-generation' }, blocks);
+		}
+		blocks.push(createElement(
+			'div',
+			{ key: 'audio-items', className: 'npcink-toolbox-editor-support__audio-list' },
+			items.map((item, index) => {
+				const url = String(item.url || '').trim();
+				const meta = compactLabelParts([
+					item.format,
+					item.voice_id,
+					item.duration_seconds ? String(item.duration_seconds) + 's' : '',
+					item.model_id,
+				]).join(' / ');
+				return createElement(
+					'div',
+					{ key: item.id || index, className: 'npcink-toolbox-editor-support__audio-item' },
+					createElement('strong', null, item.name || __('Audio candidate', 'npcink-toolbox')),
+					meta ? createElement('span', { className: 'npcink-toolbox-editor-support__muted' }, meta) : null,
+					url ? createElement('audio', { controls: true, preload: 'none', src: url }) : null,
+					url ? createElement('a', { href: url, target: '_blank', rel: 'noreferrer' }, __('Open audio', 'npcink-toolbox')) : null
+				);
+			})
+		));
+		return createElement('div', { className: 'npcink-toolbox-editor-support__audio-generation' }, blocks);
+	}
+
 	function flowAcceptsUserInstruction(intent) {
 		return [
 			'title_suggestions',
 			'summary_suggestions',
+			'article_narration',
+			'article_audio_summary',
 			'tag_suggestions',
 			'category_suggestions',
 				'internal_links',
@@ -3499,6 +3580,12 @@
 		}
 		if (intent === 'summary_suggestions') {
 			return __('Example: emphasize workflow value, avoid audience-label openings.', 'npcink-toolbox');
+		}
+		if (intent === 'article_narration') {
+			return __('Example: calm narration, keep product names clear, skip code snippets.', 'npcink-toolbox');
+		}
+		if (intent === 'article_audio_summary') {
+			return __('Example: two-minute summary for readers deciding whether to read the full article.', 'npcink-toolbox');
 		}
 		if (intent === 'category_suggestions' || intent === 'tag_suggestions') {
 			return __('Example: prefer existing product taxonomy and avoid broad generic terms.', 'npcink-toolbox');
@@ -5304,6 +5391,13 @@
 				blocks.push(renderHostedAiDiagnostics(sections.title_suggestions));
 			}
 
+			if (sections.audio_generation) {
+				blocks.push(renderAudioGenerationSection(sections.audio_generation));
+				if (sections.audio_generation.audio) {
+					blocks.push(renderHostedAiDiagnostics(sections.audio_generation.audio));
+				}
+			}
+
 		if (sections.article_outline) {
 			blocks.push(createElement('h4', { key: 'article-outline-title' }, __('Outline suggestions', 'npcink-toolbox')));
 			blocks.push(renderOutlineSuggestionSection(sections.article_outline));
@@ -5749,7 +5843,7 @@
 							category_ids: Array.isArray(runContext.category_ids) ? runContext.category_ids.join(',') : '',
 							tag_ids: Array.isArray(runContext.tag_ids) ? runContext.tag_ids.join(',') : '',
 							media_items: Array.isArray(runContext.media_items) ? runContext.media_items : [],
-							generation_variant: ['title_suggestions', 'article_outline', 'polish_notes'].indexOf(intent) >= 0 || shouldForceRegenerate ? String(Date.now()) : '',
+							generation_variant: ['title_suggestions', 'article_outline', 'polish_notes', 'article_audio_summary'].indexOf(intent) >= 0 || shouldForceRegenerate ? String(Date.now()) : '',
 							force_regenerate: shouldForceRegenerate,
 							user_instruction: userInstruction,
 					});

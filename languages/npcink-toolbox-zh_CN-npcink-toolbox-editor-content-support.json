@@ -667,6 +667,20 @@
       "Running": ["运行中"],
       "Run": ["运行"],
       "Running content support flow...": ["正在运行内容支持流程..."],
+      "Article narration": ["文章朗读"],
+      "Generate a review-only audio narration candidate from the current article text.": ["根据当前文章正文生成仅供审阅的朗读音频候选。"],
+      "Audio summary": ["音频摘要"],
+      "Create a short listening summary script, then generate an audio candidate through Cloud.": ["先生成简短收听摘要脚本，再通过 Cloud 生成音频候选。"],
+      "Generate a review-only narration candidate from the current article text. Toolbox does not import audio or edit the post.": ["根据当前文章正文生成仅供审阅的朗读候选。Toolbox 不导入音频，也不修改文章。"],
+      "Generate a short listening summary script first, then an audio candidate. Review the script before using the audio elsewhere.": ["先生成简短收听摘要脚本，再生成音频候选。把音频用于其他地方前，请先审阅脚本。"],
+      "Review-only audio candidate. Toolbox does not import media, insert audio, or change the post.": ["仅供审阅的音频候选。Toolbox 不导入媒体、不插入音频，也不修改文章。"],
+      "No audio candidate returned.": ["没有返回音频候选。"],
+      "Audio candidate": ["音频候选"],
+      "Narration candidate": ["朗读候选"],
+      "Audio summary candidate": ["音频摘要候选"],
+      "Open audio": ["打开音频"],
+      "Example: calm narration, keep product names clear, skip code snippets.": ["示例：语气平稳，产品名清晰，跳过代码片段。"],
+      "Example: two-minute summary for readers deciding whether to read the full article.": ["示例：给正在判断是否阅读全文的读者生成两分钟摘要。"],
       "Npcink Content Support": ["Npcink 内容支持"]
     }
   }

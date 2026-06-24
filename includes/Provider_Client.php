@@ -16,6 +16,7 @@ final class Provider_Client {
 	private const SITE_KNOWLEDGE_CONTENT_CHARS = 30000;
 	private const SITE_KNOWLEDGE_SYNC_MAX_BYTES = 750000;
 	private const AI_IMAGE_PROMPT_CHARS = 4000;
+	private const AUDIO_GENERATION_TEXT_CHARS = 5000;
 	private const ARTICLE_PLAN_CONTENT_CHARS = 60000;
 	private const ARTICLE_PLAN_NOTES_CHARS = 12000;
 	private const PAYLOAD_MAX_DEPTH = 8;
@@ -189,6 +190,112 @@ final class Provider_Client {
 		}
 
 		return $this->normalize_ai_image_generation_response( is_array( $response ) ? $response : array(), $runtime_payload );
+	}
+
+	public function run_audio_generation( array $input ) {
+		$intent = sanitize_key( (string) ( $input['intent'] ?? 'article_narration' ) );
+		if ( ! in_array( $intent, array( 'article_narration', 'article_audio_summary' ), true ) ) {
+			return new WP_Error(
+				'npcink_toolbox_invalid_audio_generation_intent',
+				__( 'A supported audio generation intent is required.', 'npcink-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$text = $this->trim_chars(
+			trim(
+				sanitize_textarea_field(
+					wp_strip_all_tags(
+						(string) ( $input['summary_text'] ?? ( $input['script'] ?? ( $input['text'] ?? '' ) ) )
+					)
+				)
+			),
+			self::AUDIO_GENERATION_TEXT_CHARS
+		);
+		if ( '' === $text ) {
+			return new WP_Error(
+				'npcink_toolbox_missing_audio_generation_text',
+				__( 'Narration text or summary script is required before calling Cloud audio generation.', 'npcink-toolbox' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$voice_id = sanitize_text_field( (string) ( $input['voice_id'] ?? '' ) );
+		$format   = sanitize_key( (string) ( $input['format'] ?? 'mp3' ) );
+		if ( ! in_array( $format, array( 'mp3', 'wav', 'pcm' ), true ) ) {
+			$format = 'mp3';
+		}
+
+		$runtime_payload = array(
+			'ability_name'        => 'npcink-toolbox/generate-audio',
+			'contract_version'    => 'audio_generation_request.v1',
+			'execution_pattern'   => 'inline',
+			'execution_kind'      => 'audio_generation',
+			'profile_id'          => sanitize_text_field( (string) ( $input['profile_id'] ?? 'audio.narration.default' ) ),
+			'input'               => array(
+				'intent'          => $intent,
+				'text'            => $text,
+				'summary_text'    => 'article_audio_summary' === $intent ? $text : '',
+				'script'          => $text,
+				'voice_id'        => $voice_id,
+				'format'          => $format,
+				'response_format' => 'url',
+				'purpose'         => 'article_audio_summary' === $intent ? 'longform_audio_summary' : 'article_narration',
+				'context'         => is_array( $input['context'] ?? null ) ? $this->sanitize_payload( $input['context'] ) : array(),
+				'review'          => array(
+					'script_review_required' => true,
+					'write_posture'          => 'candidate_only',
+					'direct_wordpress_write' => false,
+				),
+			),
+			'data_classification' => 'public_site_content',
+			'storage_mode'        => 'result_only',
+			'retention_ttl'       => 3600,
+			'timeout_seconds'     => 60,
+			'http_timeout_seconds' => 60,
+			'connect_timeout_seconds' => self::HTTP_CONNECT_TIMEOUT,
+			'retry_max'           => 0,
+			'policy'              => array(
+				'allow_fallback' => false,
+			),
+		);
+		$runtime_payload = $this->runtime_payload_with_data_classification( $runtime_payload, 'public_site_content', $input );
+
+		$runtime_payload = apply_filters( 'npcink_toolbox_audio_generation_runtime_payload', $runtime_payload, $input );
+		if ( ! is_array( $runtime_payload ) ) {
+			return new WP_Error(
+				'npcink_toolbox_invalid_audio_generation_runtime_payload',
+				__( 'The audio generation runtime payload was not valid.', 'npcink-toolbox' ),
+				array( 'status' => 500 )
+			);
+		}
+		$runtime_payload = $this->runtime_payload_with_data_classification( $runtime_payload, 'public_site_content', $input );
+
+		$handled = apply_filters( 'npcink_toolbox_audio_generation_cloud_request', null, $runtime_payload, $input );
+		if ( is_wp_error( $handled ) ) {
+			return $handled;
+		}
+		if ( is_array( $handled ) ) {
+			return $this->normalize_audio_generation_response( $handled, $runtime_payload );
+		}
+
+		$client = $this->cloud_runtime_client();
+		if ( ! is_object( $client ) || ! method_exists( $client, 'execute_runtime' ) ) {
+			return new WP_Error(
+				'npcink_toolbox_audio_generation_cloud_unavailable',
+				__( 'Connect Npcink Cloud before generating article audio.', 'npcink-toolbox' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		$trace_id        = $this->trace_id( 'audio_generation' );
+		$idempotency_key = $this->trace_id( 'audio_generation_request' );
+		$response        = $client->execute_runtime( $runtime_payload, $trace_id, $idempotency_key );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		return $this->normalize_audio_generation_response( is_array( $response ) ? $response : array(), $runtime_payload );
 	}
 
 	public function submit_agent_feedback( array $input ) {
@@ -3347,7 +3454,7 @@ final class Provider_Client {
 
 	public function run_hosted_ai_content_support( array $input ) {
 		$intent = sanitize_key( (string) ( $input['intent'] ?? 'discoverability' ) );
-		if ( ! in_array( $intent, array( 'title_summary', 'article_outline', 'polish_notes', 'summary_suggestions', 'summary_terms_optimization' ), true ) ) {
+		if ( ! in_array( $intent, array( 'title_summary', 'article_outline', 'polish_notes', 'summary_suggestions', 'summary_terms_optimization', 'audio_summary_script' ), true ) ) {
 			return new WP_Error(
 				'npcink_toolbox_invalid_hosted_ai_intent',
 				__( 'A supported hosted AI content-support intent is required.', 'npcink-toolbox' ),
@@ -3423,8 +3530,8 @@ final class Provider_Client {
 					),
 				),
 				'params'           => array(
-					'temperature' => 'summary_suggestions' === $intent ? 0.45 : 0.2,
-					'max_tokens'  => $is_fast_summary ? 260 : ( 'summary_suggestions' === $intent ? 450 : 650 ),
+					'temperature' => 'summary_suggestions' === $intent || 'audio_summary_script' === $intent ? 0.45 : 0.2,
+					'max_tokens'  => $is_fast_summary ? 260 : ( 'summary_suggestions' === $intent ? 450 : ( 'audio_summary_script' === $intent ? 900 : 650 ) ),
 				),
 				'quality_contract' => $quality_contract,
 			),
@@ -4691,6 +4798,81 @@ final class Provider_Client {
 		return $this->with_optional_raw( $payload, is_array( $response['raw'] ?? null ) ? $response['raw'] : $response );
 	}
 
+	private function normalize_audio_generation_response( array $response, array $runtime_payload ): array {
+		$result = $this->extract_cloud_runtime_result( $response );
+		$data   = is_array( $response['data'] ?? null ) ? $response['data'] : array();
+		$input  = is_array( $runtime_payload['input'] ?? null ) ? $runtime_payload['input'] : array();
+		$audios = array();
+
+		foreach ( array( 'audios', 'audio_candidates', 'candidates', 'items' ) as $key ) {
+			if ( is_array( $result[ $key ] ?? null ) ) {
+				$audios = $result[ $key ];
+				break;
+			}
+		}
+		if ( array() === $audios && ( ! empty( $result['url'] ) || ! empty( $result['audio_url'] ) ) ) {
+			$audios = array( $result );
+		}
+
+		$items = array();
+		foreach ( array_slice( array_values( array_filter( $audios, 'is_array' ) ), 0, 4 ) as $index => $audio ) {
+			$url = esc_url_raw( (string) ( $audio['url'] ?? ( $audio['audio_url'] ?? '' ) ) );
+			$b64 = sanitize_textarea_field( (string) ( $audio['b64_json'] ?? '' ) );
+			if ( '' === $url && '' === $b64 ) {
+				continue;
+			}
+			$items[] = array(
+				'id'               => sanitize_key( (string) ( $audio['id'] ?? 'audio_' . ( $index + 1 ) ) ),
+				'name'             => sanitize_text_field( (string) ( $audio['name'] ?? ( 'article_audio_summary' === (string) ( $input['intent'] ?? '' ) ? __( 'Audio summary candidate', 'npcink-toolbox' ) : __( 'Narration candidate', 'npcink-toolbox' ) ) ) ),
+				'url'              => $url,
+				'b64_json'         => $b64,
+				'format'           => sanitize_key( (string) ( $audio['format'] ?? ( $input['format'] ?? 'mp3' ) ) ),
+				'duration_seconds' => is_numeric( $audio['duration_seconds'] ?? null ) ? (float) $audio['duration_seconds'] : null,
+				'size_bytes'       => absint( $audio['size_bytes'] ?? 0 ),
+				'voice_id'         => sanitize_text_field( (string) ( $audio['voice_id'] ?? ( $result['voice_id'] ?? ( $input['voice_id'] ?? '' ) ) ) ),
+				'model_id'         => sanitize_text_field( (string) ( $audio['model_id'] ?? ( $result['model_id'] ?? '' ) ) ),
+				'provider'         => sanitize_key( (string) ( $audio['provider'] ?? ( $result['provider'] ?? 'npcink_cloud' ) ) ),
+				'action_policy'    => 'operator_review_only_no_media_import',
+				'quality_status'   => 'review',
+			);
+		}
+
+		return $this->with_output_contract(
+			array(
+				'provider'                 => 'npcink_cloud',
+				'cloud_runtime'            => 'npcink_cloud_addon',
+				'cloud_ability'            => sanitize_text_field( (string) ( $runtime_payload['ability_name'] ?? 'npcink-toolbox/generate-audio' ) ),
+				'contract_version'         => sanitize_text_field( (string) ( $runtime_payload['contract_version'] ?? 'audio_generation_request.v1' ) ),
+				'hosted_profile'           => sanitize_text_field( (string) ( $runtime_payload['profile_id'] ?? 'audio.narration.default' ) ),
+				'model_id'                 => sanitize_text_field( (string) ( $result['model_id'] ?? '' ) ),
+				'intent'                   => sanitize_key( (string) ( $input['intent'] ?? '' ) ),
+				'status'                   => sanitize_key( (string) ( $result['status'] ?? ( $response['status'] ?? 'ready' ) ) ),
+				'run_id'                   => sanitize_text_field( (string) ( $response['run_id'] ?? ( $result['run_id'] ?? '' ) ) ),
+				'cloud_run_id'             => sanitize_text_field( (string) ( $data['run_id'] ?? $response['run_id'] ?? '' ) ),
+				'provider_response_format' => sanitize_key( (string) ( $result['provider_response_format'] ?? 'url' ) ),
+				'items'                    => $this->sanitize_payload( $items ),
+				'audios'                   => $this->sanitize_payload( $items ),
+				'script_preview'           => $this->trim_chars( sanitize_textarea_field( (string) ( $input['script'] ?? ( $input['text'] ?? '' ) ) ), 1200 ),
+				'result'                   => $this->sanitize_payload( $result ),
+				'candidate_count'          => count( $items ),
+				'write_posture'            => 'suggestion_only',
+				'final_write_path'         => 'operator_review_only_no_media_import',
+				'direct_wordpress_write'   => false,
+				'handoff'                  => array(
+					'final_writes'           => 'operator_review_only_no_media_import',
+					'direct_wordpress_write' => false,
+					'blocked_actions'        => array(
+						'no_media_import_in_toolbox',
+						'no_post_content_patch',
+						'no_direct_wordpress_write',
+					),
+				),
+			),
+			'audio_generation_candidates',
+			'article_audio_support'
+		);
+	}
+
 	private function normalize_image_source_candidates_response( array $response, string $query, string $provider_mode, array $runtime_payload = array() ): array {
 		$result = $this->extract_cloud_runtime_result( $response );
 
@@ -4886,6 +5068,14 @@ final class Provider_Client {
 			}
 		}
 
+		if ( 'audio_summary_script' === $intent ) {
+			foreach ( array( 'script', 'opening', 'key_points', 'closing', 'assumptions_to_verify' ) as $key ) {
+				if ( isset( $result[ $key ] ) ) {
+					return $result;
+				}
+			}
+		}
+
 		return $this->decode_json_object_from_text( $output_text );
 	}
 
@@ -5057,6 +5247,26 @@ final class Provider_Client {
 					'Require a short reason and evidence source for every category or tag candidate.',
 					'Normalize near-duplicate tags before suggesting a new term.',
 					'Route accepted excerpt, taxonomy, tag, or SEO changes through Core proposal approval.',
+				),
+			),
+			'audio_summary_script' => array(
+				'output_shape'     => array(
+					'script'              => 'one listenable 1 to 3 minute audio summary script grounded only in supplied draft context',
+					'opening'             => 'short spoken opening that names the topic directly',
+					'key_points'          => '3 to 5 concise spoken points',
+					'closing'             => 'short closing that helps the listener decide whether to read the full article',
+					'assumptions_to_verify' => 'short list, only when the source is ambiguous',
+				),
+				'review_checklist' => array(
+					'Use the same language as the source draft.',
+					'Make the output sound natural when read aloud.',
+					'Keep the script grounded in the supplied draft and do not add new facts.',
+					'Do not claim to publish, upload media, insert audio, or change WordPress content.',
+				),
+				'reject_if'        => array(
+					'The script is a full article rewrite instead of a concise listening summary.',
+					'The script invents facts, claims, numbers, comparisons, or outcomes missing from the source.',
+					'The output includes markdown tables, source JSON, editor-only labels, or WordPress write instructions.',
 				),
 			),
 		);
@@ -6232,6 +6442,7 @@ final class Provider_Client {
 			'polish_notes'        => 'Check only the supplied selected paragraph or short selected text. Return clarity, fact-gap, tone consistency, and editing-direction notes. Do not provide replacement wording, rewritten copy, or insert-ready prose.',
 			'summary_suggestions' => 'Generate high-quality reader-facing WordPress excerpt candidates for the article after publication. Use the supplied title, existing excerpt, and draft body only as source material; first identify the core subject, content type, title-stated positioning, primary reader value, 2 to 4 must-cover points, and relationship rules; then produce an editor-ready recommended excerpt plus two alternate wordings. Do not truncate text, do not summarize only the first section, do not drop title-level differentiators, do not repeat the title, do not add unsupported facts, and do not mention draft, article, post, 本文, 这篇文章, or the act of summarizing.',
 			'summary_terms_optimization' => 'Optimize only the article metadata around a human-written draft: short summary, standard summary, SEO meta description, category candidates, tag candidates, normalization notes, feedback metric hints, and risk notes. Prefer existing terms when supplied, include a reason and evidence_source for every term candidate, and mark proposed new tags separately.',
+			'audio_summary_script' => 'Generate only a concise spoken audio summary script for the current article. The listener should understand the core topic, the main value, 3 to 5 important points, and whether to read the full article. Use natural speech, not archive excerpt copy. Do not rewrite the article, do not add unsupported facts, and do not include WordPress write instructions.',
 		)[ $intent ] ?? 'Generate WordPress content-support suggestions.';
 		$quality_contract = $this->hosted_ai_quality_contract( $intent );
 
@@ -6268,6 +6479,9 @@ final class Provider_Client {
 				'For summary_suggestions, avoid repetitive audience-label openings. Across the three excerpt candidates, at most one may start with 面向, 适合, 需要, 想, or similar phrasing; prefer concrete subject/action openings.',
 				'For summary_suggestions, prefer one compact JSON object with recommended_excerpt, why_this_works, coverage_check, alternate_excerpt, and third_excerpt; do not wrap it in markdown fences.',
 				'For summary_suggestions regeneration, treat generation_variant as a fresh-request marker: use a different natural wording while preserving the same draft-grounded facts.',
+				'For audio_summary_script, return one compact JSON object with script, opening, key_points, closing, and assumptions_to_verify; do not wrap it in markdown fences.',
+				'For audio_summary_script, make script natural to hear aloud, about 250 to 550 Chinese characters or 120 to 260 English words depending on source language.',
+				'For audio_summary_script, compress the whole draft into a listening summary; do not produce a full article rewrite or a short WordPress excerpt.',
 				'Return reviewable suggestions only.',
 				'Do not generate a full article or replacement paragraph text.',
 				'Do not write or publish WordPress content.',

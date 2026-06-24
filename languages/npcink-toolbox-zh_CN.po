@@ -4690,3 +4690,45 @@ msgstr "选择任何后续工作流之前都需要运营者判断。"
 
 msgid "No automatic action, proposal, queue, or WordPress write is created."
 msgstr "不会创建自动动作、提案、队列或 WordPress 写入。"
+
+msgid "Article narration"
+msgstr "文章朗读"
+
+msgid "Generate a review-only audio narration candidate from the current article text."
+msgstr "根据当前文章正文生成仅供审阅的朗读音频候选。"
+
+msgid "Audio summary"
+msgstr "音频摘要"
+
+msgid "Create a short listening summary script, then generate an audio candidate through Cloud."
+msgstr "先生成简短收听摘要脚本，再通过 Cloud 生成音频候选。"
+
+msgid "Generate a review-only narration candidate from the current article text. Toolbox does not import audio or edit the post."
+msgstr "根据当前文章正文生成仅供审阅的朗读候选。Toolbox 不导入音频，也不修改文章。"
+
+msgid "Generate a short listening summary script first, then an audio candidate. Review the script before using the audio elsewhere."
+msgstr "先生成简短收听摘要脚本，再生成音频候选。把音频用于其他地方前，请先审阅脚本。"
+
+msgid "Review-only audio candidate. Toolbox does not import media, insert audio, or change the post."
+msgstr "仅供审阅的音频候选。Toolbox 不导入媒体、不插入音频，也不修改文章。"
+
+msgid "No audio candidate returned."
+msgstr "没有返回音频候选。"
+
+msgid "Audio candidate"
+msgstr "音频候选"
+
+msgid "Narration candidate"
+msgstr "朗读候选"
+
+msgid "Audio summary candidate"
+msgstr "音频摘要候选"
+
+msgid "Open audio"
+msgstr "打开音频"
+
+msgid "Example: calm narration, keep product names clear, skip code snippets."
+msgstr "示例：语气平稳，产品名清晰，跳过代码片段。"
+
+msgid "Example: two-minute summary for readers deciding whether to read the full article."
+msgstr "示例：给正在判断是否阅读全文的读者生成两分钟摘要。"

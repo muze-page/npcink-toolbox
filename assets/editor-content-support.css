@@ -2221,6 +2221,30 @@
 	line-height: 1.35;
 }
 
+.npcink-toolbox-editor-support__audio-generation {
+	display: grid;
+	gap: 10px;
+}
+
+.npcink-toolbox-editor-support__audio-list {
+	display: grid;
+	gap: 10px;
+}
+
+.npcink-toolbox-editor-support__audio-item {
+	display: grid;
+	gap: 6px;
+	padding: 10px;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	background: #fff;
+}
+
+.npcink-toolbox-editor-support__audio-item audio {
+	width: 100%;
+	max-width: 100%;
+}
+
 @media (max-width: 420px) {
 	.npcink-toolbox-editor-support__image-search-row {
 		grid-template-columns: 1fr;
