@@ -2233,7 +2233,7 @@
 
 .npcink-toolbox-editor-support__audio-generation {
 	display: grid;
-	gap: 10px;
+	gap: 8px;
 	min-width: 0;
 }
 
@@ -2245,13 +2245,33 @@
 
 .npcink-toolbox-editor-support__audio-item {
 	display: grid;
-	gap: 6px;
-	padding: 10px;
+	gap: 8px;
+	padding: 12px;
 	border: 1px solid #dcdcde;
 	border-radius: 6px;
 	background: #fff;
 	min-width: 0;
 	overflow: hidden;
+	overflow-wrap: anywhere;
+}
+
+.npcink-toolbox-editor-support__audio-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	min-width: 0;
+}
+
+.npcink-toolbox-editor-support__audio-meta span {
+	display: inline-flex;
+	max-width: 100%;
+	padding: 2px 6px;
+	color: #50575e;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	font-size: 11px;
+	line-height: 1.35;
 	overflow-wrap: anywhere;
 }
 
@@ -2263,12 +2283,19 @@
 	overflow: hidden;
 }
 
-.npcink-toolbox-editor-support__audio-item a {
+.npcink-toolbox-editor-support__audio-actions {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+}
+
+.npcink-toolbox-editor-support__audio-open-link {
 	max-width: 100%;
+	width: fit-content;
 	overflow-wrap: anywhere;
 }
 
-.npcink-toolbox-editor-support__audio-item .components-button {
+.npcink-toolbox-editor-support__audio-actions .components-button {
 	justify-content: center;
 	width: 100%;
 	max-width: 100%;

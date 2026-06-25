@@ -4859,6 +4859,15 @@ msgstr "先生成简短收听摘要脚本，再生成音频候选。把音频用
 msgid "Review-only audio candidate. Toolbox does not import media, insert audio, or change the post."
 msgstr "仅供审阅的音频候选。Toolbox 不导入媒体、不插入音频，也不修改文章。"
 
+msgid "Generated audio summary candidate"
+msgstr "已生成音频摘要候选"
+
+msgid "Generated narration candidate"
+msgstr "已生成朗读候选"
+
+msgid "Generated audio candidate. Preview it here; adoption goes through Core and writes the article audio reference, while Toolbox does not edit the post directly."
+msgstr "已生成音频候选，可先试听。采用后会通过 Core 留痕并写入文章音频引用；Toolbox 不直接修改文章。"
+
 msgid "No audio candidate returned."
 msgstr "没有返回音频候选。"
 
@@ -4918,6 +4927,15 @@ msgstr "音频摘要候选"
 
 msgid "Open audio"
 msgstr "打开音频"
+
+msgid "Adopt audio"
+msgstr "采用音频"
+
+msgid "Adopting audio"
+msgstr "正在采用音频"
+
+msgid "Run details"
+msgstr "运行详情"
 
 msgid "Example: calm narration, keep product names clear, skip code snippets."
 msgstr "示例：语气平稳，产品名清晰，跳过代码片段。"

@@ -3060,14 +3060,16 @@
 			return null;
 		}
 		const controls = options && typeof options === 'object' ? options : {};
+		const highlightMissingText = controls.highlightMissingText !== false;
 		const hasHostedText = hostedAiReturnedText(section);
-		const reason = (!hasHostedText || section.fallback_reason || String(section.cloud_status || '').toLowerCase() === 'omitted') ? hostedAiNoResultReason(section) : '';
-		const isHighlighted = Boolean(reason || section.fallback_reason || String(section.cloud_status || '').toLowerCase() === 'omitted');
+		const reason = highlightMissingText && (!hasHostedText || section.fallback_reason || String(section.cloud_status || '').toLowerCase() === 'omitted') ? hostedAiNoResultReason(section) : '';
+		const isHighlighted = Boolean(reason || (highlightMissingText && (section.fallback_reason || String(section.cloud_status || '').toLowerCase() === 'omitted')));
 		const defaultOpen = controls.defaultOpen === undefined ? isHighlighted : Boolean(controls.defaultOpen);
+		const summaryLabel = controls.summaryLabel || (isHighlighted ? __('Why no AI text appeared', 'npcink-toolbox') : __('Runtime diagnostics', 'npcink-toolbox'));
 		return createElement(
 			'details',
 			{ className: 'npcink-toolbox-editor-support__runtime-diagnostics', open: defaultOpen },
-			createElement('summary', null, isHighlighted ? __('Why no AI text appeared', 'npcink-toolbox') : __('Runtime diagnostics', 'npcink-toolbox')),
+			createElement('summary', null, summaryLabel),
 			reason ? createElement('p', { className: 'npcink-toolbox-editor-support__muted' }, reason) : null,
 			renderItems(items, __('No runtime diagnostics returned.', 'npcink-toolbox'))
 		);
@@ -3553,6 +3555,20 @@
 		return '';
 	}
 
+	function formatAudioDuration(seconds) {
+		const numeric = Number(seconds);
+		if (!Number.isFinite(numeric) || numeric <= 0) {
+			return '';
+		}
+		const total = Math.max(1, Math.floor(numeric));
+		const minutes = Math.floor(total / 60);
+		const remainder = total % 60;
+		if (!minutes) {
+			return String(remainder) + 's';
+		}
+		return String(minutes) + ':' + String(remainder).padStart(2, '0');
+	}
+
 	function audioAdoptionPlanItems(plan) {
 		if (!plan || typeof plan !== 'object') {
 			return [];
@@ -3624,20 +3640,13 @@
 	function renderAudioGenerationSection(section, audioAdoptionControls, audioPlaybackControls) {
 		const items = audioGenerationItems(section);
 		const script = String(section && section.script ? section.script : '').trim();
-		const audio = section && section.audio && typeof section.audio === 'object' ? section.audio : {};
-		const providerParts = compactLabelParts([
-			audio.hosted_profile,
-			audio.model_id,
-			audio.provider_response_format,
-		]);
+		const isAudioSummary = Boolean(section && section.candidate_type === 'article_audio_summary');
+		const shouldShowScript = Boolean(script && isAudioSummary);
 		const blocks = [
-			createElement('h4', { key: 'audio-title' }, section && section.candidate_type === 'article_audio_summary' ? __('Audio summary', 'npcink-toolbox') : __('Article narration', 'npcink-toolbox')),
-			createElement('p', { key: 'audio-help', className: 'npcink-toolbox-editor-support__muted' }, __('Review-only audio candidate. Use audio sends adoption through Core; the governed ability can import the audio into the local media library.', 'npcink-toolbox')),
+			createElement('h4', { key: 'audio-title' }, isAudioSummary ? __('Generated audio summary candidate', 'npcink-toolbox') : __('Generated narration candidate', 'npcink-toolbox')),
+			createElement('p', { key: 'audio-help', className: 'npcink-toolbox-editor-support__muted' }, __('Generated audio candidate. Preview it here; adoption goes through Core and writes the article audio reference, while Toolbox does not edit the post directly.', 'npcink-toolbox')),
 		];
-		if (providerParts.length) {
-			blocks.push(createElement('p', { key: 'audio-provider', className: 'npcink-toolbox-editor-support__muted' }, providerParts.join(' / ')));
-		}
-		if (script) {
+		if (shouldShowScript) {
 			blocks.push(createElement('pre', { key: 'audio-script', className: 'npcink-toolbox-editor-support__code' }, truncateText(script, 1200)));
 		}
 		if (!items.length) {
@@ -3654,15 +3663,14 @@
 				const playbackError = Boolean(audioPlaybackControls && audioPlaybackControls.errors && audioPlaybackControls.errors[adoptionKey]);
 				const meta = compactLabelParts([
 					item.format,
-					item.voice_id,
-					item.duration_seconds ? String(item.duration_seconds) + 's' : '',
+					formatAudioDuration(item.duration_seconds),
 					item.model_id,
-				]).join(' / ');
+				]);
 				return createElement(
 					'div',
 					{ key: item.id || index, className: 'npcink-toolbox-editor-support__audio-item' },
 					createElement('strong', null, item.name || __('Audio candidate', 'npcink-toolbox')),
-					meta ? createElement('span', { className: 'npcink-toolbox-editor-support__muted' }, meta) : null,
+					meta.length ? createElement('div', { className: 'npcink-toolbox-editor-support__audio-meta' }, meta.map((part) => createElement('span', { key: part }, part))) : null,
 					previewSrc ? createElement('audio', {
 						controls: true,
 						preload: 'metadata',
@@ -3671,19 +3679,23 @@
 						onLoadedMetadata: () => audioPlaybackControls && audioPlaybackControls.clearError && audioPlaybackControls.clearError(adoptionKey),
 					}) : null,
 					playbackError ? createElement('p', { className: 'npcink-toolbox-editor-support__error' }, __('The browser could not load this audio preview. Open the audio URL to verify the provider file, then rerun if it has expired.', 'npcink-toolbox')) : null,
-					url ? createElement('a', { href: url, target: '_blank', rel: 'noreferrer' }, __('Open audio', 'npcink-toolbox')) : null,
-					url && audioAdoptionControls ? createElement(
-						Button,
-						{
-							type: 'button',
-							variant: 'secondary',
-							isBusy: audioAdoptionControls.running === adoptionKey,
-							disabled: Boolean(audioAdoptionControls.running),
-							onClick: () => audioAdoptionControls.prepare(item, section, adoptionKey),
-						},
-						audioAdoptionControls.running === adoptionKey ? __('Adopting audio', 'npcink-toolbox') : __('Use audio', 'npcink-toolbox')
-					) : null
-				);
+					createElement(
+						'div',
+						{ className: 'npcink-toolbox-editor-support__audio-actions' },
+						url ? createElement('a', { href: url, target: '_blank', rel: 'noreferrer', className: 'npcink-toolbox-editor-support__audio-open-link' }, __('Open audio', 'npcink-toolbox')) : null,
+						url && audioAdoptionControls ? createElement(
+							Button,
+							{
+								type: 'button',
+								variant: 'primary',
+								isBusy: audioAdoptionControls.running === adoptionKey,
+								disabled: Boolean(audioAdoptionControls.running),
+								onClick: () => audioAdoptionControls.prepare(item, section, adoptionKey),
+							},
+							audioAdoptionControls.running === adoptionKey ? __('Adopting audio', 'npcink-toolbox') : __('Adopt audio', 'npcink-toolbox')
+						) : null
+						)
+					);
 			})
 		));
 		if (audioAdoptionControls && audioAdoptionControls.error) {
@@ -5536,7 +5548,7 @@
 			if (sections.audio_generation) {
 				blocks.push(renderAudioGenerationSection(sections.audio_generation, metadataHandoffControls && metadataHandoffControls.audioAdoption, metadataHandoffControls && metadataHandoffControls.audioPlayback));
 				if (sections.audio_generation.audio) {
-					blocks.push(renderHostedAiDiagnostics(sections.audio_generation.audio, { defaultOpen: false }));
+					blocks.push(renderHostedAiDiagnostics(sections.audio_generation.audio, { defaultOpen: false, highlightMissingText: false, summaryLabel: __('Run details', 'npcink-toolbox') }));
 				}
 			}
 
