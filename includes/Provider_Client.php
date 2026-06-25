@@ -222,6 +222,8 @@ final class Provider_Client {
 
 		$voice_id = sanitize_text_field( (string) ( $input['voice_id'] ?? '' ) );
 		$format   = sanitize_key( (string) ( $input['format'] ?? 'mp3' ) );
+		$user_instruction = sanitize_textarea_field( (string) ( $input['user_instruction'] ?? '' ) );
+		$audio_preferences = is_array( $input['audio_preferences'] ?? null ) ? $this->sanitize_payload( $input['audio_preferences'] ) : array();
 		if ( ! in_array( $format, array( 'mp3', 'wav', 'pcm' ), true ) ) {
 			$format = 'mp3';
 		}
@@ -241,6 +243,8 @@ final class Provider_Client {
 				'format'          => $format,
 				'response_format' => 'url',
 				'purpose'         => 'article_audio_summary' === $intent ? 'longform_audio_summary' : 'article_narration',
+				'user_instruction' => $user_instruction,
+				'audio_preferences' => $audio_preferences,
 				'context'         => is_array( $input['context'] ?? null ) ? $this->sanitize_payload( $input['context'] ) : array(),
 				'review'          => array(
 					'script_review_required' => true,
@@ -5076,6 +5080,8 @@ final class Provider_Client {
 				'run_id'                   => sanitize_text_field( (string) ( $response['run_id'] ?? ( $result['run_id'] ?? '' ) ) ),
 				'cloud_run_id'             => sanitize_text_field( (string) ( $data['run_id'] ?? $response['run_id'] ?? '' ) ),
 				'provider_response_format' => sanitize_key( (string) ( $result['provider_response_format'] ?? 'url' ) ),
+				'user_instruction'         => sanitize_textarea_field( (string) ( $input['user_instruction'] ?? '' ) ),
+				'audio_preferences'        => is_array( $input['audio_preferences'] ?? null ) ? $this->sanitize_payload( $input['audio_preferences'] ) : array(),
 				'items'                    => $this->sanitize_payload( $items ),
 				'audios'                   => $this->sanitize_payload( $items ),
 				'script_preview'           => $this->trim_chars( sanitize_textarea_field( (string) ( $input['script'] ?? ( $input['text'] ?? '' ) ) ), 1200 ),

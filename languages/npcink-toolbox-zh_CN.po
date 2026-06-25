@@ -4868,6 +4868,102 @@ msgstr "已生成朗读候选"
 msgid "Generated audio candidate. Preview it here; adoption goes through Core and writes the article audio reference, while Toolbox does not edit the post directly."
 msgstr "已生成音频候选，可先试听。采用后会通过 Core 留痕并写入文章音频引用；Toolbox 不直接修改文章。"
 
+msgid "Calm"
+msgstr "平稳"
+
+msgid "Tone: calm and steady."
+msgstr "语气：平稳、稳定。"
+
+msgid "Formal"
+msgstr "正式"
+
+msgid "Tone: formal and clear."
+msgstr "语气：正式、清晰。"
+
+msgid "Relaxed"
+msgstr "轻松"
+
+msgid "Tone: relaxed and natural."
+msgstr "语气：轻松、自然。"
+
+msgid "Expressive"
+msgstr "有感染力"
+
+msgid "Tone: expressive but not exaggerated."
+msgstr "语气：有感染力，但不过度夸张。"
+
+msgid "Normal"
+msgstr "正常"
+
+msgid "Pace: normal."
+msgstr "语速：正常。"
+
+msgid "Slower"
+msgstr "偏慢"
+
+msgid "Pace: slightly slower for listening clarity."
+msgstr "语速：略慢，便于听清。"
+
+msgid "Faster"
+msgstr "偏快"
+
+msgid "Pace: slightly faster while staying clear."
+msgstr "语速：略快，但保持清晰。"
+
+msgid "Skip code"
+msgstr "跳过代码"
+
+msgid "Content handling: skip code blocks and inline code fragments."
+msgstr "内容处理：跳过代码块和行内代码片段。"
+
+msgid "Read code"
+msgstr "读出代码"
+
+msgid "Content handling: read important code fragments when they are useful to listeners."
+msgstr "内容处理：当代码片段对听众有用时读出重点代码。"
+
+msgid "Skip tables"
+msgstr "跳过表格"
+
+msgid "Content handling: skip tables and dense lists."
+msgstr "内容处理：跳过表格和密集列表。"
+
+msgid "Product names"
+msgstr "产品名"
+
+msgid "Focus: pronounce product names clearly."
+msgstr "重点：产品名读清楚。"
+
+msgid "Numbers"
+msgstr "数字"
+
+msgid "Focus: pronounce numbers and units clearly."
+msgstr "重点：数字和单位读清楚。"
+
+msgid "Heading pauses"
+msgstr "标题停顿"
+
+msgid "Focus: add clear pauses around headings."
+msgstr "重点：标题前后停顿清楚。"
+
+msgid "Extra request: "
+msgstr "补充要求："
+
+msgid "Tone"
+msgstr "语气"
+
+msgid "Pace"
+msgstr "语速"
+
+msgid "Content handling"
+msgstr "内容处理"
+
+msgid "Focus"
+msgstr "重点"
+
+msgid "Narration preferences"
+msgstr "朗读偏好"
+
 msgid "No audio candidate returned."
 msgstr "没有返回音频候选。"
 
@@ -4937,8 +5033,14 @@ msgstr "正在采用音频"
 msgid "Run details"
 msgstr "运行详情"
 
-msgid "Example: calm narration, keep product names clear, skip code snippets."
-msgstr "示例：语气平稳，产品名清晰，跳过代码片段。"
+msgid "Additional request (optional)"
+msgstr "补充要求（可选）"
 
-msgid "Example: two-minute summary for readers deciding whether to read the full article."
-msgstr "示例：给正在判断是否阅读全文的读者生成两分钟摘要。"
+msgid "Regenerate audio"
+msgstr "重新生成音频"
+
+msgid "Example: pronounce Npcink clearly; keep a steady pace around headings."
+msgstr "例如：Npcink 要读清楚；标题前后语速稳一点。"
+
+msgid "Example: keep it around two minutes for readers deciding whether to read the full article."
+msgstr "例如：控制在两分钟左右，给正在判断是否阅读全文的读者听。"

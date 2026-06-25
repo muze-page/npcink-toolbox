@@ -33,6 +33,36 @@
 	const IMAGE_RESULT_CACHE_MAX_ENTRIES = 20;
 	const IMAGE_CANDIDATE_TARGET_COUNT = 9;
 	const IMAGE_DIRECTION_TARGET_COUNT = 4;
+	const AUDIO_PREFERENCE_STORAGE_KEY = 'npcink_toolbox_audio_preferences_v1';
+	const AUDIO_PREFERENCE_DEFAULTS = {
+		tone: 'calm',
+		pace: 'normal',
+		handling: 'skip_code',
+		focus: 'product_names',
+	};
+	const AUDIO_PREFERENCE_OPTIONS = {
+		tone: [
+			{ value: 'calm', label: __('Calm', 'npcink-toolbox'), instruction: __('Tone: calm and steady.', 'npcink-toolbox') },
+			{ value: 'formal', label: __('Formal', 'npcink-toolbox'), instruction: __('Tone: formal and clear.', 'npcink-toolbox') },
+			{ value: 'casual', label: __('Relaxed', 'npcink-toolbox'), instruction: __('Tone: relaxed and natural.', 'npcink-toolbox') },
+			{ value: 'expressive', label: __('Expressive', 'npcink-toolbox'), instruction: __('Tone: expressive but not exaggerated.', 'npcink-toolbox') },
+		],
+		pace: [
+			{ value: 'normal', label: __('Normal', 'npcink-toolbox'), instruction: __('Pace: normal.', 'npcink-toolbox') },
+			{ value: 'slow', label: __('Slower', 'npcink-toolbox'), instruction: __('Pace: slightly slower for listening clarity.', 'npcink-toolbox') },
+			{ value: 'fast', label: __('Faster', 'npcink-toolbox'), instruction: __('Pace: slightly faster while staying clear.', 'npcink-toolbox') },
+		],
+		handling: [
+			{ value: 'skip_code', label: __('Skip code', 'npcink-toolbox'), instruction: __('Content handling: skip code blocks and inline code fragments.', 'npcink-toolbox') },
+			{ value: 'read_code', label: __('Read code', 'npcink-toolbox'), instruction: __('Content handling: read important code fragments when they are useful to listeners.', 'npcink-toolbox') },
+			{ value: 'skip_tables', label: __('Skip tables', 'npcink-toolbox'), instruction: __('Content handling: skip tables and dense lists.', 'npcink-toolbox') },
+		],
+		focus: [
+			{ value: 'product_names', label: __('Product names', 'npcink-toolbox'), instruction: __('Focus: pronounce product names clearly.', 'npcink-toolbox') },
+			{ value: 'numbers', label: __('Numbers', 'npcink-toolbox'), instruction: __('Focus: pronounce numbers and units clearly.', 'npcink-toolbox') },
+			{ value: 'headings', label: __('Heading pauses', 'npcink-toolbox'), instruction: __('Focus: add clear pauses around headings.', 'npcink-toolbox') },
+		],
+	};
 	const imageResultCache = {};
 	const implicitAgentFeedbackSent = {};
 	const PluginSidebarComponent = editor.PluginSidebar || editPost.PluginSidebar;
@@ -422,6 +452,100 @@
 			throw body;
 		}
 		return body;
+	}
+
+	function isAudioIntent(intent) {
+		return ['article_narration', 'article_audio_summary'].indexOf(String(intent || '')) >= 0;
+	}
+
+	function normalizeAudioPreferences(source) {
+		const raw = source && typeof source === 'object' ? source : {};
+		const next = Object.assign({}, AUDIO_PREFERENCE_DEFAULTS);
+		Object.keys(AUDIO_PREFERENCE_OPTIONS).forEach((field) => {
+			const value = String(raw[field] || next[field] || '').trim();
+			const allowed = AUDIO_PREFERENCE_OPTIONS[field].some((option) => option.value === value);
+			if (allowed) {
+				next[field] = value;
+			}
+		});
+		return next;
+	}
+
+	function readAudioPreferences() {
+		try {
+			if (typeof window === 'undefined' || !window.localStorage) {
+				return normalizeAudioPreferences({});
+			}
+			return normalizeAudioPreferences(JSON.parse(window.localStorage.getItem(AUDIO_PREFERENCE_STORAGE_KEY) || '{}'));
+		} catch (error) {
+			return normalizeAudioPreferences({});
+		}
+	}
+
+	function writeAudioPreferences(preferences) {
+		try {
+			if (typeof window !== 'undefined' && window.localStorage) {
+				window.localStorage.setItem(AUDIO_PREFERENCE_STORAGE_KEY, JSON.stringify(normalizeAudioPreferences(preferences)));
+			}
+		} catch (error) {
+			// Browser storage can be disabled; keep preferences in component state.
+		}
+	}
+
+	function audioPreferenceInstruction(preferences, note) {
+		const normalized = normalizeAudioPreferences(preferences);
+		const parts = [];
+		Object.keys(AUDIO_PREFERENCE_OPTIONS).forEach((field) => {
+			const match = AUDIO_PREFERENCE_OPTIONS[field].find((option) => option.value === normalized[field]);
+			if (match && match.instruction) {
+				parts.push(match.instruction);
+			}
+		});
+		const extra = String(note || '').trim();
+		if (extra) {
+			parts.push(__('Extra request: ', 'npcink-toolbox') + extra);
+		}
+		return parts.join(' ');
+	}
+
+	function renderAudioPreferenceControls(preferences, onChange, disabled) {
+		const normalized = normalizeAudioPreferences(preferences);
+		const groups = [
+			{ field: 'tone', label: __('Tone', 'npcink-toolbox') },
+			{ field: 'pace', label: __('Pace', 'npcink-toolbox') },
+			{ field: 'handling', label: __('Content handling', 'npcink-toolbox') },
+			{ field: 'focus', label: __('Focus', 'npcink-toolbox') },
+		];
+		return createElement(
+			'div',
+			{ className: 'npcink-toolbox-editor-support__audio-preferences' },
+			createElement('strong', null, __('Narration preferences', 'npcink-toolbox')),
+			groups.map((group) => createElement(
+				'div',
+				{ key: group.field, className: 'npcink-toolbox-editor-support__audio-preference-group' },
+				createElement('span', null, group.label),
+				createElement(
+					'div',
+					{ className: 'npcink-toolbox-editor-support__audio-preference-options' },
+					AUDIO_PREFERENCE_OPTIONS[group.field].map((option) => {
+						const selected = normalized[group.field] === option.value;
+						return createElement(
+							Button,
+							{
+								key: option.value,
+								type: 'button',
+								variant: selected ? 'primary' : 'secondary',
+								className: 'npcink-toolbox-editor-support__audio-preference-option' + (selected ? ' is-selected' : ''),
+								disabled: Boolean(disabled),
+								'aria-pressed': selected,
+								onClick: () => onChange && onChange(group.field, option.value),
+							},
+							option.label
+						);
+					})
+				)
+			))
+		);
 	}
 
 	async function postJson(path, payload) {
@@ -3736,10 +3860,10 @@
 			return __('Example: emphasize workflow value, avoid audience-label openings.', 'npcink-toolbox');
 		}
 		if (intent === 'article_narration') {
-			return __('Example: calm narration, keep product names clear, skip code snippets.', 'npcink-toolbox');
+			return __('Example: pronounce Npcink clearly; keep a steady pace around headings.', 'npcink-toolbox');
 		}
 		if (intent === 'article_audio_summary') {
-			return __('Example: two-minute summary for readers deciding whether to read the full article.', 'npcink-toolbox');
+			return __('Example: keep it around two minutes for readers deciding whether to read the full article.', 'npcink-toolbox');
 		}
 		if (intent === 'category_suggestions' || intent === 'tag_suggestions') {
 			return __('Example: prefer existing product taxonomy and avoid broad generic terms.', 'npcink-toolbox');
@@ -5773,6 +5897,7 @@
 		const [audioAdoptionResult, setAudioAdoptionResult] = useState(null);
 		const [audioAdoptionError, setAudioAdoptionError] = useState('');
 		const [audioPlaybackErrors, setAudioPlaybackErrors] = useState({});
+		const [audioPreferences, setAudioPreferences] = useState(readAudioPreferences);
 		const [contentFeedbackRunning, setContentFeedbackRunning] = useState('');
 		const [contentFeedbackStatus, setContentFeedbackStatus] = useState(null);
 		const [internalLinkRunning, setInternalLinkRunning] = useState('');
@@ -5991,7 +6116,10 @@
 					setExcerptApplyStatus(null);
 					setSlugApplyStatus(null);
 					try {
-						const userInstruction = flowAcceptsUserInstruction(intent) ? String(flowInstructions[intent] || '').trim() : '';
+						let userInstruction = flowAcceptsUserInstruction(intent) ? String(flowInstructions[intent] || '').trim() : '';
+						if (isAudioIntent(intent)) {
+							userInstruction = audioPreferenceInstruction(audioPreferences, userInstruction);
+						}
 						const shouldForceRegenerate = Boolean(runOptions.forceRegenerate);
 						const fallbackContextOverride = intent === 'polish_notes' && paragraphReviewContext && typeof paragraphReviewContext === 'object' ? paragraphReviewContext : {};
 						const runContext = Object.assign(
@@ -6005,10 +6133,13 @@
 							category_ids: Array.isArray(runContext.category_ids) ? runContext.category_ids.join(',') : '',
 							tag_ids: Array.isArray(runContext.tag_ids) ? runContext.tag_ids.join(',') : '',
 							media_items: Array.isArray(runContext.media_items) ? runContext.media_items : [],
-							generation_variant: ['title_suggestions', 'article_outline', 'polish_notes', 'article_audio_summary'].indexOf(intent) >= 0 || shouldForceRegenerate ? String(Date.now()) : '',
+							generation_variant: ['title_suggestions', 'article_outline', 'polish_notes', 'article_narration', 'article_audio_summary'].indexOf(intent) >= 0 || shouldForceRegenerate ? String(Date.now()) : '',
 							force_regenerate: shouldForceRegenerate,
 							user_instruction: userInstruction,
 					});
+					if (isAudioIntent(intent)) {
+						payload.audio_preferences = normalizeAudioPreferences(audioPreferences);
+					}
 					if (intent === 'summary_suggestions') {
 						payload.summary_generation_mode = runOptions.summaryGenerationMode === 'full_context' ? 'full_context' : 'fast_brief';
 					}
@@ -6753,6 +6884,16 @@
 			}));
 		}
 
+		function updateAudioPreference(field, value) {
+			setAudioPreferences((current) => {
+				const next = normalizeAudioPreferences(Object.assign({}, current || {}, {
+					[field]: value,
+				}));
+				writeAudioPreferences(next);
+				return next;
+			});
+		}
+
 		function applyRecommendedTitle(title) {
 			const value = String(title || '').trim();
 			if (!value) {
@@ -7394,6 +7535,7 @@
 			const showResultView = supportView === 'result';
 			const rerunInstruction = rerunIntent ? String(flowInstructions[rerunIntent] || '') : '';
 			const canAdvancedSummaryRerun = rerunIntent === 'summary_suggestions';
+			const isAudioRerun = isAudioIntent(rerunIntent);
 
 		return createElement(
 			Fragment,
@@ -7441,12 +7583,13 @@
 						rerunIntent && flowAcceptsUserInstruction(rerunIntent) ? createElement(
 							'div',
 							{ className: 'npcink-toolbox-editor-support__flow-instruction' },
+							isAudioRerun ? renderAudioPreferenceControls(audioPreferences, updateAudioPreference, Boolean(running)) : null,
 							createElement(TextareaControl, {
-								label: __('My request for this suggestion', 'npcink-toolbox'),
+								label: isAudioRerun ? __('Additional request (optional)', 'npcink-toolbox') : __('My request for this suggestion', 'npcink-toolbox'),
 								value: rerunInstruction,
 								placeholder: flowInstructionPlaceholder(rerunIntent),
 								disabled: Boolean(running),
-								rows: 3,
+								rows: isAudioRerun ? 2 : 3,
 								onChange: (value) => updateFlowInstruction(rerunIntent, value),
 							})
 						) : null,
@@ -7462,10 +7605,10 @@
 										disabled: Boolean(running),
 										onClick: () => {
 											submitContentImplicitFeedback('run_again', 'edited_before_accept', ['good_but_needs_human_draft']);
-											runFlow(rerunIntent, rerunIntent === 'summary_suggestions' ? { forceRegenerate: true } : undefined);
+											runFlow(rerunIntent, (rerunIntent === 'summary_suggestions' || isAudioIntent(rerunIntent)) ? { forceRegenerate: true } : undefined);
 										},
 									},
-									running ? __('Running', 'npcink-toolbox') : (rerunIntent === 'summary_suggestions' ? __('Regenerate', 'npcink-toolbox') : __('Run again', 'npcink-toolbox'))
+									running ? __('Running', 'npcink-toolbox') : (isAudioRerun ? __('Regenerate audio', 'npcink-toolbox') : (rerunIntent === 'summary_suggestions' ? __('Regenerate', 'npcink-toolbox') : __('Run again', 'npcink-toolbox')))
 								),
 								canAdvancedSummaryRerun ? createElement(
 									Button,

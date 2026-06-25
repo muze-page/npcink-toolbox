@@ -1164,7 +1164,9 @@ final class Rest_Controller {
 	}
 
 	private function editor_post_context( WP_REST_Request $request ): array {
-		$content             = trim( wp_strip_all_tags( (string) $request->get_param( 'content' ) ) );
+		$content_raw         = (string) $request->get_param( 'content' );
+		$audio_preferences   = $this->editor_audio_preferences_from_request( $request );
+		$content             = trim( wp_strip_all_tags( $content_raw ) );
 		$selected_text       = trim( wp_strip_all_tags( (string) $request->get_param( 'selected_text' ) ) );
 		$selected_block_text = trim( wp_strip_all_tags( (string) $request->get_param( 'selected_block_text' ) ) );
 		$user_instruction    = trim( wp_strip_all_tags( (string) $request->get_param( 'user_instruction' ) ) );
@@ -1186,12 +1188,14 @@ final class Rest_Controller {
 			'excerpt'             => sanitize_textarea_field( (string) $request->get_param( 'excerpt' ) ),
 			'content_text'        => wp_trim_words( $content, 220, '' ),
 			'content_full_text'   => sanitize_textarea_field( $this->editor_trim_chars( $content, self::EDITOR_SUMMARY_FULL_CONTENT_MAX_CHARS ) ),
+			'content_audio_text'  => sanitize_textarea_field( $this->editor_trim_chars( $this->editor_audio_text_from_raw_content( $content_raw, $audio_preferences ), self::EDITOR_AUDIO_TEXT_MAX_CHARS ) ),
 			'selected_text'       => wp_trim_words( sanitize_textarea_field( $selected_text ), 110, '' ),
 			'selected_block_text' => wp_trim_words( sanitize_textarea_field( $selected_block_text ), 110, '' ),
 			'selected_text_full'       => sanitize_textarea_field( $this->editor_trim_chars( $selected_text, self::EDITOR_SELECTED_TEXT_MAX_CHARS ) ),
 			'selected_block_text_full' => sanitize_textarea_field( $this->editor_trim_chars( $selected_block_text, self::EDITOR_SELECTED_TEXT_MAX_CHARS ) ),
 			'selected_block_name' => sanitize_text_field( (string) $request->get_param( 'selected_block_name' ) ),
 			'user_instruction'    => wp_trim_words( sanitize_textarea_field( $user_instruction ), 60, '' ),
+			'audio_preferences'   => $audio_preferences,
 			'generation_variant'  => sanitize_text_field( (string) $request->get_param( 'generation_variant' ) ),
 			'force_regenerate'    => (bool) $request->get_param( 'force_regenerate' ),
 			'summary_generation_mode' => $summary_mode,
@@ -1204,6 +1208,46 @@ final class Rest_Controller {
 			'comment_author'      => sanitize_text_field( (string) $request->get_param( 'comment_author' ) ),
 			'comment_text'        => sanitize_textarea_field( $this->editor_trim_chars( trim( wp_strip_all_tags( (string) $request->get_param( 'comment_text' ) ) ), self::EDITOR_COMMENT_TEXT_MAX_CHARS ) ),
 		);
+	}
+
+	private function editor_audio_preferences_from_request( WP_REST_Request $request ): array {
+		$raw = $request->get_param( 'audio_preferences' );
+		if ( ! is_array( $raw ) ) {
+			$raw = array();
+		}
+		$defaults = array(
+			'tone'     => 'calm',
+			'pace'     => 'normal',
+			'handling' => 'skip_code',
+			'focus'    => 'product_names',
+		);
+		$allowed = array(
+			'tone'     => array( 'calm', 'formal', 'casual', 'expressive' ),
+			'pace'     => array( 'normal', 'slow', 'fast' ),
+			'handling' => array( 'skip_code', 'read_code', 'skip_tables' ),
+			'focus'    => array( 'product_names', 'numbers', 'headings' ),
+		);
+		$preferences = array();
+		foreach ( $defaults as $key => $default ) {
+			$value = sanitize_key( (string) ( $raw[ $key ] ?? $default ) );
+			$preferences[ $key ] = in_array( $value, $allowed[ $key ], true ) ? $value : $default;
+		}
+		return $preferences;
+	}
+
+	private function editor_audio_text_from_raw_content( string $content, array $audio_preferences ): string {
+		$source   = $content;
+		$handling = sanitize_key( (string) ( $audio_preferences['handling'] ?? 'skip_code' ) );
+		if ( 'skip_code' === $handling ) {
+			$source = preg_replace( '/<!--\s*wp:code\b.*?<!--\s*\/wp:code\s*-->/is', ' ', $source );
+			$source = preg_replace( '/<pre\b[^>]*>.*?<\/pre>/is', ' ', $source );
+			$source = preg_replace( '/<code\b[^>]*>.*?<\/code>/is', ' ', $source );
+		}
+		if ( 'skip_tables' === $handling ) {
+			$source = preg_replace( '/<!--\s*wp:table\b.*?<!--\s*\/wp:table\s*-->/is', ' ', $source );
+			$source = preg_replace( '/<table\b[^>]*>.*?<\/table>/is', ' ', $source );
+		}
+		return trim( wp_strip_all_tags( (string) $source ) );
 	}
 
 	private function editor_trim_chars( string $value, int $max_chars ): string {
@@ -3174,11 +3218,13 @@ final class Rest_Controller {
 	}
 
 	private function editor_article_audio_generation( array $context, string $intent ): array {
-		$source_text       = trim( (string) ( $context['content_full_text'] ?? $context['content_text'] ?? '' ) );
+		$source_text       = trim( (string) ( $context['content_audio_text'] ?? $context['content_full_text'] ?? $context['content_text'] ?? '' ) );
 		$force_regenerate = ! empty( $context['force_regenerate'] );
+		$audio_preferences = is_array( $context['audio_preferences'] ?? null ) ? $context['audio_preferences'] : array();
 		$script_source    = array(
 			'artifact_type'          => 'article_audio_script_source.v1',
 			'intent'                 => $intent,
+			'audio_preferences'      => $audio_preferences,
 			'write_posture'          => 'suggestion_only',
 			'direct_wordpress_write' => false,
 		);
@@ -3212,6 +3258,8 @@ final class Rest_Controller {
 					'intent'    => $intent,
 					'text'      => $script,
 					'script'    => $script,
+					'user_instruction' => (string) ( $context['user_instruction'] ?? '' ),
+					'audio_preferences' => $audio_preferences,
 					'format'    => 'mp3',
 					'context'   => array(
 						'post_id'          => absint( $context['post_id'] ?? 0 ),
@@ -3219,6 +3267,8 @@ final class Rest_Controller {
 						'title'            => sanitize_text_field( (string) ( $context['title'] ?? '' ) ),
 						'excerpt'          => sanitize_textarea_field( (string) ( $context['excerpt'] ?? '' ) ),
 						'source_text_hash' => md5( $source_text ),
+						'user_instruction' => sanitize_textarea_field( (string) ( $context['user_instruction'] ?? '' ) ),
+						'audio_preferences' => $audio_preferences,
 						'surface'          => 'editor_content_support',
 					),
 				),
@@ -3236,6 +3286,7 @@ final class Rest_Controller {
 			'direct_wordpress_write' => false,
 			'script'                 => $script,
 			'script_source'          => $script_source,
+			'audio_preferences'      => $audio_preferences,
 			'audio'                  => $audio,
 			'items'                  => is_array( $audio['items'] ?? null ) ? $audio['items'] : array(),
 			'audio_generation'       => $audio,

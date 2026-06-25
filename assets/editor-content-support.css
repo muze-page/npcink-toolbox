@@ -82,6 +82,48 @@
 	line-height: 1.4;
 }
 
+.npcink-toolbox-editor-support__audio-preferences {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+	padding: 10px;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	background: #fff;
+}
+
+.npcink-toolbox-editor-support__audio-preferences > strong {
+	color: #1d2327;
+	font-size: 12px;
+	line-height: 1.35;
+}
+
+.npcink-toolbox-editor-support__audio-preference-group {
+	display: grid;
+	gap: 4px;
+	min-width: 0;
+}
+
+.npcink-toolbox-editor-support__audio-preference-group > span {
+	color: #646970;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.npcink-toolbox-editor-support__audio-preference-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	min-width: 0;
+}
+
+.components-button.npcink-toolbox-editor-support__audio-preference-option {
+	min-height: 28px;
+	padding: 0 8px;
+	font-size: 12px;
+}
+
 .npcink-toolbox-editor-support__toolbar-icon {
 	display: block;
 	width: 24px;
