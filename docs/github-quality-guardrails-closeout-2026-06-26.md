@@ -72,6 +72,56 @@ The final Core merge commit recorded by GitHub was:
 efc19be6e34a9da0bb233a59614aced8927d1382
 ```
 
+## Local Git Transport And Branch Cleanup
+
+During the final publication cleanup, GitHub HTTPS operations intermittently
+timed out or failed with an HTTP/2 framing error. The failure was transport
+level, not a repository or commit problem.
+
+The accepted local default for this repository family is:
+
+1. Use local Git CLI for fetch, branch, merge, commit, and push operations.
+2. Prefer repository-local `http.version=HTTP/1.1` for the six current Npcink
+   repositories to avoid the observed HTTP/2 transport failure mode.
+3. Use GitHub pull requests for protected `master` updates. Do not bypass
+   branch protection or direct-push protected branches.
+4. Use `gh` for PR creation, required-check inspection, and PR merge when the
+   branch is protected.
+5. Do not use GitHub Git Data API for normal branch publication.
+
+The local HTTP setting was applied only to the six active repositories:
+
+```bash
+git -C /Users/muze/gitee/npcink-abilities-toolkit config http.version HTTP/1.1
+git -C /Users/muze/gitee/npcink-governance-core config http.version HTTP/1.1
+git -C /Users/muze/gitee/npcink-ai-client-adapter config http.version HTTP/1.1
+git -C /Users/muze/gitee/npcink-toolbox config http.version HTTP/1.1
+git -C /Users/muze/gitee/npcink-ai-cloud config http.version HTTP/1.1
+git -C /Users/muze/gitee/npcink-cloud-addon config http.version HTTP/1.1
+```
+
+No global Git HTTP setting was changed. Each value should resolve from the
+repository's own `.git/config`.
+
+The normal guarded publication sequence is:
+
+```bash
+GIT_TERMINAL_PROMPT=0 git fetch --prune origin
+git status --short --branch
+git push origin <local-branch>:<remote-branch>
+gh pr create --base master --head <remote-branch>
+gh pr checks <pr-number> --watch
+gh pr merge <pr-number> --merge --delete-branch
+GIT_TERMINAL_PROMPT=0 git fetch --prune origin
+git merge --ff-only origin/master
+```
+
+After PRs are merged, local cleanup should leave each target repository on
+`master...origin/master` with a clean worktree, no ahead or behind commits, no
+extra local `codex/*` branches, and no extra worktrees. Remote Dependabot
+branches may remain. In `npcink-ai-cloud`, the remote `production` branch is a
+normal production branch and must be preserved.
+
 ## Current Gate Shape
 
 The current guardrail shape is intentionally uneven by repository. It follows
