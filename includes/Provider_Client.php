@@ -3507,6 +3507,7 @@ final class Provider_Client {
 	public function build_media_alt_caption_review_plan( array $input ): array {
 		$selected_items = is_array( $input['selected_items'] ?? null ) ? $input['selected_items'] : array();
 		$actions        = array();
+		$blocked_actions = array();
 
 		foreach ( $selected_items as $item ) {
 			if ( ! is_array( $item ) ) {
@@ -3519,8 +3520,30 @@ final class Provider_Client {
 			}
 
 			$alt_candidates = is_array( $item['alt_candidates'] ?? null ) ? $item['alt_candidates'] : array();
-			$proposed_alt   = sanitize_text_field( (string) ( $item['accepted_alt'] ?? ( $alt_candidates[0] ?? '' ) ) );
-			$proposed_caption = sanitize_textarea_field( (string) ( $item['accepted_caption'] ?? ( $item['caption_candidate'] ?? '' ) ) );
+			$proposed_alt   = $this->media_alt_caption_clean_candidate( (string) ( $item['accepted_alt'] ?? ( $alt_candidates[0] ?? '' ) ) );
+			$proposed_caption = $this->media_alt_caption_clean_candidate( (string) ( $item['accepted_caption'] ?? ( $item['caption_candidate'] ?? '' ) ) );
+			$alt_rejection = '' !== $proposed_alt ? $this->media_alt_caption_candidate_rejection_reason( $proposed_alt, $item, 'alt' ) : '';
+			if ( '' !== $alt_rejection ) {
+				$blocked_actions[] = array(
+					'action_id'            => 'media-alt-caption:' . $attachment_id . ':alt',
+					'attachment_id'        => $attachment_id,
+					'rejected_field'       => 'alt',
+					'blocked_reason'       => $alt_rejection,
+					'operator_next_action' => 'revise_alt_before_core_handoff',
+				);
+				$proposed_alt = '';
+			}
+			$caption_rejection = '' !== $proposed_caption ? $this->media_alt_caption_candidate_rejection_reason( $proposed_caption, $item, 'caption' ) : '';
+			if ( '' !== $caption_rejection ) {
+				$blocked_actions[] = array(
+					'action_id'            => 'media-alt-caption:' . $attachment_id . ':caption',
+					'attachment_id'        => $attachment_id,
+					'rejected_field'       => 'caption',
+					'blocked_reason'       => $caption_rejection,
+					'operator_next_action' => 'revise_caption_before_core_handoff',
+				);
+				$proposed_caption = '';
+			}
 			if ( '' === $proposed_alt && '' === $proposed_caption ) {
 				continue;
 			}
@@ -3532,6 +3555,9 @@ final class Provider_Client {
 				'filename'                    => sanitize_text_field( (string) ( $item['filename'] ?? '' ) ),
 				'current_alt_status'          => sanitize_key( (string) ( $item['current_alt_status'] ?? '' ) ),
 				'current_caption_status'      => sanitize_key( (string) ( $item['current_caption_status'] ?? '' ) ),
+				'current_alt'                 => sanitize_text_field( (string) ( $item['current_alt'] ?? ( $item['alt'] ?? '' ) ) ),
+				'current_caption'             => sanitize_textarea_field( (string) ( $item['current_caption'] ?? ( $item['caption'] ?? '' ) ) ),
+				'thumbnail_url'               => esc_url_raw( (string) ( $item['thumbnail_url'] ?? '' ) ),
 				'accepted_alt'                => $proposed_alt,
 				'accepted_caption'            => $proposed_caption,
 				'needs_human_visual_check'    => true,
@@ -3558,14 +3584,33 @@ final class Provider_Client {
 			'queue_created'          => false,
 			'selected_count'         => count( $actions ),
 			'selected_actions'       => $actions,
+			'blocked_actions'        => $blocked_actions,
 			'review_set_summary'     => array(
 				'contract_version' => sanitize_text_field( (string) ( $review_set['contract_version'] ?? '' ) ),
 				'source_policy'    => sanitize_key( (string) ( $review_set['source_policy'] ?? '' ) ),
 				'media_scope'      => sanitize_key( (string) ( $review_set['media_scope'] ?? '' ) ),
 				'selected_count'   => absint( $review_set['selected_count'] ?? count( $actions ) ),
 			),
+			'core_auto_approval_policy' => array(
+				'request_supported'          => false,
+				'toolbox_direct_apply'       => false,
+				'approval_owner'             => 'npcink-governance-core',
+				'execution_owner'            => 'wordpress_abilities',
+				'future_safe_action_candidate' => 'fill_missing_alt_only',
+				'required_policy_checks'     => array(
+					'operator_enabled_core_policy',
+					'missing_alt_only',
+					'candidate_quality_gate_passed',
+					'no_runtime_provenance_text',
+					'no_source_attribution_text',
+					'human_visual_confirmation_or_trusted_visual_evidence',
+					'bounded_batch_size',
+					'old_value_audit_and_rollback_evidence',
+				),
+			),
 			'handoff'                => array(
-				'plan_ability_id'        => 'npcink-toolbox/build-media-alt-caption-review-plan',
+				'plan_route'             => '/wp-json/npcink-toolbox/v1/flows/media-alt-caption-review-plan',
+				'plan_surface'           => 'toolbox_rest_route',
 				'target_ability_id'      => 'npcink-abilities-toolkit/update-media-details',
 				'recipe_id'              => 'media_alt_caption_review_v1',
 				'core_route'             => '/wp-json/npcink-governance-core/v1/proposals/from-plan',
@@ -3580,6 +3625,7 @@ final class Provider_Client {
 			'guardrails'             => array(
 				'no_media_metadata_write_in_toolbox',
 				'no_automatic_proposal_creation',
+				'no_toolbox_auto_approval',
 				'human_visual_confirmation_required',
 				'core_approval_required_before_final_write',
 			),
@@ -4157,8 +4203,13 @@ final class Provider_Client {
 		$focus            = sanitize_textarea_field( (string) ( $input['focus'] ?? '' ) );
 		$quality_contract = $this->hosted_ai_site_helper_quality_contract( $intent );
 		$context          = $this->settings->get_content_context_for_ability();
-		$media_snapshot   = 'media_alt_suggestions' === $intent
-			? $this->hosted_ai_media_alt_snapshot_from_input( $input, 10 )
+		$media_sample_limit = absint( $input['sample_size'] ?? ( $input['scan_limit'] ?? 10 ) );
+		if ( 0 >= $media_sample_limit ) {
+			$media_sample_limit = 10;
+		}
+		$media_sample_limit = max( 1, min( 30, $media_sample_limit ) );
+		$media_snapshot     = 'media_alt_suggestions' === $intent
+			? $this->hosted_ai_media_alt_snapshot_from_input( $input, $media_sample_limit )
 			: array();
 		$image_context_evidence = is_array( $input['image_context_evidence'] ?? null )
 			? $this->sanitize_payload( $input['image_context_evidence'] )
@@ -4185,6 +4236,7 @@ final class Provider_Client {
 			'source_policy'          => sanitize_key( (string) ( $input['source_policy'] ?? ( 'media_alt_suggestions' === $intent ? ( $media_snapshot['snapshot_policy'] ?? 'current_article_media_metadata_only' ) : 'bounded_public_content_sample_only' ) ) ),
 		);
 		$prompt           = $this->hosted_ai_site_helper_prompt( $intent, $source, $context );
+		$data_classification = 'media_alt_suggestions' === $intent ? 'pii' : 'public_site_content';
 
 		$runtime_payload = array(
 			'ability_name'        => 'npcink-toolbox/ai-site-helper',
@@ -4209,8 +4261,8 @@ final class Provider_Client {
 				),
 				'quality_contract' => $quality_contract,
 			),
-			'data_classification' => 'public_site_content',
-			'storage_mode'        => 'result_only',
+			'data_classification' => $data_classification,
+			'storage_mode'        => $this->runtime_payload_storage_mode( $data_classification ),
 			'retention_ttl'       => 86400,
 			'timeout_seconds'     => 30,
 			'http_timeout_seconds' => 30,
@@ -4229,6 +4281,11 @@ final class Provider_Client {
 				array( 'status' => 500 )
 			);
 		}
+		$classification_input = $input;
+		if ( 'media_alt_suggestions' === $intent ) {
+			$classification_input['runtime_data_classification'] = 'pii';
+		}
+		$runtime_payload = $this->runtime_payload_with_data_classification( $runtime_payload, $data_classification, $classification_input );
 
 		$handled = apply_filters( 'npcink_toolbox_hosted_ai_site_helper_cloud_request', null, $runtime_payload, $input );
 		if ( is_wp_error( $handled ) ) {
@@ -4697,7 +4754,7 @@ final class Provider_Client {
 		if ( ! is_object( $client ) || ! method_exists( $client, 'execute_runtime' ) ) {
 			return new WP_Error(
 				'npcink_toolbox_image_source_cloud_unavailable',
-				__( 'Connect Npcink Cloud before searching managed image-source candidates. You can still use Adopt New Image with a reviewed image URL.', 'npcink-toolbox' ),
+				__( 'Connect Npcink Cloud before searching managed image-source candidates. Reviewed image URLs can still be adopted from the editor image sidebar.', 'npcink-toolbox' ),
 				array( 'status' => 503 )
 			);
 		}
@@ -5807,16 +5864,46 @@ final class Provider_Client {
 			return $snapshot;
 		}
 
+		$attachment_ids = $this->hosted_ai_media_alt_attachment_ids_from_input( $input );
+		if ( ! empty( $attachment_ids ) ) {
+			return $this->collect_hosted_ai_selected_media_alt_snapshot(
+				$attachment_ids,
+				$limit,
+				sanitize_key( (string) ( $input['media_filter'] ?? 'missing_or_weak_alt' ) )
+			);
+		}
+
 		$scope = sanitize_key( (string) ( $input['media_scope'] ?? 'current_article_used_images' ) );
 		if ( ! in_array( $scope, array( 'current_article_used_images', 'media_library_sample' ), true ) ) {
 			$scope = 'current_article_used_images';
 		}
 
 		if ( 'media_library_sample' === $scope ) {
-			return $this->collect_hosted_ai_media_alt_snapshot( $limit );
+			return $this->collect_hosted_ai_media_alt_snapshot( $limit, sanitize_key( (string) ( $input['media_filter'] ?? 'missing_or_weak_alt' ) ) );
 		}
 
 		return $this->collect_hosted_ai_current_article_media_alt_snapshot( absint( $input['post_id'] ?? 0 ), $limit );
+	}
+
+	private function hosted_ai_media_alt_attachment_ids_from_input( array $input ): array {
+		$raw = $input['attachment_ids'] ?? array();
+		if ( is_string( $raw ) ) {
+			$raw = preg_split( '/[\s,]+/', $raw );
+		}
+		if ( ! is_array( $raw ) ) {
+			return array();
+		}
+
+		return array_values(
+			array_unique(
+				array_filter(
+					array_map( 'absint', $raw ),
+					static function ( int $attachment_id ): bool {
+						return $attachment_id > 0;
+					}
+				)
+			)
+		);
 	}
 
 	private function collect_hosted_ai_current_article_media_alt_snapshot( int $post_id, int $limit ): array {
@@ -5867,6 +5954,7 @@ final class Provider_Client {
 			'items'             => $items,
 			'snapshot_policy'   => 'current_article_media_metadata_only',
 			'media_scope'       => 'current_article_used_images',
+			'media_filter'      => 'missing_or_weak_alt',
 			'post_context'      => array(
 				'post_id' => $post_id,
 				'title'   => $post ? sanitize_text_field( (string) ( $post->post_title ?? '' ) ) : '',
@@ -5972,13 +6060,16 @@ final class Provider_Client {
 		);
 	}
 
-	private function collect_hosted_ai_media_alt_snapshot( int $limit ): array {
+	private function collect_hosted_ai_media_alt_snapshot( int $limit, string $filter = 'missing_or_weak_alt' ): array {
+		if ( ! in_array( $filter, array( 'missing_or_weak_alt', 'missing_alt', 'all_recent' ), true ) ) {
+			$filter = 'missing_or_weak_alt';
+		}
 		$attachments = function_exists( 'get_posts' ) ? get_posts(
 			array(
 				'post_type'      => 'attachment',
 				'post_status'    => 'inherit',
 				'post_mime_type' => 'image',
-				'posts_per_page' => max( 1, min( 30, $limit * 3 ) ),
+				'posts_per_page' => max( 1, min( 60, $limit * 4 ) ),
 				'orderby'        => 'date',
 				'order'          => 'DESC',
 			)
@@ -5986,6 +6077,7 @@ final class Provider_Client {
 
 		$items       = array();
 		$missing_alt = 0;
+		$weak_alt    = 0;
 		foreach ( is_array( $attachments ) ? $attachments : array() as $attachment ) {
 			if ( ! is_object( $attachment ) ) {
 				continue;
@@ -6001,11 +6093,20 @@ final class Provider_Client {
 			if ( ! empty( $item['missing_alt'] ) ) {
 				++$missing_alt;
 			}
-			if ( count( $items ) >= $limit && empty( $item['missing_alt'] ) ) {
+			$is_weak_alt = ! empty( $item['missing_alt'] )
+				|| $this->media_alt_caption_candidate_is_too_short( (string) ( $item['alt'] ?? '' ) )
+				|| $this->media_alt_caption_is_filename_like( (string) ( $item['alt'] ?? '' ), $item );
+			if ( $is_weak_alt ) {
+				++$weak_alt;
+			}
+			if ( 'missing_alt' === $filter && empty( $item['missing_alt'] ) ) {
+				continue;
+			}
+			if ( 'missing_or_weak_alt' === $filter && ! $is_weak_alt ) {
 				continue;
 			}
 			$items[] = $item;
-			if ( count( $items ) >= $limit && $missing_alt >= $limit ) {
+			if ( count( $items ) >= $limit ) {
 				break;
 			}
 		}
@@ -6013,9 +6114,57 @@ final class Provider_Client {
 		return array(
 			'sample_size'       => count( $items ),
 			'missing_alt_count' => $missing_alt,
+			'weak_alt_count'    => $weak_alt,
 			'items'             => array_slice( $items, 0, $limit ),
 			'snapshot_policy'   => 'media_library_metadata_sample_only',
 			'media_scope'       => 'media_library_sample',
+			'media_filter'      => $filter,
+		);
+	}
+
+	private function collect_hosted_ai_selected_media_alt_snapshot( array $attachment_ids, int $limit, string $filter = 'missing_or_weak_alt' ): array {
+		if ( ! in_array( $filter, array( 'missing_or_weak_alt', 'missing_alt', 'all_recent' ), true ) ) {
+			$filter = 'missing_or_weak_alt';
+		}
+
+		$items       = array();
+		$missing_alt = 0;
+		$weak_alt    = 0;
+		foreach ( array_slice( $attachment_ids, 0, max( 1, min( 50, $limit * 4 ) ) ) as $attachment_id ) {
+			$item = $this->hosted_ai_media_alt_snapshot_item( absint( $attachment_id ), 'selected_media_library_image' );
+			if ( empty( $item ) ) {
+				continue;
+			}
+			if ( ! empty( $item['missing_alt'] ) ) {
+				++$missing_alt;
+			}
+			$is_weak_alt = ! empty( $item['missing_alt'] )
+				|| $this->media_alt_caption_candidate_is_too_short( (string) ( $item['alt'] ?? '' ) )
+				|| $this->media_alt_caption_is_filename_like( (string) ( $item['alt'] ?? '' ), $item );
+			if ( $is_weak_alt ) {
+				++$weak_alt;
+			}
+			if ( 'missing_alt' === $filter && empty( $item['missing_alt'] ) ) {
+				continue;
+			}
+			if ( 'missing_or_weak_alt' === $filter && ! $is_weak_alt ) {
+				continue;
+			}
+			$items[] = $item;
+			if ( count( $items ) >= $limit ) {
+				break;
+			}
+		}
+
+		return array(
+			'sample_size'       => count( $items ),
+			'missing_alt_count' => $missing_alt,
+			'weak_alt_count'    => $weak_alt,
+			'items'             => array_slice( $items, 0, $limit ),
+			'snapshot_policy'   => 'selected_media_library_metadata_only',
+			'media_scope'       => 'selected_media_library_images',
+			'media_filter'      => $filter,
+			'attachment_ids'    => array_values( array_slice( $attachment_ids, 0, 50 ) ),
 		);
 	}
 
@@ -6107,6 +6256,8 @@ final class Provider_Client {
 					'filename'                 => sanitize_file_name( (string) ( $item['filename'] ?? '' ) ),
 					'thumbnail_url'            => esc_url_raw( (string) ( $item['thumbnail_url'] ?? '' ) ),
 					'url'                      => esc_url_raw( (string) ( $item['url'] ?? '' ) ),
+					'current_alt'              => sanitize_text_field( (string) ( $item['alt'] ?? '' ) ),
+					'current_caption'          => sanitize_textarea_field( (string) ( $item['caption'] ?? '' ) ),
 					'alt_candidates'           => $candidate_quality['alt_candidates'],
 					'caption_candidate'        => $candidate_quality['caption_candidate'],
 					'candidate_basis'          => $candidate_quality['candidate_basis'],
@@ -6340,7 +6491,7 @@ final class Provider_Client {
 		if ( '' === $alt ) {
 			$current_alt_status = 'missing';
 			$review_reasons[]   = 'missing_alt';
-		} elseif ( $this->hosted_ai_text_length( $alt ) < 18 || $this->media_alt_caption_is_filename_like( $alt, $item ) ) {
+		} elseif ( $this->media_alt_caption_candidate_is_too_short( $alt ) || $this->media_alt_caption_is_filename_like( $alt, $item ) ) {
 			$current_alt_status = 'weak';
 			$review_reasons[]   = 'weak_alt';
 		}
@@ -6426,6 +6577,9 @@ final class Provider_Client {
 		if ( '' === $candidate ) {
 			return 'metadata_insufficient';
 		}
+		if ( $this->media_alt_caption_is_runtime_provenance_text( $candidate ) ) {
+			return 'runtime_provenance';
+		}
 		if ( $this->media_alt_caption_is_url_or_source_text( $candidate ) ) {
 			return 'source_attribution_or_url';
 		}
@@ -6444,7 +6598,7 @@ final class Provider_Client {
 		if ( $this->media_alt_caption_has_metadata_conflict( $candidate, $item ) ) {
 			return 'metadata_conflict';
 		}
-		if ( $this->hosted_ai_text_length( $candidate ) < 18 ) {
+		if ( $this->media_alt_caption_candidate_is_too_short( $candidate ) ) {
 			return 'too_generic';
 		}
 
@@ -6564,8 +6718,43 @@ final class Provider_Client {
 		return (bool) preg_match( '/\b(source|credit|credits|photo by|photograph by|image source|via|unsplash|pexels|pixabay|getty|shutterstock|istock)\b/i', $value );
 	}
 
+	private function media_alt_caption_is_runtime_provenance_text( string $value ): bool {
+		$value = trim( $value );
+		if ( '' === $value ) {
+			return false;
+		}
+
+		$patterns = array(
+			'/\b(generated|created|produced|made)\s+(by|with|using)\b/i',
+			'/\b(prompt|model|provider|profile|seed|negative prompt)\s*:/i',
+			'/\b(npcink cloud|cloud scene image|gpt|dall[- ]?e|midjourney|stable diffusion|flux|grok|imagen)\b.*\b(prompt|generated|created|using|model)\b/i',
+			'/\busing\s+[A-Z][A-Za-z0-9 ._-]{2,80}\s+on\s+\d{4}[\/-]\d{1,2}/',
+			'/^(由|通过|使用).{0,40}(生成|创建|模型|提示词)/u',
+			'/(提示词|模型|由.*生成|由.*创建)\s*[:：]/u',
+		);
+		foreach ( $patterns as $pattern ) {
+			if ( preg_match( $pattern, $value ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private function media_alt_caption_is_camera_default( string $value ): bool {
 		return (bool) preg_match( '/^(olympus digital camera|canon digital camera|nikon digital camera|dscn?\d+|img[_ -]?\d+|p\d{7}|sam_\d+|image[_ -]?\d+)$/i', trim( $value ) );
+	}
+
+	private function media_alt_caption_candidate_is_too_short( string $value ): bool {
+		$normalized = $this->media_alt_caption_normalized_candidate( $value );
+		if ( '' === $normalized ) {
+			return true;
+		}
+		if ( preg_match( '/\p{Han}/u', $normalized ) ) {
+			return $this->hosted_ai_text_length( $normalized ) < 4;
+		}
+
+		return $this->hosted_ai_text_length( $normalized ) < 18;
 	}
 
 	private function media_alt_caption_is_too_generic_candidate( string $value ): bool {
@@ -6573,7 +6762,7 @@ final class Provider_Client {
 		if ( '' === $normalized ) {
 			return true;
 		}
-		if ( $this->hosted_ai_text_length( $normalized ) < 18 ) {
+		if ( $this->media_alt_caption_candidate_is_too_short( $normalized ) ) {
 			return true;
 		}
 

@@ -61,9 +61,9 @@ semantics.
    metadata plans, and publish/readiness checks.
 7. Keep article text creation with human editors; expose Article Assistant only
    as a fallback workbench for reviewed local draft artifacts.
-8. Treat `media_optimization_v1` as the fixed governed Optimize Existing Image
-   workflow, improving the existing Toolbox surface rather than creating a
-   duplicate runner.
+8. Treat `media_optimization_v1` as the fixed governed media optimization
+   workflow, improving the Media Library image actions and Batch Optimize
+   Images surface rather than creating a duplicate runner.
 9. Surface full-site insights that turn content, approved comment, media,
    taxonomy, context, and runtime signals into a prioritized review-only site
    analysis report.
@@ -115,10 +115,11 @@ handoffs. Draft handoffs are acceptable only after a reviewed human draft exists
 and the final write goes through Core proposal governance.
 
 Media optimization is the first fixed governed media workflow. Toolbox may
-present **Optimize Existing Image** as `media_optimization_v1`, with visible
-steps from media selection through Cloud preview and Core proposal handoff, but
-it must not add a workflow runtime, persistent run store, media registry,
-approval path, provider routing UI, or direct WordPress write executor.
+present `media_optimization_v1` through media-library single-image actions and
+a Toolbox Batch Optimize Images workbench, with visible steps from media
+selection through Cloud preview and Core proposal handoff, but it must not add
+a workflow runtime, persistent run store, media registry, approval path,
+provider routing UI, or direct WordPress write executor.
 Batch media conversion and direct replacement should reuse the same
 OpenClaw/Adapter/Core/Abilities replacement path once the OpenClaw batch
 contract is accepted; Toolbox should not duplicate attachment replacement or URL

@@ -1,6 +1,6 @@
 # Media Optimization Release Checklist
 
-Status: release gate for the fixed Optimize Existing Image flow.
+Status: release gate for the fixed `media_optimization_v1` flow.
 
 Run this checklist before shipping media optimization changes that touch
 Toolbox, Adapter, Cloud Addon, Cloud runtime, Core proposal handoff, or the
@@ -53,7 +53,7 @@ The release is not ready unless all six checks pass:
 After the smoke passes, open:
 
 ```text
-Npcink AI -> Toolbox -> Content Support -> Optimize Existing Image
+Npcink AI -> Toolbox -> Image Handling -> Batch Optimize Images
 ```
 
 Confirm the operator-facing path is still understandable:

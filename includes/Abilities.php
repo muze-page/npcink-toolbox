@@ -112,19 +112,6 @@ final class Abilities {
 					'write_posture'     => 'candidate_only_core_approval_required',
 				)
 			),
-			'npcink-toolbox/vector-search'                      => $this->definition(
-				__( 'Vector Search', 'npcink-toolbox' ),
-				__( 'Compatibility pointer for Cloud-managed site knowledge. Vector provider configuration is managed in Npcink Cloud.', 'npcink-toolbox' ),
-				array( 'query' ),
-				array( $this, 'vector_search' ),
-				'cap.toolbox.vector_search',
-				array(
-					'data_classification' => 'public_site_content',
-					'composition_role' => 'site_knowledge_context',
-					'provider_execution' => 'cloud_runtime_via_addon',
-					'knowledge_layer' => 'cloud_managed_site_knowledge',
-				)
-			),
 			'npcink-toolbox/search-site-knowledge'              => $this->definition(
 				__( 'Search Site Knowledge', 'npcink-toolbox' ),
 				__( 'Search Cloud-managed site knowledge for semantic search, related content, writing context, internal links, or refresh suggestions without writing WordPress content.', 'npcink-toolbox' ),
@@ -203,16 +190,6 @@ final class Abilities {
 					'composition_role'    => 'site_knowledge_sync_request',
 					'provider_execution'  => 'cloud_runtime_via_addon',
 					'cloud_contract'      => 'site_knowledge_sync.v1',
-				)
-			),
-			'npcink-toolbox/build-article-brief'                => $this->definition(
-				__( 'Build Article Brief', 'npcink-toolbox' ),
-				__( 'Build a research-backed article planning brief without writing WordPress content.', 'npcink-toolbox' ),
-				array( 'topic' ),
-				array( $this, 'build_article_brief' ),
-				'cap.toolbox.workflow_suggest',
-				array(
-					'composition_role' => 'article_planning_bundle',
 				)
 			),
 			'npcink-toolbox/build-article-assistant'            => $this->definition(
@@ -303,16 +280,6 @@ final class Abilities {
 					'ability_recipe_ref'  => 'workflow/nightly_site_inspection_review',
 					'provider_execution'  => 'none',
 					'write_posture'       => 'core_proposal_handoff',
-				)
-			),
-			'npcink-toolbox/build-media-brief'                  => $this->definition(
-				__( 'Build Media Brief', 'npcink-toolbox' ),
-				__( 'Build image prompt and media SEO suggestions from supplied post context.', 'npcink-toolbox' ),
-				array( 'post_context' ),
-				array( $this, 'build_media_brief' ),
-				'cap.toolbox.workflow_suggest',
-				array(
-					'composition_role' => 'media_planning_bundle',
 				)
 			),
 			'npcink-toolbox/build-media-derivative-handoff'     => $this->definition(
@@ -446,15 +413,6 @@ final class Abilities {
 		return $this->client->run_ai_image_generation( is_array( $input ) ? $input : array() );
 	}
 
-	public function vector_search( $input = array() ) {
-		$input = is_array( $input ) ? $input : array();
-		$query = sanitize_textarea_field( (string) ( $input['query'] ?? '' ) );
-		$vector = sanitize_textarea_field( (string) ( $input['vector'] ?? '' ) );
-		$payload = '' !== trim( $query ) ? $query : $vector;
-		$input_type = sanitize_key( (string) ( $input['input_type'] ?? 'auto' ) );
-		return $this->client->vector_search( $payload, (int) ( $input['max_results'] ?? 4 ), $input_type );
-	}
-
 	public function search_site_knowledge( $input = array() ) {
 		return $this->client->search_site_knowledge( is_array( $input ) ? $input : array() );
 	}
@@ -478,11 +436,6 @@ final class Abilities {
 
 	public function request_site_knowledge_sync( $input = array() ) {
 		return $this->client->request_site_knowledge_sync( is_array( $input ) ? $input : array() );
-	}
-
-	public function build_article_brief( $input = array() ) {
-		$input = is_array( $input ) ? $input : array();
-		return $this->client->build_article_brief( sanitize_textarea_field( (string) ( $input['topic'] ?? '' ) ) );
 	}
 
 	public function build_article_assistant( $input = array() ) {
@@ -511,17 +464,6 @@ final class Abilities {
 
 	public function build_content_metadata_apply_plan( $input = array() ) {
 		return $this->client->build_content_metadata_apply_plan( is_array( $input ) ? $input : array() );
-	}
-
-	public function build_media_brief( $input = array() ) {
-		$input = is_array( $input ) ? $input : array();
-		return $this->client->build_media_brief(
-			sanitize_textarea_field( (string) ( $input['post_context'] ?? '' ) ),
-			array(
-				'refresh_variant' => sanitize_text_field( (string) ( $input['refresh_variant'] ?? '' ) ),
-				'image_mode'      => sanitize_key( (string) ( $input['image_mode'] ?? 'featured_image' ) ),
-			)
-		);
 	}
 
 	public function build_media_derivative_handoff( $input = array() ) {

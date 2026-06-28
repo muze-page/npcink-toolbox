@@ -87,9 +87,10 @@ Target features:
 - taxonomy/tag proposal handoff;
 - internal-link candidate handoff for operator review;
 - image candidate adoption proposal handoff;
-- consolidate **Optimize Existing Image** as `media_optimization_v1`, the fixed
-  governed media optimization workflow over the existing media derivative,
-  reviewed metadata, Adapter recipe, and Core proposal handoff surface
+- consolidate **Batch Optimize Images** and Media Library image actions as
+  `media_optimization_v1`, the fixed governed media optimization workflow over
+  the existing media derivative, reviewed metadata, Adapter recipe, and Core
+  proposal handoff surface
   (validated and frozen for V1 after the 2026-06-18 real-attachment operator
   trial);
 - batch review-set planning for media optimization, with explicit eligibility
@@ -194,9 +195,9 @@ Rule:
 
 Buttons may run bounded synchronous planning actions. Long-running orchestration,
 queues, retries, and scheduling require a separate runtime decision.
-`media_optimization_v1` should stay a fixed governed workflow over the existing
-Optimize Existing Image surface, not a generic workflow builder or persistent
-run store.
+`media_optimization_v1` should stay a fixed governed workflow over Media
+Library image actions and the Batch Optimize Images surface, not a generic
+workflow builder or persistent run store.
 
 Batch and automation planning follows
 [Batch Automation Governance Plan](batch-automation-governance-plan.md):

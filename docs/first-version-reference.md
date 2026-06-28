@@ -41,8 +41,8 @@ Current runtime providers:
 ## Cloud-Managed Vector
 
 Toolbox no longer configures vector providers locally. The legacy
-`vector-search` route and ability return a Cloud-managed site knowledge
-compatibility pointer. New callers should use `search-site-knowledge`,
+`vector-search` REST route returns a Cloud-managed site knowledge compatibility
+pointer. New Ability callers should use `search-site-knowledge`,
 `get-site-knowledge-status`, and `request-site-knowledge-sync`.
 
 Toolbox must not store vector provider keys, embedding models, dimensions,
@@ -117,19 +117,26 @@ send it or create local runtime state. When Cloud is ready, an administrator
 can explicitly run Cloud analysis and review the suggestion-only
 `site_ops_cloud_analysis_result.v1` without Toolbox creating a local queue,
 local run table, Core proposal, or WordPress write.
-The admin Image Handling tab defaults to Image Tools, with Optimize Existing
-Image as the first visible tool. It does not expose the former single-article
-Image Text Checks tool; current-article ALT/caption review belongs in the
-editor sidebar. Batch Image Text Review is a separate selected media-library
-review-set surface that can prepare a Core handoff draft without scanning the
-whole library, creating proposals, approving, executing, or writing media
-metadata.
+The admin Image Handling tab defaults to Image Optimization, with
+Batch Optimize Images as the first visible workbench. Single-image actions
+start from the WordPress media-library attachment details panel or image row
+actions, then carry that attachment into Batch Image ALT or Batch Optimize
+Images. The old `tab=image&tool=optimize` and
+`toolbox_tab=tools&toolbox_tool=media-derivative` URLs are deprecated and fall
+back to `tab=image&tool=batch-optimize`; Toolbox no longer exposes a standalone
+one-image picker page. The media library bulk action can send selected
+attachment IDs into Batch Image ALT or Batch Optimize Images, while Toolbox
+owns the review, preview, and Core handoff workspace. It does not expose the former single-article Image Text Checks tool or the saved-post Media Brief tool.
+Article-level featured-image recommendation and media brief planning belong in the editor sidebar. Batch
+Image ALT is a separate selected media-library review-set surface that can
+prepare a Core handoff draft without scanning the whole library, creating
+proposals, approving, executing, or writing media metadata.
 The separate Content Preparation tab contains content snapshot checks and
-preparation bundles, including the combined Article Planning Bundle, while
-reviewed handoffs sit in a compact Review Handoffs group tab. The Optimize
-Existing Image public deep link uses the operator-facing
-`tab=image&tool=optimize` pair; legacy
-`toolbox_tab=tools&toolbox_tool=media-derivative` URLs stay compatible. The
+reviewed handoffs. The old article-brief remains a compatibility REST route,
+not an operator-facing admin tool or public Ability. Batch media entry points use
+`tab=image&tool=bulk-alt` and `tab=image&tool=batch-optimize`;
+deprecated `tool=optimize` and legacy `toolbox_tool=media-derivative` URLs
+canonicalize to Batch Optimize Images. The
 lower-level `taxonomy_tags` intent remains available to the route but is not a
 separate default button in the editor UI.
 
@@ -169,18 +176,21 @@ direct_wordpress_write: false
 Toolbox ability ids stay under `npcink-toolbox/*`:
 
 - `npcink-toolbox/search-image-source`
-- `npcink-toolbox/vector-search`
+- `npcink-toolbox/generate-image`
 - `npcink-toolbox/search-site-knowledge`
+- `npcink-toolbox/cloud-web-search`
 - `npcink-toolbox/get-site-knowledge-status`
 - `npcink-toolbox/request-site-knowledge-sync`
-- `npcink-toolbox/build-article-brief`
+- `npcink-toolbox/build-article-assistant`
 - `npcink-toolbox/build-article-write-plan`
 - `npcink-abilities-toolkit/build-image-candidate-adoption-plan`
 - `npcink-toolbox/build-site-knowledge-review-plan`
-- `npcink-toolbox/build-media-brief`
+- `npcink-toolbox/build-nightly-inspection-review-plan`
+- `npcink-toolbox/build-media-derivative-handoff`
 - `npcink-toolbox/get-content-discoverability-context`
 - `npcink-toolbox/validate-content-discoverability-context`
 - `npcink-toolbox/build-content-discoverability-brief`
+- `npcink-toolbox/build-ai-article-writing-pack`
 
 General-purpose provider abilities:
 
@@ -200,6 +210,9 @@ General-purpose provider abilities:
 - `npcink-abilities-toolkit/build-image-candidate-adoption-plan` turns one reviewed
   `image_candidate.v1` into a Core-ready `image_candidate_adoption_plan` for
   media upload, metadata, and optional featured-image proposal intake.
+  This is consumed by editor-side image adoption and machine clients, not by a
+  standalone Toolbox admin button. The old `tool=image-candidate-adoption`
+  admin URL is deprecated and should fall back to Content Preparation defaults.
 - `npcink-toolbox/search-site-knowledge` is the Cloud-managed site knowledge
   ability for semantic site search, related content, writing context, internal
   links, refresh suggestions, or image context. When Cloud returns
@@ -213,8 +226,8 @@ General-purpose provider abilities:
   `npcink-abilities-toolkit/create-draft` review action, requires human
   `title` and `content` input, and does not generate or write WordPress
   content.
-- `npcink-toolbox/vector-search` is a Cloud-managed site knowledge
-  compatibility pointer for older clients.
+- `/vector-search` is a Cloud-managed site knowledge compatibility REST route
+  for older clients. It is no longer registered as a public Toolbox ability.
 
 Site knowledge status and sync:
 
@@ -296,7 +309,8 @@ For content-support AI callers, the canonical composition sequence is:
 3. `npcink-toolbox/search-image-source`
 4. `npcink-abilities-toolkit/build-image-candidate-adoption-plan` after operator
    review
-5. `npcink-toolbox/build-media-brief`
+5. `/flows/media-brief` only as a compatibility REST route for saved-post
+   media planning.
 6. `npcink-toolbox/build-ai-article-writing-pack` only as a broad
    writing-support fallback
 7. `npcink-toolbox/build-article-write-plan` only after a reviewed human

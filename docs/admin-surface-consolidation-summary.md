@@ -23,18 +23,20 @@ top-level tabs are **Overview**, **Site Profile**, **Image Handling**,
 **Content Preparation**, and **Advanced**.
 
 The former broad content-support admin area is split into focused work
-surfaces. **Image Handling** defaults to image tools, with **Optimize Existing
-Image** as the first visible tool. The former single-article image text helper
-is removed from the backend because it needs current editor context. A separate
+surfaces. **Image Handling** defaults to image tools, with **Batch Optimize
+Images** as the first visible workbench. Single-image actions start from the
+Media Library attachment details panel or image row actions and reuse the same
+selected-image workbenches. The former single-article image text helper is
+removed from the backend because it needs current editor context. A separate
 **Batch Image Text Review** tool now builds a small selected media-library
 review set and can prepare a Core handoff draft without creating proposals or
 writing media metadata. **Content Preparation** owns content snapshot checks and
 article preparation bundles; reviewed handoffs sit in a compact **Review
 Handoffs** group tab so they remain available without looking like the daily
 writing path.
-New Optimize Existing Image links use `tab=image&tool=optimize`; the older
-`toolbox_tab=tools&toolbox_tool=media-derivative` deep link remains a
-compatibility alias only.
+Deprecated `tab=image&tool=optimize` and
+`toolbox_tab=tools&toolbox_tool=media-derivative` links now canonicalize to
+Batch Optimize Images.
 
 High-frequency article support stays in the post editor sidebar. Admin
 Workflows no longer expose publish preflight, summary/category/tag support,
@@ -104,7 +106,7 @@ The following gates passed after the changes:
 
 Browser verification during the earlier consolidation pass confirmed:
 
-- Image Handling opens by default to Image Tools and Optimize Existing Image.
+- Image Handling opens by default to Image Tools and Batch Optimize Images.
 - Content Preparation contains article preparation bundles, and reviewed
   handoff tools are reached from the compact Review Handoffs group tab.
 - Site Knowledge returned `200` after Cloud quota was updated.

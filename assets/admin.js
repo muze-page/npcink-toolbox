@@ -18,6 +18,24 @@
 		return data;
 	}
 
+	function parseAttachmentIds(value) {
+		return String(value || '')
+			.split(/[\s,]+/)
+			.map((item) => parseInt(item, 10) || 0)
+			.filter(Boolean)
+			.filter((item, index, list) => list.indexOf(item) === index);
+	}
+
+	function selectedAttachmentIdsFromUrl() {
+		const params = new URL(window.location.href).searchParams;
+		const ids = parseAttachmentIds(params.get('attachment_ids') || '');
+		const singleId = parseInt(params.get('attachment_id') || '0', 10) || 0;
+		if (singleId > 0 && !ids.includes(singleId)) {
+			ids.unshift(singleId);
+		}
+		return ids.slice(0, 50);
+	}
+
 	function clearNode(node) {
 		while (node.firstChild) {
 			node.removeChild(node.firstChild);
@@ -740,7 +758,7 @@
 		}
 		renderImageList(section, payload.images);
 		appendImageAgentFeedbackControls(section, payload, 'toolbox_ai_image_generation');
-		section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Generated images are candidates only. Use Adopt New Image and Core review before importing or inserting media.'));
+		section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Generated images are candidates only. Use editor image adoption and Core review before importing or inserting media.'));
 		section.appendChild(createRawDetails(payload, 'AI generation payload'));
 		container.appendChild(section);
 	}
@@ -1334,7 +1352,7 @@
 			result.appendChild(meta);
 		}
 
-		result.appendChild(el('div', 'npcink-toolbox__result-notice is-ok', 'Cloud returned image candidates only. Media import still requires an Adopt New Image plan and Core approval.'));
+		result.appendChild(el('div', 'npcink-toolbox__result-notice is-ok', 'Cloud returned image candidates only. Media import still requires editor image adoption and Core approval.'));
 		renderImageList(result, payload.images);
 		appendImageAgentFeedbackControls(
 			result,
@@ -2054,11 +2072,11 @@
 	function renderHostedAiSiteHelper(form, payload) {
 		const intent = String(payload.intent || '');
 		const titleByIntent = {
-			media_alt_suggestions: 'Image text suggestions',
+			media_alt_suggestions: 'Review image ALT suggestions',
 			content_snapshot_suggestions: 'Content snapshot suggestions'
 		};
 		const summaryByIntent = {
-			media_alt_suggestions: 'Choose useful suggestions, then prepare a review handoff draft. Toolbox will not change media metadata here.',
+			media_alt_suggestions: 'Check each suggested ALT before submitting selected rows for Core review. Toolbox will not change media ALT here.',
 			content_snapshot_suggestions: 'Use these as content opportunities from a bounded sample, not as a full site audit.'
 		};
 		const result = renderShell(
@@ -2071,30 +2089,32 @@
 			return;
 		}
 
-		const meta = el('div', 'npcink-toolbox__result-meta');
-		appendMeta(meta, 'Profile', payload.hosted_profile || 'text.ai');
-		appendMeta(meta, 'Model', payload.model_id || '');
-		appendMeta(meta, 'Intent', payload.intent ? formatLabel(payload.intent) : '');
-		appendMeta(meta, 'Status', payload.status ? formatLabel(payload.status) : '');
-		appendMeta(meta, 'Run', payload.run_id || '');
-		result.appendChild(meta);
+		if (intent !== 'media_alt_suggestions') {
+			const meta = el('div', 'npcink-toolbox__result-meta');
+			appendMeta(meta, 'Profile', payload.hosted_profile || 'text.ai');
+			appendMeta(meta, 'Model', payload.model_id || '');
+			appendMeta(meta, 'Intent', payload.intent ? formatLabel(payload.intent) : '');
+			appendMeta(meta, 'Status', payload.status ? formatLabel(payload.status) : '');
+			appendMeta(meta, 'Run', payload.run_id || '');
+			result.appendChild(meta);
+		}
 
 		if (intent !== 'media_alt_suggestions') {
 			renderHostedAiQualityGuardrails(result, payload);
 		}
 
-		renderMediaAltCaptionReviewSet(result, payload.media_alt_caption_review_set, form);
+		renderMediaAltCaptionReviewSet(result, payload.media_alt_caption_review_set, form, payload);
 
-		if (payload.output_text && intent === 'media_alt_suggestions') {
-			result.appendChild(createTextDetails(payload.output_text, 'Advanced: AI raw output'));
-		} else if (payload.output_text) {
+		if (payload.output_text && intent !== 'media_alt_suggestions') {
 			const pre = el('pre', 'npcink-toolbox__result-raw');
 			pre.textContent = String(payload.output_text);
 			result.appendChild(pre);
 		}
 
-		result.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Suggestions only. No media or WordPress content was changed.'));
-		result.appendChild(createRawDetails(payload, intent === 'media_alt_suggestions' ? 'Advanced: complete payload' : 'Complete payload'));
+		if (intent !== 'media_alt_suggestions') {
+			result.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Suggestions only. No media or WordPress content was changed.'));
+			result.appendChild(createRawDetails(payload, 'Complete payload'));
+		}
 	}
 
 	function selectedMediaAltCaptionReviewItems(container) {
@@ -2102,7 +2122,19 @@
 			.filter((checkbox) => checkbox instanceof HTMLInputElement && checkbox.checked)
 			.map((checkbox) => {
 				const row = checkbox.closest('.npcink-toolbox__batch-row');
-				return row && row.__npcinkMediaAltCaptionItem ? row.__npcinkMediaAltCaptionItem : null;
+				if (!row || !row.__npcinkMediaAltCaptionItem) {
+					return null;
+				}
+				const item = Object.assign({}, row.__npcinkMediaAltCaptionItem);
+				const altInput = row.querySelector('[data-toolbox-media-alt-caption-accepted-alt]');
+				const captionInput = row.querySelector('[data-toolbox-media-alt-caption-accepted-caption]');
+				if (altInput instanceof HTMLInputElement) {
+					item.accepted_alt = altInput.value.trim();
+				}
+				if (captionInput instanceof HTMLTextAreaElement || captionInput instanceof HTMLInputElement) {
+					item.accepted_caption = captionInput.value.trim();
+				}
+				return item;
 			})
 			.filter(Boolean);
 	}
@@ -2119,7 +2151,14 @@
 		if (actions.length) {
 			const list = el('div', 'npcink-toolbox__batch-list');
 			actions.slice(0, 10).forEach((action) => {
-				const row = el('div', 'npcink-toolbox__batch-row');
+				const row = el('div', 'npcink-toolbox__batch-row npcink-toolbox__handoff-row');
+				if (action.thumbnail_url) {
+					const image = document.createElement('img');
+					image.className = 'npcink-toolbox__media-thumb';
+					image.src = String(action.thumbnail_url);
+					image.alt = '';
+					row.appendChild(image);
+				}
 				const body = el('span', 'npcink-toolbox__batch-row-body');
 				body.appendChild(el('strong', '', '#' + String(action.attachment_id || '') + ' ' + String(action.title || action.filename || 'Media item')));
 				if (action.accepted_alt) {
@@ -2162,6 +2201,11 @@
 		return t(labels[String(value || '').toLowerCase()] || formatLabel(value));
 	}
 
+	function firstMediaAltCandidate(item) {
+		const candidates = asArray(item.alt_candidates).filter(Boolean);
+		return String(item.accepted_alt || candidates[0] || '');
+	}
+
 	function mediaAltCaptionReasonLabel(value) {
 		const labels = {
 			missing_alt: 'Missing ALT',
@@ -2170,73 +2214,100 @@
 			title_filename_like: 'Title looks like a filename',
 			candidate_quality_insufficient: 'Suggestion quality was too weak',
 			metadata_conflict: 'Metadata needs human review',
-			source_attribution_or_url: 'Looks like source attribution or URL'
+			source_attribution_or_url: 'Looks like source attribution or URL',
+			runtime_provenance: 'Looks like AI generation details'
 		};
 		return t(labels[String(value || '').toLowerCase()] || formatLabel(value));
 	}
 
-	function renderMediaAltCaptionReviewSet(container, reviewSet, form) {
+	function renderMediaAltCaptionReviewSet(container, reviewSet, form, payload) {
 		reviewSet = asObject(reviewSet);
 		if (!reviewSet.contract_version) {
 			return;
 		}
 
-		const section = createSection('Image text review results');
+		payload = asObject(payload);
+		const section = createSection('Scan results');
 		const eligibility = asObject(reviewSet.eligibility_summary);
 		const selectedItems = asArray(reviewSet.selected_items);
 		const blockedItems = asArray(reviewSet.blocked_items);
 		const imageContextRequest = asObject(reviewSet.image_context_evidence_request);
 		const imageContextRequestItems = asArray(imageContextRequest.items);
 		const meta = el('div', 'npcink-toolbox__result-meta');
-		appendMeta(meta, 'Reviewable images', eligibility.selected_count || selectedItems.length);
+		appendMeta(meta, 'Scanned images', eligibility.scanned_count);
+		appendMeta(meta, 'Ready for Core review', eligibility.selected_count || selectedItems.length);
+		appendMeta(meta, 'Need manual check', imageContextRequestItems.length);
 		appendMeta(meta, 'Excluded', eligibility.blocked_count || blockedItems.length);
-		appendMeta(meta, 'Sample size', eligibility.scanned_count);
 		if (meta.childNodes.length) {
 			section.appendChild(meta);
 		}
 
-		section.appendChild(el('div', 'npcink-toolbox__result-notice is-ok', 'These are suggestions only. Media metadata was not changed.'));
-		section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Look at each image before using an ALT or caption suggestion.'));
-		if (imageContextRequest.contract_version && imageContextRequestItems.length) {
-			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Some images need visual confirmation because the current metadata is not enough.'));
-		}
-
 		if (!selectedItems.length) {
-			section.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'No usable suggestions were found in this sample. Try a different sample or review excluded images.'));
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'No ALT suggestions are ready to submit from this sample. Try another sample or review excluded images.'));
 		} else {
-			const list = el('div', 'npcink-toolbox__batch-list');
+			const noticeText = imageContextRequestItems.length
+				? 'Review the rows below. Some images still need visual confirmation before Core review.'
+				: 'Review the rows below, edit suggested ALT if needed, then submit selected rows for Core review.';
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', noticeText));
+			const list = el('div', 'npcink-toolbox__alt-review-table');
+			const header = el('div', 'npcink-toolbox__alt-review-header');
+			header.appendChild(el('span', '', 'Use'));
+			header.appendChild(el('span', '', 'Image'));
+			header.appendChild(el('span', '', 'ALT review'));
+			list.appendChild(header);
 			selectedItems.slice(0, 10).forEach((item, index) => {
-				const row = el('label', 'npcink-toolbox__batch-row');
+				const row = el('div', 'npcink-toolbox__batch-row npcink-toolbox__alt-review-row');
 				const checkbox = document.createElement('input');
 				checkbox.type = 'checkbox';
 				checkbox.checked = true;
+				checkbox.setAttribute('aria-label', t('Select image for ALT handoff'));
 				checkbox.setAttribute('data-toolbox-media-alt-caption-item', String(item.attachment_id || index + 1));
 				checkbox.addEventListener('change', () => updateMediaAltCaptionHandoffButton(section));
 				row.appendChild(checkbox);
+				if (item.thumbnail_url) {
+					const image = document.createElement('img');
+					image.className = 'npcink-toolbox__media-thumb';
+					image.src = String(item.thumbnail_url);
+					image.alt = '';
+					row.appendChild(image);
+				} else {
+					row.appendChild(el('span', 'npcink-toolbox__media-thumb is-empty', 'No preview'));
+				}
 				const body = el('span', 'npcink-toolbox__batch-row-body');
 				const title = item.title || item.filename || 'Media item ' + (index + 1);
 				body.appendChild(el('strong', '', '#' + String(item.attachment_id || '') + ' ' + String(title)));
 				const detail = [
 					item.current_alt_status ? t('ALT status: ') + mediaAltCaptionStatusLabel(item.current_alt_status) : '',
-					item.current_caption_status ? t('Caption status: ') + mediaAltCaptionStatusLabel(item.current_caption_status) : '',
 					Array.isArray(item.review_reasons) && item.review_reasons.length ? t('Why review: ') + item.review_reasons.map(mediaAltCaptionReasonLabel).join(t(', ')) : '',
 				].filter(Boolean).join(t(' | '));
 				if (detail) {
 					body.appendChild(el('small', '', detail));
 				}
-				const altCandidates = asArray(item.alt_candidates).filter(Boolean);
-				if (altCandidates.length) {
-					body.appendChild(el('small', '', t('ALT suggestions: ') + altCandidates.slice(0, 2).join(t(' / '))));
-				}
-				if (item.caption_candidate) {
-					body.appendChild(el('small', '', t('Caption suggestion: ') + String(item.caption_candidate)));
-				}
+				body.appendChild(el('small', '', t('Current ALT: ') + (item.current_alt ? String(item.current_alt) : t('Empty'))));
+				const altField = el('label', 'npcink-toolbox__alt-review-field');
+				altField.appendChild(el('span', '', 'Suggested ALT'));
+				const altInput = document.createElement('input');
+				altInput.type = 'text';
+				altInput.value = firstMediaAltCandidate(item);
+				altInput.setAttribute('data-toolbox-media-alt-caption-accepted-alt', '');
+				altInput.placeholder = t('Write concise ALT text');
+				altField.appendChild(altInput);
+				body.appendChild(altField);
+				const captionField = el('label', 'npcink-toolbox__alt-review-field');
+				captionField.appendChild(el('span', '', 'Optional caption'));
+				const captionInput = document.createElement('textarea');
+				captionInput.rows = 2;
+				captionInput.value = String(item.accepted_caption || item.caption_candidate || '');
+				captionInput.setAttribute('data-toolbox-media-alt-caption-accepted-caption', '');
+				captionInput.placeholder = t('Optional caption suggestion');
+				captionField.appendChild(captionInput);
+				body.appendChild(captionField);
 				const evidence = asObject(item.image_context_evidence);
 				if (evidence.visual_summary) {
 					body.appendChild(el('small', '', t('Image clue: ') + String(evidence.visual_summary)));
 				}
 				if (item.needs_human_visual_check) {
-					body.appendChild(el('small', 'npcink-toolbox__muted', 'Human visual check required before handoff.'));
+					body.appendChild(el('small', 'npcink-toolbox__muted', 'Check the image before submitting this row.'));
 				}
 				row.appendChild(body);
 				row.__npcinkMediaAltCaptionItem = item;
@@ -2248,7 +2319,7 @@
 			const selectedCount = el('strong', '', String(selectedItems.length));
 			selectedCount.setAttribute('data-toolbox-media-alt-caption-selected-count', '');
 			actions.appendChild(selectedCount);
-			const handoffButton = el('button', 'button', 'Prepare review handoff draft');
+			const handoffButton = el('button', 'button button-primary', 'Submit selected rows for Core review');
 			handoffButton.type = 'button';
 			handoffButton.setAttribute('data-toolbox-media-alt-caption-handoff', '');
 			handoffButton.addEventListener('click', async () => {
@@ -2257,7 +2328,7 @@
 					return;
 				}
 				handoffButton.disabled = true;
-				handoffButton.textContent = t('Preparing handoff draft...');
+				handoffButton.textContent = t('Preparing Core review...');
 				try {
 					const plan = await postJson(config.restUrl, 'flows/media-alt-caption-review-plan', {
 						selected_items: selected,
@@ -2265,9 +2336,9 @@
 					});
 					renderMediaAltCaptionHandoffPlan(section, plan);
 				} catch (error) {
-					section.appendChild(el('div', 'npcink-toolbox__result-notice is-error', error && error.message ? error.message : 'Could not prepare handoff draft.'));
+					section.appendChild(el('div', 'npcink-toolbox__result-notice is-error', error && error.message ? error.message : 'Could not prepare Core review.'));
 				} finally {
-					handoffButton.textContent = t('Prepare review handoff draft');
+					handoffButton.textContent = t('Submit selected rows for Core review');
 					updateMediaAltCaptionHandoffButton(section);
 				}
 			});
@@ -2279,7 +2350,7 @@
 		if (blockedItems.length) {
 			const details = document.createElement('details');
 			details.className = 'npcink-toolbox__result-details';
-			details.appendChild(el('summary', '', 'Excluded images'));
+			details.appendChild(el('summary', '', 'Review excluded images'));
 			const blockedList = el('div', 'npcink-toolbox__batch-list');
 			blockedItems.slice(0, 10).forEach((item) => {
 				const row = el('div', 'npcink-toolbox__batch-row is-skipped');
@@ -2295,6 +2366,13 @@
 
 		if (imageContextRequest.contract_version && imageContextRequestItems.length) {
 			section.appendChild(createRawDetails(imageContextRequest, 'Advanced: image context request'));
+		}
+
+		if (payload.output_text) {
+			section.appendChild(createTextDetails(payload.output_text, 'Advanced: AI raw output'));
+		}
+		if (Object.keys(payload).length) {
+			section.appendChild(createRawDetails(payload, 'Advanced: full payload'));
 		}
 
 		container.appendChild(section);
@@ -2995,6 +3073,7 @@
 		const raw = serialize(form);
 		const scope = resolveMediaBatchScopePreset(raw);
 		const recipe = resolveMediaBatchRecipeDefaults(raw);
+		const attachmentIds = parseAttachmentIds(raw.attachment_ids || '');
 		const rawDimensions = String(raw.batch_min_dimensions || '').trim();
 		const dimensionsValue = rawDimensions && !(rawDimensions === '800x800' && recipe.recipe !== 'smart_optimize') ? rawDimensions : recipe.min_dimensions || '0x0';
 		const dimensions = dimensionsFromText(dimensionsValue, 0, 0);
@@ -3014,6 +3093,9 @@
 		}
 		if (scope.date_to) {
 			input.date_to = String(scope.date_to) + ' 23:59:59';
+		}
+		if (attachmentIds.length) {
+			input.attachment_ids = attachmentIds.slice(0, 50);
 		}
 		if (raw.max_width) {
 			input.target_max_width = raw.max_width;
@@ -6325,11 +6407,29 @@
 	}
 
 	function publicToolForToolboxTool(tool) {
-		return tool === 'media-derivative' ? 'optimize' : tool;
+		if (tool === 'media-alt-caption-review') {
+			return 'bulk-alt';
+		}
+		if (tool === 'media-batch-optimize') {
+			return 'batch-optimize';
+		}
+		return tool;
 	}
 
 	function toolboxToolFromPublicTool(tool) {
-		return tool === 'optimize' ? 'media-derivative' : tool;
+		if (tool === 'optimize') {
+			return 'media-batch-optimize';
+		}
+		if (tool === 'media-derivative') {
+			return 'media-batch-optimize';
+		}
+		if (tool === 'bulk-alt') {
+			return 'media-alt-caption-review';
+		}
+		if (tool === 'batch-optimize') {
+			return 'media-batch-optimize';
+		}
+		return tool;
 	}
 
 	function toolUrlState(workspace, target) {
@@ -6401,6 +6501,14 @@
 			'data-toolbox-tool-group-panel',
 			group
 		);
+
+		let activePanel = null;
+		workspace.querySelectorAll('[data-toolbox-tool-group-panel]').forEach((panel) => {
+			if (!activePanel && panel.getAttribute('data-toolbox-tool-group-panel') === group) {
+				activePanel = panel;
+			}
+		});
+		workspace.classList.toggle('is-single-tool-group', !!(activePanel && activePanel.classList.contains('is-single-tool')));
 
 		return true;
 	}
@@ -6541,13 +6649,27 @@
 		const rawRequestedTab = params.get('tab') || params.get('toolbox_tab') || '';
 		const rawRequestedTool = params.get('tool') || params.get('toolbox_tool') || '';
 		const requestedTab = toolboxTabFromPublicTab(rawRequestedTab);
-		const requestedTool = toolboxToolFromPublicTool(rawRequestedTool);
+		let requestedTool = toolboxToolFromPublicTool(rawRequestedTool);
 		const requestedConnector = params.get('toolbox_connector') || '';
 		let requestedCloudCheck = params.get('toolbox_cloud_check') || '';
 		const requestedCloudCheckGroup = params.get('toolbox_cloud_check_group') || '';
 		let tab = requestedTab;
 		let canonicalizeLegacyConnector = false;
 		let canonicalizeToolUrl = false;
+
+		if (rawRequestedTool === 'optimize' || rawRequestedTool === 'media-derivative') {
+			requestedTool = 'media-batch-optimize';
+			canonicalizeToolUrl = true;
+		}
+			if (rawRequestedTool === 'image-candidate-adoption') {
+				requestedTool = 'ai-content-snapshot-suggestions';
+				canonicalizeToolUrl = true;
+			}
+			if (rawRequestedTool === 'article-brief') {
+				requestedTool = 'ai-content-snapshot-suggestions';
+				canonicalizeToolUrl = true;
+			}
+
 		const requestedToolWorkspace = requestedTool ? toolWorkspaceForTarget(requestedTool) : null;
 		const requestedToolTab = requestedToolWorkspace ? toolboxTabForWorkspace(requestedToolWorkspace) : '';
 
@@ -6562,7 +6684,7 @@
 			if (!tab || !requestedTabWorkspace || !hasTarget(requestedTabWorkspace, '[data-toolbox-tool-target]', 'data-toolbox-tool-target', requestedTool)) {
 				tab = requestedToolTab;
 			}
-			canonicalizeToolUrl = params.has('toolbox_tab') || params.has('toolbox_tool') || rawRequestedTab !== publicTabForToolboxTab(tab) || rawRequestedTool !== publicToolForToolboxTool(requestedTool);
+			canonicalizeToolUrl = canonicalizeToolUrl || params.has('toolbox_tab') || params.has('toolbox_tool') || rawRequestedTab !== publicTabForToolboxTab(tab) || rawRequestedTool !== publicToolForToolboxTool(requestedTool);
 		}
 
 		if (!tab) {
@@ -6621,6 +6743,10 @@
 
 	function initToolSwitcher() {
 		document.querySelectorAll('[data-toolbox-tools]').forEach((workspace) => {
+			const activeGroup = activeTarget(workspace, '[data-toolbox-tool-group-target]', 'data-toolbox-tool-group-target');
+			if (activeGroup) {
+				activateToolGroupPanel(workspace, activeGroup);
+			}
 			workspace.addEventListener('click', (event) => {
 				if (!(event.target instanceof Element)) {
 					return;
@@ -6638,6 +6764,76 @@
 				}
 
 				activateToolPanel(button.getAttribute('data-toolbox-tool-target'), true, workspace);
+			});
+		});
+	}
+
+	function updateMediaAltCaptionScope(form) {
+		const scope = form.querySelector('[data-toolbox-media-alt-scope]');
+		const postField = form.querySelector('[data-toolbox-media-alt-post-field]');
+		const postInput = postField ? postField.querySelector('input[name="post_id"]') : null;
+		const selectedIds = parseAttachmentIds(form.querySelector('[data-toolbox-selected-attachment-ids]') instanceof HTMLInputElement ? form.querySelector('[data-toolbox-selected-attachment-ids]').value : '');
+		const useArticle = scope instanceof HTMLSelectElement && scope.value === 'current_article_used_images';
+		if (postField) {
+			postField.hidden = !useArticle || selectedIds.length > 0;
+		}
+		if (postInput instanceof HTMLInputElement) {
+			postInput.required = useArticle && selectedIds.length <= 0;
+			if (!useArticle || selectedIds.length > 0) {
+				postInput.value = '';
+			}
+		}
+	}
+
+	function prefillSelectedAttachmentIds(form) {
+		const field = form.querySelector('[data-toolbox-selected-attachment-ids]');
+		if (!(field instanceof HTMLInputElement)) {
+			return;
+		}
+		const ids = selectedAttachmentIdsFromUrl();
+		if (ids.length && !field.value.trim()) {
+			field.value = ids.join(', ');
+		}
+		const summary = form.querySelector('[data-toolbox-selected-attachment-summary]');
+		const currentIds = parseAttachmentIds(field.value);
+		if (summary) {
+			summary.textContent = currentIds.length
+				? t('Using selected media-library images: ') + currentIds.join(', ')
+				: t('You can start from the media library bulk action, or leave this empty to use the bounded sample below.');
+		}
+	}
+
+	function prefillSingleMediaFromUrl(form) {
+		const idField = form.querySelector('[data-toolbox-media-attachment]');
+		if (!(idField instanceof HTMLInputElement) || idField.value) {
+			return;
+		}
+		const params = new URL(window.location.href).searchParams;
+		const attachmentId = parseInt(params.get('attachment_id') || '0', 10) || 0;
+		if (attachmentId <= 0) {
+			return;
+		}
+		const attachmentUrl = params.get('attachment_url') || '';
+		renderSelectedMedia(form, {
+			id: attachmentId,
+			filename: attachmentUrl ? attachmentUrl.split('/').pop() : 'Attachment #' + String(attachmentId),
+			url: attachmentUrl,
+			alt: '',
+		});
+	}
+
+	function initMediaAltCaptionControls() {
+		document.querySelectorAll('[data-toolbox-media-alt-caption-review]').forEach((form) => {
+			prefillSelectedAttachmentIds(form);
+			updateMediaAltCaptionScope(form);
+			form.addEventListener('change', (event) => {
+				if (event.target instanceof Element && event.target.matches('[data-toolbox-media-alt-scope]')) {
+					updateMediaAltCaptionScope(form);
+				}
+				if (event.target instanceof Element && event.target.matches('[data-toolbox-selected-attachment-ids]')) {
+					prefillSelectedAttachmentIds(form);
+					updateMediaAltCaptionScope(form);
+				}
 			});
 		});
 	}
@@ -6917,6 +7113,8 @@
 			const idField = form.querySelector('[data-toolbox-media-attachment]');
 			const repairButton = form.querySelector('[data-toolbox-submit-reference-repair]');
 			const settingsRepairButton = form.querySelector('[data-toolbox-submit-settings-repair]');
+			prefillSelectedAttachmentIds(form);
+			prefillSingleMediaFromUrl(form);
 			syncMediaBatchFixedFlow(form);
 			['batch_recipe', 'batch_scope_preset'].forEach((name) => {
 				const field = form.querySelector('[name="' + name + '"]');
@@ -6933,6 +7131,10 @@
 						settingsRepairButton.disabled = mediaAttachmentId(form) <= 0;
 					}
 				});
+			}
+			const selectedIdsField = form.querySelector('[data-toolbox-selected-attachment-ids]');
+			if (selectedIdsField instanceof HTMLInputElement) {
+				selectedIdsField.addEventListener('input', () => prefillSelectedAttachmentIds(form));
 			}
 
 			form.addEventListener('click', (event) => {
@@ -7068,6 +7270,7 @@
 	initNightlyCloudBatch();
 	initSiteKnowledge();
 	initMediaDerivativeControls();
+	initMediaAltCaptionControls();
 	initUrlState();
 
 	document.addEventListener('submit', function (event) {

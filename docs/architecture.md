@@ -143,9 +143,10 @@ Cloud, `search-image-source` is the general local image-candidate ability
 that wraps the Cloud `npcink-toolbox/search-image-source` runtime ability on the
 `image-source.managed` profile, and
 `search-site-knowledge` is the general Cloud-managed semantic site-context
-ability. `vector-search` remains a compatibility pointer only. Article
-briefs, article writing packs, and article write plans are only one workflow
-family built from those lower-level tools.
+ability. The legacy `/vector-search` route remains a REST compatibility pointer
+only and is no longer registered as a public Toolbox ability. Article writing
+packs and article write plans are only one workflow family built from those
+lower-level tools; the old article brief route is compatibility-only.
 
 If `npcink-abilities-toolkit` is active, Toolbox uses its public helper functions.
 Otherwise, Toolbox falls back to native WordPress Abilities API registration.
@@ -153,20 +154,24 @@ Otherwise, Toolbox falls back to native WordPress Abilities API registration.
 Current ability ids:
 
 - `npcink-toolbox/search-image-source`
-- `npcink-toolbox/vector-search`
+- `npcink-toolbox/generate-image`
 - `npcink-toolbox/search-site-knowledge`
+- `npcink-toolbox/cloud-web-search`
 - `npcink-toolbox/get-site-knowledge-status`
 - `npcink-toolbox/request-site-knowledge-sync`
-- `npcink-toolbox/build-article-brief`
+- `npcink-toolbox/build-article-assistant`
 - `npcink-toolbox/build-article-write-plan`
 - `npcink-toolbox/build-article-batch-write-plan`
 - `npcink-toolbox/build-article-media-batch-write-plan`
 - `npcink-abilities-toolkit/build-image-candidate-adoption-plan`
 - `npcink-abilities-toolkit/build-article-audio-adoption-plan`
-- `npcink-toolbox/build-media-brief`
+- `npcink-toolbox/build-site-knowledge-review-plan`
+- `npcink-toolbox/build-nightly-inspection-review-plan`
+- `npcink-toolbox/build-media-derivative-handoff`
 - `npcink-toolbox/get-content-discoverability-context`
 - `npcink-toolbox/validate-content-discoverability-context`
 - `npcink-toolbox/build-content-discoverability-brief`
+- `npcink-toolbox/build-ai-article-writing-pack`
 
 These are read/suggestion tools. They must not imply final WordPress write
 approval, media import approval, or indexing lifecycle ownership.
@@ -187,7 +192,9 @@ actions must become one Core `plan_to_proposal_batch`, not local consent.
 `npcink-abilities-toolkit/build-image-candidate-adoption-plan` assembles a Core-ready
 `image_candidate_adoption_plan` from one reviewed `image_candidate.v1`. It does
 not import media, update metadata, set featured images, approve proposals, or
-execute writes.
+execute writes. Toolbox keeps this route for the editor image recommendation
+sidebar and machine clients; the old standalone admin
+`tool=image-candidate-adoption` workbench is deprecated.
 `npcink-abilities-toolkit/build-article-audio-adoption-plan` is the Core-ready
 planner target for one reviewed narration or audio-summary candidate. Toolbox
 may build an `article_audio_adoption_plan.v1` envelope that names the target
@@ -247,9 +254,9 @@ Cloud Addon runtime seam, not local connector credentials.
 `search-site-knowledge` is the high-level ability
 for semantic site search, related content, writing context, internal-link
 candidates, refresh suggestions, image-context lookup, FAQ candidates, content
-gap analysis, and publish preflight duplicate checks. `vector-search` returns a
-Cloud-managed compatibility pointer and should not be used for new low-level
-vector integrations.
+gap analysis, and publish preflight duplicate checks. `/vector-search` remains
+a REST compatibility route only and should not be used for new low-level vector
+integrations or Ability clients.
 
 The host can intercept site knowledge execution with
 `npcink_toolbox_site_knowledge_cloud_request` or adjust the runtime payload
@@ -352,8 +359,9 @@ Knowledge evidence so an operator can hand it to Core when a specific local
 review is warranted. It is not a workflow runtime, queue, approval route,
 preflight route, or write executor.
 
-`/knowledge-search` remains as a compatibility alias for the first local MVP.
-New clients should use `/vector-search`.
+`/knowledge-search` and `/vector-search` remain compatibility aliases for the
+first local MVP. New REST clients should use `/site-knowledge/search`, and new
+Ability clients should use `npcink-toolbox/search-site-knowledge`.
 
 The route surface is intentionally controlled by a static matrix in
 `tests/run.php`. The matrix must stay exact: adding a route requires updating
@@ -535,20 +543,24 @@ refresh controls live in the secondary **Content Library Setup** panel reached
 from Advanced, not as a default top-level tab.
 
 The admin **Image Handling** tab groups image-first buttons by operator job and
-defaults to **Image Tools**, with **Optimize Existing Image** as the first
-visible tool. It no longer exposes a single-article image text helper; that job
-needs current editor context in the editor sidebar. The separate **Image Text
-Review** group builds a small selected media-library review set and can prepare
-a Core handoff draft without creating a proposal or writing media metadata. The
-separate
-**Content Preparation** tab owns content snapshot checks and preparation bundles
-such as the combined `Article Planning Bundle`; reviewed draft/image handoffs
-sit in a compact **Review Handoffs** group tab because they require reviewed
-inputs.
-The operator-facing Optimize Existing Image deep link is
-`admin.php?page=npcink-toolbox&tab=image&tool=optimize`; legacy
-`toolbox_tab=tools&toolbox_tool=media-derivative` URLs remain accepted as
-compatibility aliases for the same internal panel.
+defaults to **Image Optimization**, with **Batch Optimize Images** as the first
+visible workbench. Single-image actions start from the WordPress
+media-library attachment details panel or image row actions, then enter the same
+selected Batch Image ALT or Batch Optimize Images workbenches used by bulk
+selections.
+It no longer exposes a standalone one-image optimization picker or a
+single-article image text helper; article-specific image text needs current
+editor context in the editor sidebar. The separate **Batch Image ALT** group
+builds a small selected media-library review set and can prepare a Core handoff
+draft without creating a proposal or writing media metadata. The separate
+**Content Preparation** tab owns content snapshot checks and reviewed handoffs.
+The old Article Planning Bundle is not an operator-facing admin tool;
+`/flows/article-brief` remains available only as a compatibility REST route for
+OpenClaw or external AI callers.
+Batch entry points use `tab=image&tool=bulk-alt` and
+`tab=image&tool=batch-optimize`; deprecated `tool=optimize` and legacy
+`toolbox_tool=media-derivative` URLs remain accepted only as compatibility
+aliases that canonicalize to Batch Optimize Images.
 Publish preflight, summary suggestions, category suggestions, tag suggestions,
 internal-link candidates, and image candidates stay in the post editor panel,
 not as backend buttons.
@@ -639,11 +651,12 @@ SEO suggestions. This keeps image-source reuse fast for editor and settings
 surfaces without turning Toolbox into an image index, provider router, media
 registry, or write executor.
 
-`media_optimization_v1` is the architecture name for the existing **Optimize Existing Image** surface.
-It is implemented with current admin state, Adapter media derivative routes,
-Cloud Addon transport, Core proposal handoff, and Abilities media contracts. It
-does not introduce a Toolbox custom table, a /workflow-runs route, queue,
-scheduler, retry lease, artifact registry, or direct media writer.
+`media_optimization_v1` is the architecture name for media-library single-image
+actions and the Toolbox Batch Optimize Images workbench. It is
+implemented with current admin state, Adapter media derivative routes, Cloud
+Addon transport, Core proposal handoff, and Abilities media contracts. It
+does not introduce a Toolbox custom table, a /workflow-runs route, queue, scheduler,
+retry lease, artifact registry, or direct media writer.
 Batch media replacement follows the same dependency direction: OpenClaw/Adapter
 must prove selected-batch execution with Core approval, commit preflight,
 execution profile allowlist evidence, per-action results, and Abilities media

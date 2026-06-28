@@ -47,8 +47,9 @@ one kind of evidence:
   content, writing context, internal-link candidates, refresh suggestions,
   image-context lookup, FAQ candidates, content gap analysis, or publish
   preflight duplicate checks from Cloud-managed site knowledge;
-- `npcink-toolbox/vector-search` only as a Cloud-managed site knowledge
-  compatibility pointer for older clients.
+- the legacy `/vector-search` REST route only as a Cloud-managed site knowledge
+  compatibility pointer for older clients. It is not a public Ability catalog
+  entry.
 
 Do not call article-specific planning abilities unless the workflow is actually
 building or handing off an article.
@@ -82,9 +83,9 @@ For normal WordPress editorial support, compose abilities in this order:
 5. `npcink-toolbox/build-site-knowledge-review-plan`
    - After operator review, build a blocked Core review proposal plan from
      Cloud Site Knowledge evidence without generating or writing content.
-6. `npcink-toolbox/build-media-brief`
-   - Build image prompts, alt/caption suggestions, and governed media handoff
-     notes for an existing post.
+6. `/flows/media-brief`
+   - Compatibility REST route for saved-post image planning when the editor
+     sidebar is not available. It is not a public Ability catalog entry.
 
 For OpenClaw or another external caller that only receives a broad
 natural-language request such as "write an article about AI", use the high-level
@@ -109,9 +110,9 @@ should use this sequence:
    - Stop for operator input if required context is missing.
 3. Cloud-managed web search
    - Gather external source candidates for the topic through Npcink Cloud.
-4. `npcink-toolbox/vector-search`
+4. `npcink-toolbox/search-site-knowledge`
    - Retrieve local style, historical content, internal-link, or image-context
-     references from an already configured collection.
+     references from Cloud-managed site knowledge.
 5. `npcink-toolbox/search-image-source`
    - Retrieve external image-source candidates and preserve attribution and
      `download_location`.
@@ -121,9 +122,9 @@ should use this sequence:
 7. `npcink-toolbox/build-ai-article-writing-pack`
    - Build a single OpenClaw-friendly writing context pack for natural-language
      article requests.
-8. `npcink-toolbox/build-article-brief`
-   - Build a research/image/vector planning bundle when a compact operator
-     brief is useful.
+8. `/flows/article-brief`
+   - Compatibility REST route for a compact planning bundle. It is not a
+     public Ability catalog entry.
 9. `npcink-toolbox/build-article-write-plan`
    - Convert a reviewed draft into a Core-ready `article_write_plan` handoff.
 10. `npcink-toolbox/build-article-media-batch-write-plan`
@@ -149,8 +150,8 @@ same ability contracts. The channel changes, but the write boundary does not.
 | Find image candidates | Adapter image-source support recipe | Image candidates | No direct write until a candidate adoption plan is reviewed |
 | Suggest SEO/AEO/GEO fields | Adapter content discoverability recipe | Content Discoverability brief | Core proposal for allowed fields only |
 | Run publish/readiness preflight | Adapter site-knowledge/support recipe | Publish preflight | No direct write; returns warnings and operator tasks |
-| Adopt one reviewed image candidate | Adapter `image_candidate_adoption_plan` recipe | Adopt New Image | Core proposal for media upload, metadata, and optional featured image |
-| Optimize existing media | Adapter media derivative recipe | Optimize Existing Image | One Core media optimization proposal for reviewed metadata plus `npcink-abilities-toolkit/adopt-cloud-media-derivative` |
+| Adopt one reviewed image candidate | Adapter `image_candidate_adoption_plan` recipe | Editor image adoption | Core proposal for media upload, metadata, and optional featured image |
+| Optimize existing media | Adapter media derivative recipe | Media Library image action / Batch Optimize Images | Core media optimization proposal for reviewed metadata plus `npcink-abilities-toolkit/adopt-cloud-media-derivative` |
 | Repair hard-coded media URLs | Adapter read ability plus Core from-plan | URL repair proposal button | Core proposal for exact-match patch actions |
 | Draft one reviewed article | Adapter `article_draft_plan` recipe | Article Write Plan fallback | Core proposal for `npcink-abilities-toolkit/create-draft` |
 | Build article plus featured images | Adapter `article_media_batch_plan` recipe | Article/media batch fallback | Core proposal for draft, media upload, metadata, and featured-image abilities |
@@ -168,7 +169,6 @@ tab remains the management, testing, and cross-article surface.
 | --- | --- | --- |
 | `npcink-toolbox/get-content-discoverability-context` | `site_context` | Site-level content rules. |
 | `npcink-toolbox/validate-content-discoverability-context` | `context_preflight` | Readiness checks before drafting. |
-| `npcink-toolbox/vector-search` | `site_knowledge_context` | Cloud-managed site knowledge compatibility pointer. New callers should use `search-site-knowledge`. |
 | `npcink-toolbox/search-site-knowledge` | `site_knowledge_context` | Cloud-managed site search, related content, writing context, internal links, refresh suggestions, or image context. |
 | `npcink-toolbox/get-site-knowledge-status` | `site_knowledge_status` | Cloud-managed site knowledge coverage and freshness status. |
 | `npcink-toolbox/request-site-knowledge-sync` | `site_knowledge_sync_request` | Bounded public-content sync or rebuild request for Cloud-managed site knowledge. |
@@ -176,13 +176,11 @@ tab remains the management, testing, and cross-article surface.
 | `npcink-toolbox/generate-image` | `image_source_candidates` | Reviewed-prompt Cloud AI image candidates from an image-source handoff. |
 | `npcink-toolbox/build-content-discoverability-brief` | `seo_aeo_geo_brief` | Suggestion-only SEO/AEO/GEO instructions and proposal template. |
 | `npcink-toolbox/build-ai-article-writing-pack` | `ai_article_writing_pack` | Convenience fallback for OpenClaw-style natural-language article requests. |
-| `npcink-toolbox/build-article-brief` | `article_planning_bundle` | Compact research, image, vector, and handoff notes. |
 | `npcink-toolbox/build-article-write-plan` | `core_article_write_plan` | Reviewed draft plan for Core proposal intake. |
 | `npcink-toolbox/build-article-batch-write-plan` | `core_article_batch_write_plan` | Reviewed draft batch plan for one Core batch proposal. |
 | `npcink-toolbox/build-article-media-batch-write-plan` | `core_article_media_batch_write_plan` | Reviewed article plus image-source plan for Core-governed draft, media upload, metadata, and featured-image actions. |
 | `npcink-abilities-toolkit/build-image-candidate-adoption-plan` | `core_image_candidate_adoption_plan` | Reviewed image candidate plan for Core-governed media upload, metadata, and optional featured-image actions. |
 | `npcink-toolbox/build-site-knowledge-review-plan` | `core_site_knowledge_review_plan` | Blocked Site Knowledge review plan with preserved evidence refs and human title/content input still required. |
-| `npcink-toolbox/build-media-brief` | `media_planning_bundle` | Image-source planning for existing post context. |
 
 ## Atomic Knowledge Outputs
 

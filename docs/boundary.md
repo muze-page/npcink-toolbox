@@ -362,7 +362,10 @@ data.
 `image_candidate_adoption_plan` from one reviewed `image_candidate.v1`. It may
 describe media upload, metadata, and optional featured-image write actions for
 Core proposal intake, but it must not import media, update attachment metadata,
-set featured images, approve proposals, or execute writes.
+set featured images, approve proposals, or execute writes. This route remains
+available for editor-side image adoption and machine clients; it is not a
+standalone Toolbox admin workbench, and old admin
+`tool=image-candidate-adoption` links should be treated as deprecated.
 Editor image candidate review may delegate already retrieved candidates to
 `npcink-abilities-toolkit/build-image-candidate-review-artifact` for a shared
 `image_candidate_review.v1` artifact and recommendation projection. Toolbox
@@ -390,12 +393,19 @@ outputs, and human-required title/content fields for Core review, but it must
 not approve, preflight, execute, schedule, queue, or directly write WordPress
 content.
 
-`media_optimization_v1` is the fixed governed name for the existing
-**Optimize Existing Image** surface. It may guide one operator intent through
-media selection, Toolbox policy defaults, Adapter/Cloud derivative preview,
-reviewed metadata, and one Core media optimization proposal. It must not add a
-generic workflow runner, persistent run table, Toolbox media registry,
-automatic approval, retry worker, queue, scheduler, or direct media write.
+`media_optimization_v1` is the fixed governed name for the image optimization
+workflow. Single-image ALT and optimization actions start from the media-library
+attachment details panel or image row actions, then pass that attachment into
+the selected-image review workbench. Deprecated `tool=optimize` and legacy
+`toolbox_tool=media-derivative` requests fall back to the batch optimization
+workbench instead of rendering a standalone one-image picker. Batch
+optimization starts from selected media-library attachments or the
+`tab=image&tool=batch-optimize` workbench. These surfaces may guide operator
+intent through media selection, Toolbox policy defaults, Adapter/Cloud
+derivative preview, reviewed metadata, selected Core proposal submission, and
+explicit Adapter/Core execution. They must not add a generic workflow runner,
+persistent run table, Toolbox media registry, automatic approval, retry worker,
+queue, scheduler, or direct media write.
 
 `/media-derivative-handoff` prepares one-run ability input for
 `npcink-abilities-toolkit/build-media-derivative-cloud-request` from Toolbox media policy defaults
@@ -415,14 +425,14 @@ store site media policy truth, own Cloud credentials, create an artifact
 registry, approve proposals, execute proposals, replace attachment files, or
 update attachment metadata.
 
-The same admin surface may call
+The dedicated batch admin surface may call
 `npcink-abilities-toolkit/build-media-derivative-batch-plan` through Adapter
-`run-read-ability` for bounded bulk requests such as date-range format
-conversion. The batch surface may show candidates, skipped reasons, selected
-per-attachment previews, and selected Core proposal submissions. It must still
-use the per-attachment Adapter media derivative recipe for Cloud artifacts and
-must not create a Toolbox-side media registry, approval queue, scheduler, or
-write executor.
+`run-read-ability` for selected attachment IDs or bounded bulk requests such as
+date-range format conversion. The batch surface may show candidates, skipped
+reasons, selected per-attachment previews, and selected Core proposal
+submissions. It must still use the per-attachment Adapter media derivative
+recipe for Cloud artifacts and must not create a Toolbox-side media registry,
+approval queue, scheduler, or write executor.
 When "replace original image" becomes available for selected batch items, it
 must be the Adapter/Core/Abilities approved execution path: Core approval and
 preflight first, Adapter allowlisted execution second, Abilities media
