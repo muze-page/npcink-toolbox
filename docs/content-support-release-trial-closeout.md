@@ -162,8 +162,8 @@ For each post:
 2. Run Writing Preparation.
 3. Run Summary / Category / Tag support.
 4. Run Internal Link Candidates.
-5. Run Image Candidates, and use Optimize Existing Image only when an existing
-   media item needs a reviewed derivative.
+5. Run Image Candidates, and use the Media Library image action or Batch
+   Optimize Images only when an existing media item needs a reviewed derivative.
 6. Run Publish Preflight.
 7. If SEO title and description candidates are useful, create the Core SEO
    proposal and review it in Core.
@@ -204,7 +204,7 @@ was available.
 | Writing preparation useful? | Endpoint passed. `writing_support` returned `ready`, stayed suggestion-only, and did not write WordPress data. Site Knowledge returned no related results in this local one-post corpus. | Endpoint passed. `writing_support` returned `ready`, stayed suggestion-only, did not write WordPress data, and returned 6 related/context results. |
 | Summary/category/tag useful? | Summary suggestions returned one `article_discoverability_optimization.v1` summary layer and `content_metadata_delta`. Category and tag candidate counts were `0` because the post only had the default category and no tags in the local corpus. | Summary suggestions returned one summary layer. Category and tag candidate counts remained `0` because this draft still only had the default category and no tags. |
 | Internal-link candidates useful? | Endpoint passed and returned `internal_link_candidates.v1` with `operator_review_only_no_insert`, but candidate count was `0` because the local site had no second published related post. | Endpoint passed and returned `internal_link_candidates.v1` with `operator_review_only_no_insert`; candidate count was 6 after a related article was available. |
-| Image candidate or media optimization used? | Image candidates returned 6 stock image-source candidates; the first candidate source was Unsplash. Optimize Existing Image was not used because the existing featured image did not require a reviewed derivative for this trial. | Image candidates returned 6 stock image-source candidates; the first candidate source was Unsplash. Optimize Existing Image was not used because this draft had no featured media selected. |
+| Image candidate or media optimization used? | Image candidates returned 6 stock image-source candidates; the first candidate source was Unsplash. Media optimization was not used because the existing featured image did not require a reviewed derivative for this trial. | Image candidates returned 6 stock image-source candidates; the first candidate source was Unsplash. Media optimization was not used because this draft had no featured media selected. |
 | Publish preflight found actionable issues? | Publish preflight returned `pre_publish_review.v1` with 7 review items and a proposal-ready SEO handoff. | Publish preflight returned `pre_publish_review.v1` with 7 review items and a proposal-ready SEO handoff. |
 | SEO Core proposal created? | Yes. Pending Core proposal `10fb7ac3-f105-4885-bac0-7c12c6615221` was created for `npcink-abilities-toolkit/set-post-seo-meta`. | Yes. Pending Core proposal `80f53bfa-ffc4-415d-8462-ad812950d592` was created for `npcink-abilities-toolkit/set-post-seo-meta`. |
 | Core proposal reviewed, approved, or rejected? | Reviewed only. Core detail returned status `pending`, 2 field patches (`seo_title`, `seo_description`), and an audit timeline. It was not approved during trial. | Reviewed only. Core detail returned status `pending`, 2 field patches, and 3 audit timeline entries. It was not approved during trial. |

@@ -96,6 +96,13 @@ truth, a second ability registry, or a WordPress write owner. Local controls mus
 decide whether a site submits a bounded batch intent, and reviewed write outcomes
 must still land through Core, Adapter, and Abilities.
 
+Automatic approval for low-risk batch writes, if a product path needs it, must
+be a Core policy decision. Toolbox may expose whether a prepared plan is
+eligible for a future Core auto-approval policy, but it must not approve its own
+proposal, bypass Core preflight, or write WordPress objects directly. For media
+ALT, the first safe candidate is "fill missing ALT only" after provenance text,
+source attribution, generic placeholders, and weak candidates are rejected.
+
 ## Rejected Imports
 
 Do not import these legacy automation shapes:
@@ -135,8 +142,8 @@ implementing it. Do not add it inside Toolbox or Adapter by default.
    approval, commit preflight, per-action result payloads, retry guidance, and
    final Abilities callbacks. For media conversion, reuse the existing
    `adopt-cloud-media-derivative` / `replace-media-file` / `restore-media-backup`
-   ability path that the single-image Optimize Existing Image smoke already
-   proves. Do not build a Toolbox-specific replacement writer.
+   ability path already proven by the media optimization smoke.
+   Do not build a Toolbox-specific replacement writer.
 2. Stabilize `media_optimization_v1` batch review sets.
    The product surface should build a bounded review plan, show eligible and
    blocked candidates, generate selected previews, and submit only selected Core

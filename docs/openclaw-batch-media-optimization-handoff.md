@@ -77,7 +77,7 @@ claim batch replacement is product-ready until this execution proof exists.
 ## Stage 2: Toolbox Fixed Best Practice
 
 After Stage 1 is accepted, Toolbox may expose the path as a fixed operator
-workflow under **Optimize Existing Image**.
+workflow under **Batch Optimize Images**.
 
 Toolbox owns:
 

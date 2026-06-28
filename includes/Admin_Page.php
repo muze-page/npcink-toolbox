@@ -129,13 +129,142 @@ final class Admin_Page {
 		);
 	}
 
-	private function optimize_image_url(): string {
-		return $this->toolbox_admin_url(
+	private function media_library_url(): string {
+		return add_query_arg(
 			array(
-				'tab'  => 'image',
-				'tool' => 'optimize',
+				'mode' => 'list',
+			),
+			admin_url( 'upload.php' )
+		);
+	}
+
+	private function image_batch_tool_url( string $tool, array $attachment_ids = array() ): string {
+		$args = array(
+			'tab'  => 'image',
+			'tool' => $tool,
+		);
+		$attachment_ids = array_values(
+			array_filter(
+				array_map( 'absint', $attachment_ids ),
+				static function ( int $attachment_id ): bool {
+					return $attachment_id > 0;
+				}
 			)
 		);
+		if ( ! empty( $attachment_ids ) ) {
+			$args['attachment_ids'] = implode( ',', array_slice( array_unique( $attachment_ids ), 0, 50 ) );
+			$args['source']         = 'media-library-bulk';
+		}
+
+		return $this->toolbox_admin_url( $args );
+	}
+
+	/**
+	 * Adds contextual AI actions to the WordPress media attachment details panel.
+	 *
+	 * @param array<string,array<string,mixed>> $form_fields Existing media fields.
+	 * @param \WP_Post                         $post Attachment post.
+	 * @return array<string,array<string,mixed>>
+	 */
+	public function add_media_library_attachment_actions( array $form_fields, \WP_Post $post ): array {
+		$attachment_id = absint( $post->ID ?? 0 );
+		if ( $attachment_id <= 0 || ! current_user_can( 'manage_options' ) ) {
+			return $form_fields;
+		}
+		if ( function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $attachment_id ) ) {
+			return $form_fields;
+		}
+
+		$form_fields['npcink_toolbox_ai_image_optimization'] = array(
+			'label' => __( 'Npcink AI', 'npcink-toolbox' ),
+			'input' => 'html',
+			'html'  => sprintf(
+				'<div class="npcink-toolbox-media-library-action"><p>%1$s</p><p><a class="button" href="%2$s">%3$s</a> <a class="button" href="%4$s">%5$s</a></p><p class="description">%6$s</p></div>',
+				esc_html__( 'Work on this image from the media library. Suggestions and previews stay review-only until you submit accepted changes for review.', 'npcink-toolbox' ),
+				esc_url( $this->image_batch_tool_url( 'bulk-alt', array( $attachment_id ) ) ),
+				esc_html__( 'Complete ALT for this image', 'npcink-toolbox' ),
+				esc_url( $this->image_batch_tool_url( 'batch-optimize', array( $attachment_id ) ) ),
+				esc_html__( 'Optimize this image', 'npcink-toolbox' ),
+				esc_html__( 'For multiple images, select them in the Media Library list and use the Npcink bulk actions.', 'npcink-toolbox' )
+			),
+		);
+
+		return $form_fields;
+	}
+
+	/**
+	 * Adds contextual Npcink AI actions to each image row in the media list table.
+	 *
+	 * @param array<string,string> $actions Existing row actions.
+	 * @param \WP_Post            $post Attachment post.
+	 * @param bool                $detached Whether the attachment is detached.
+	 * @return array<string,string>
+	 */
+	public function filter_media_library_row_actions( array $actions, \WP_Post $post, bool $detached = false ): array {
+		$attachment_id = absint( $post->ID ?? 0 );
+		if ( $attachment_id <= 0 || ! current_user_can( 'manage_options' ) ) {
+			return $actions;
+		}
+		if ( function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $attachment_id ) ) {
+			return $actions;
+		}
+
+		$actions['npcink_toolbox_alt'] = sprintf(
+			'<a href="%1$s">%2$s</a>',
+			esc_url( $this->image_batch_tool_url( 'bulk-alt', array( $attachment_id ) ) ),
+			esc_html__( 'Npcink ALT', 'npcink-toolbox' )
+		);
+		$actions['npcink_toolbox_optimize'] = sprintf(
+			'<a href="%1$s">%2$s</a>',
+			esc_url( $this->image_batch_tool_url( 'batch-optimize', array( $attachment_id ) ) ),
+			esc_html__( 'Npcink optimize', 'npcink-toolbox' )
+		);
+
+		return $actions;
+	}
+
+	/**
+	 * Adds batch actions to the media library list table.
+	 *
+	 * @param array<string,string> $actions Existing actions.
+	 * @return array<string,string>
+	 */
+	public function filter_media_library_bulk_actions( array $actions ): array {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return $actions;
+		}
+		$actions['npcink_toolbox_batch_alt']      = __( 'Npcink: complete ALT for selected images', 'npcink-toolbox' );
+		$actions['npcink_toolbox_batch_optimize'] = __( 'Npcink: optimize selected images', 'npcink-toolbox' );
+		return $actions;
+	}
+
+	/**
+	 * Redirects selected media items to the governed Toolbox batch workbench.
+	 *
+	 * @param string                $redirect_to Redirect URL.
+	 * @param string                $action Bulk action id.
+	 * @param array<int,int|string> $post_ids Selected attachment IDs.
+	 * @return string
+	 */
+	public function handle_media_library_bulk_action( string $redirect_to, string $action, array $post_ids ): string {
+		if ( ! in_array( $action, array( 'npcink_toolbox_batch_alt', 'npcink_toolbox_batch_optimize' ), true ) || ! current_user_can( 'manage_options' ) ) {
+			return $redirect_to;
+		}
+
+		$image_ids = array();
+		foreach ( $post_ids as $post_id ) {
+			$attachment_id = absint( $post_id );
+			if ( $attachment_id <= 0 ) {
+				continue;
+			}
+			if ( function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $attachment_id ) ) {
+				continue;
+			}
+			$image_ids[] = $attachment_id;
+		}
+
+		$tool = 'npcink_toolbox_batch_alt' === $action ? 'bulk-alt' : 'batch-optimize';
+		return $this->image_batch_tool_url( $tool, $image_ids );
 	}
 
 	private function datetime_display_config(): array {
@@ -414,7 +543,7 @@ final class Admin_Page {
 					<p><?php esc_html_e( 'Generate one read-only report with content, image, and setup suggestions. Nothing is changed automatically.', 'npcink-toolbox' ); ?></p>
 					<div class="npcink-toolbox__inline-actions">
 						<a class="button button-primary" href="<?php echo esc_url( $this->site_ops_insights_preview_url() ); ?>"><?php esc_html_e( 'Start site check', 'npcink-toolbox' ); ?></a>
-							<a class="button" href="<?php echo esc_url( $this->optimize_image_url() ); ?>"><?php esc_html_e( 'Optimize image', 'npcink-toolbox' ); ?></a>
+							<a class="button" href="<?php echo esc_url( $this->media_library_url() ); ?>"><?php esc_html_e( 'Choose image in media library', 'npcink-toolbox' ); ?></a>
 					</div>
 				</div>
 				<div class="npcink-toolbox__start-status-list">
@@ -448,9 +577,9 @@ final class Admin_Page {
 				</div>
 			</div>
 			<section class="npcink-toolbox__start-actions npcink-toolbox__start-actions--secondary" aria-label="<?php esc_attr_e( 'Next actions', 'npcink-toolbox' ); ?>">
-				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( $this->optimize_image_url() ); ?>">
-					<strong><?php esc_html_e( 'Improve an image', 'npcink-toolbox' ); ?></strong>
-					<span><?php esc_html_e( 'Choose one media-library image, preview improvements, and review before any handoff.', 'npcink-toolbox' ); ?></span>
+				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( $this->media_library_url() ); ?>">
+					<strong><?php esc_html_e( 'Choose an image from Media Library', 'npcink-toolbox' ); ?></strong>
+					<span><?php esc_html_e( 'Open an image attachment, then use Npcink AI to generate an optimization preview.', 'npcink-toolbox' ); ?></span>
 				</a>
 				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=context' ) ); ?>">
 					<strong><?php echo esc_html( $profile_action ); ?></strong>
@@ -2661,10 +2790,10 @@ final class Admin_Page {
 						<strong><?php esc_html_e( 'Discoverability Brief', 'npcink-toolbox' ); ?></strong>
 						<span><?php esc_html_e( 'Ground SEO, AEO, and GEO suggestions in existing site context.', 'npcink-toolbox' ); ?></span>
 					</li>
-					<li>
-						<strong><?php esc_html_e( 'Article Planning Bundle and Workflows', 'npcink-toolbox' ); ?></strong>
-						<span><?php esc_html_e( 'Use the same Cloud-managed knowledge ability for planning bundles and natural-language requests.', 'npcink-toolbox' ); ?></span>
-					</li>
+						<li>
+							<strong><?php esc_html_e( 'External AI workflows', 'npcink-toolbox' ); ?></strong>
+							<span><?php esc_html_e( 'Use the same Cloud-managed knowledge ability for API callers and natural-language requests.', 'npcink-toolbox' ); ?></span>
+						</li>
 				</ul>
 				<p class="description"><?php esc_html_e( 'Final WordPress edits still require the normal Core proposal and editor approval path.', 'npcink-toolbox' ); ?></p>
 			</section>
@@ -2940,9 +3069,9 @@ final class Admin_Page {
 							<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="image-handoff" hidden>
 								<div class="npcink-toolbox__example">
 									<strong><?php esc_html_e( 'Reviewed changes stay in the image workflow', 'npcink-toolbox' ); ?></strong>
-									<span><?php esc_html_e( 'Use the full Optimize Existing Image flow when a reviewed preview should become a review proposal, or when batch and URL repair actions are needed.', 'npcink-toolbox' ); ?></span>
+									<span><?php esc_html_e( 'Start single-image optimization from the media library attachment details panel. Use Batch Optimize Images when multiple images or URL repair actions are needed.', 'npcink-toolbox' ); ?></span>
 								</div>
-									<a class="button" href="<?php echo esc_url( $this->optimize_image_url() ); ?>"><?php esc_html_e( 'Open Optimize Existing Image', 'npcink-toolbox' ); ?></a>
+									<a class="button" href="<?php echo esc_url( $this->media_library_url() ); ?>"><?php esc_html_e( 'Open Media Library', 'npcink-toolbox' ); ?></a>
 							</div>
 						</div>
 					</div>
@@ -3246,34 +3375,22 @@ final class Admin_Page {
 				'surface'     => 'image',
 				'group'       => __( 'Media', 'npcink-toolbox' ),
 				'group_id'    => 'media',
-				'id'          => 'media-derivative',
+				'id'          => 'media-batch-optimize',
 				'endpoint'    => 'media-derivative-handoff',
-				'title'       => __( 'Optimize Existing Image', 'npcink-toolbox' ),
-				'description' => __( 'Choose a media-library image, review metadata, generate a preview, then submit one Core optimization proposal.', 'npcink-toolbox' ),
-				'custom'      => 'media_derivative',
+				'title'       => __( 'Batch Optimize Images', 'npcink-toolbox' ),
+				'description' => __( 'Start from selected media-library images, build a bounded review plan, preview selected rows, then continue through Core review.', 'npcink-toolbox' ),
+				'custom'      => 'media_derivative_batch',
 			),
 			array(
 				'surface'     => 'image',
-				'group'       => __( 'Media', 'npcink-toolbox' ),
-				'group_id'    => 'media',
-				'id'          => 'media-brief',
-				'endpoint'    => 'flows/media-brief',
-				'title'       => __( 'Media Brief', 'npcink-toolbox' ),
-				'description' => __( 'Use an existing post id to plan image prompts and media SEO actions.', 'npcink-toolbox' ),
-				'field'       => 'post_id',
-				'placeholder' => __( 'Post ID', 'npcink-toolbox' ),
-				'button'      => __( 'Plan media', 'npcink-toolbox' ),
-			),
-			array(
-				'surface'     => 'image',
-				'group'       => __( 'Image Text Review', 'npcink-toolbox' ),
+				'group'       => __( 'Batch ALT Completion', 'npcink-toolbox' ),
 				'group_id'    => 'image-text-review',
 				'id'          => 'media-alt-caption-review',
 				'endpoint'    => 'ai/site-helpers',
-				'title'       => __( 'Batch Image Text Review', 'npcink-toolbox' ),
-				'description' => __( 'Build a small review set from recent media-library images with weak ALT or caption metadata, then choose items for Core handoff.', 'npcink-toolbox' ),
+				'title'       => __( 'Batch Check Image ALT', 'npcink-toolbox' ),
+				'description' => __( 'Find images that need ALT text, review suggestions, and submit selected rows for Core review.', 'npcink-toolbox' ),
 				'intent'      => 'media_alt_suggestions',
-				'button'      => __( 'Build review set', 'npcink-toolbox' ),
+				'button'      => __( 'Scan and generate suggestions', 'npcink-toolbox' ),
 				'custom'      => 'media_alt_caption_review',
 			),
 			array(
@@ -3298,31 +3415,9 @@ final class Admin_Page {
 				'description' => __( 'Use only after a human-reviewed draft exists; prepare a Core-ready article_write_plan without submitting or approving it.', 'npcink-toolbox' ),
 				'custom'      => 'article_plan',
 			),
-			array(
-				'surface'     => 'content-preparation',
-				'group'       => __( 'Governed Handoffs', 'npcink-toolbox' ),
-				'group_id'    => 'governed-handoffs',
-				'id'          => 'image-candidate-adoption',
-				'endpoint'    => 'flows/image-candidate-adoption-plan',
-				'title'       => __( 'Adopt New Image', 'npcink-toolbox' ),
-				'description' => __( 'Use only after a reviewed stock, generated, owned, or external image candidate exists.', 'npcink-toolbox' ),
-				'custom'      => 'image_candidate_adoption',
-			),
-			array(
-				'surface'     => 'content-preparation',
-				'group'       => __( 'Preparation Bundles', 'npcink-toolbox' ),
-				'group_id'    => 'fallback-bundles',
-				'id'          => 'article-brief',
-				'endpoint'    => 'flows/article-brief',
-				'title'       => __( 'Article Planning Bundle', 'npcink-toolbox' ),
-				'description' => __( 'Advanced fallback package for combined research, image, knowledge, outline, and handoff context when the editor path is not enough.', 'npcink-toolbox' ),
-				'field'       => 'topic',
-				'placeholder' => __( 'Article topic', 'npcink-toolbox' ),
-				'button'      => __( 'Build bundle', 'npcink-toolbox' ),
-			),
-			array(
-				'surface'     => 'content-preparation',
-				'group'       => __( 'Preparation Bundles', 'npcink-toolbox' ),
+				array(
+					'surface'     => 'content-preparation',
+					'group'       => __( 'Preparation Bundles', 'npcink-toolbox' ),
 				'group_id'    => 'fallback-bundles',
 				'id'          => 'article-assistant',
 				'endpoint'    => 'flows/article-assistant',
@@ -3336,19 +3431,22 @@ final class Admin_Page {
 			array_filter(
 				$tools,
 				static function ( array $tool ) use ( $surface ): bool {
-					return $surface === (string) ( $tool['surface'] ?? 'image' );
+					if ( $surface !== (string) ( $tool['surface'] ?? 'image' ) ) {
+						return false;
+					}
+					return true;
 				}
 			)
 		);
 
 		$tool_groups = array(
 			'media'             => array(
-				'title'       => __( 'Image Tools', 'npcink-toolbox' ),
-				'description' => __( 'Optimize existing images and plan bounded media support.', 'npcink-toolbox' ),
+				'title'       => __( 'Batch Image Optimization', 'npcink-toolbox' ),
+				'description' => __( 'Use selected media-library images or a bounded sample.', 'npcink-toolbox' ),
 			),
 			'image-text-review' => array(
-				'title'       => __( 'Image Text Review', 'npcink-toolbox' ),
-				'description' => __( 'Review selected media ALT and caption suggestions without writing metadata.', 'npcink-toolbox' ),
+				'title'       => __( 'Batch Image ALT', 'npcink-toolbox' ),
+				'description' => __( 'Review selected image ALT suggestions before submitting them for Core review.', 'npcink-toolbox' ),
 			),
 			'content-checks'    => array(
 				'title'       => __( 'Content Checks', 'npcink-toolbox' ),
@@ -3363,6 +3461,15 @@ final class Admin_Page {
 				'description' => __( 'Use after reviewed draft, selected image, or editor choices exist.', 'npcink-toolbox' ),
 			),
 		);
+		$group_counts = array();
+		foreach ( $tools as $tool ) {
+			$group_id = (string) ( $tool['group_id'] ?? '' );
+			if ( '' === $group_id ) {
+				continue;
+			}
+			$group_counts[ $group_id ] = (int) ( $group_counts[ $group_id ] ?? 0 ) + 1;
+		}
+
 		$surface_header = 'content-preparation' === $surface ? array(
 			'title'             => __( 'Content Preparation', 'npcink-toolbox' ),
 			'description'       => __( 'Prepare research, image, site knowledge, outline, and handoff context when the editor sidebar is not enough. Nothing writes the article body.', 'npcink-toolbox' ),
@@ -3370,9 +3477,9 @@ final class Admin_Page {
 			'scope_description' => __( 'Use these for planning and reviewed context. Final WordPress writes still go through Core approval.', 'npcink-toolbox' ),
 		) : array(
 			'title'             => __( 'Image Handling', 'npcink-toolbox' ),
-			'description'       => __( 'Start with existing media-library images. Content preparation and reviewed draft handoffs live in their own tab.', 'npcink-toolbox' ),
+				'description'       => __( 'Use the media library for one image, or use this page for selected image batches. Content preparation and reviewed draft handoffs live in their own tab.', 'npcink-toolbox' ),
 			'scope_title'       => __( 'Image tasks', 'npcink-toolbox' ),
-			'scope_description' => __( 'Optimize existing images, plan bounded media support, or review image text suggestions. Nothing is changed automatically.', 'npcink-toolbox' ),
+			'scope_description' => __( 'Batch work starts from selected media-library images or a bounded sample. Nothing is written automatically.', 'npcink-toolbox' ),
 		);
 		?>
 		<div class="npcink-toolbox__panel-header">
@@ -3420,7 +3527,7 @@ final class Admin_Page {
 							'description' => '',
 						);
 						?>
-						<div class="npcink-toolbox__tool-group-panel" data-toolbox-tool-group-panel="<?php echo esc_attr( $group_id ); ?>" <?php echo 0 === $index ? '' : 'hidden'; ?>>
+						<div class="npcink-toolbox__tool-group-panel <?php echo 1 === (int) ( $group_counts[ $group_id ] ?? 0 ) ? 'is-single-tool' : ''; ?>" data-toolbox-tool-group-panel="<?php echo esc_attr( $group_id ); ?>" <?php echo 0 === $index ? '' : 'hidden'; ?>>
 							<div class="npcink-toolbox__tool-group-label">
 								<span><?php echo esc_html( (string) $group_meta['title'] ); ?></span>
 								<small><?php echo esc_html( (string) $group_meta['description'] ); ?></small>
@@ -3502,18 +3609,8 @@ final class Admin_Page {
 						);
 						continue;
 					}
-					if ( 'media_derivative' === (string) ( $tool['custom'] ?? '' ) ) {
-						$this->render_media_derivative_tool(
-							(string) $tool['endpoint'],
-							(string) $tool['title'],
-							(string) $tool['description'],
-							(string) $tool['id'],
-							0 === $index
-						);
-						continue;
-					}
-					if ( 'image_candidate_adoption' === (string) ( $tool['custom'] ?? '' ) ) {
-						$this->render_image_candidate_adoption_tool(
+					if ( 'media_derivative_batch' === (string) ( $tool['custom'] ?? '' ) ) {
+						$this->render_media_derivative_batch_tool(
 							(string) $tool['endpoint'],
 							(string) $tool['title'],
 							(string) $tool['description'],
@@ -3542,25 +3639,59 @@ final class Admin_Page {
 
 	private function render_media_alt_caption_review_tool( string $endpoint, string $title, string $description, string $tool_id, string $button, bool $active = false, bool $cloud_ready = true ): void {
 		?>
-		<form class="npcink-toolbox__card" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" data-toolbox-media-alt-caption-review <?php echo $active ? '' : 'hidden'; ?>>
+		<form class="npcink-toolbox__card npcink-toolbox__card--alt-review" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" data-toolbox-media-alt-caption-review <?php echo $active ? '' : 'hidden'; ?>>
 			<h2><?php echo esc_html( $title ); ?></h2>
 			<p><?php echo esc_html( $description ); ?></p>
 			<?php if ( ! $cloud_ready ) : ?>
 				<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before building image text review sets.', 'npcink-toolbox' ); ?></div>
 			<?php endif; ?>
 			<input type="hidden" name="intent" value="media_alt_suggestions" />
-			<input type="hidden" name="media_scope" value="media_library_sample" />
-			<input type="hidden" name="source_policy" value="media_library_metadata_sample_only" />
 			<div class="npcink-toolbox__example is-ai">
-				<strong><?php esc_html_e( 'Batch review set', 'npcink-toolbox' ); ?></strong>
-				<span><?php esc_html_e( 'Toolbox samples recent media metadata and returns a small review set. You choose items before any Core handoff draft is prepared.', 'npcink-toolbox' ); ?></span>
+				<strong><?php esc_html_e( 'Review first', 'npcink-toolbox' ); ?></strong>
+				<span><?php esc_html_e( 'Toolbox only prepares ALT suggestions. Media ALT text changes after selected rows pass Core review.', 'npcink-toolbox' ); ?></span>
+			</div>
+			<label>
+				<span><?php esc_html_e( 'Selected attachment IDs', 'npcink-toolbox' ); ?></span>
+				<input type="text" name="attachment_ids" data-toolbox-selected-attachment-ids placeholder="<?php esc_attr_e( 'Optional: 12, 34, 56', 'npcink-toolbox' ); ?>" />
+			</label>
+			<p class="description" data-toolbox-selected-attachment-summary><?php esc_html_e( 'Use the media library bulk action to prefill this field, or leave it empty to scan by range.', 'npcink-toolbox' ); ?></p>
+			<div class="npcink-toolbox__split">
+				<label>
+					<span><?php esc_html_e( 'Scan range', 'npcink-toolbox' ); ?></span>
+					<select name="media_scope" data-toolbox-media-alt-scope>
+						<option value="media_library_sample"><?php esc_html_e( 'Recent media library images', 'npcink-toolbox' ); ?></option>
+						<option value="current_article_used_images"><?php esc_html_e( 'Images used by one article', 'npcink-toolbox' ); ?></option>
+					</select>
+				</label>
+				<label data-toolbox-media-alt-post-field hidden>
+					<span><?php esc_html_e( 'Article ID', 'npcink-toolbox' ); ?></span>
+					<input type="number" name="post_id" min="1" step="1" placeholder="<?php esc_attr_e( 'Required for article images', 'npcink-toolbox' ); ?>" />
+				</label>
 			</div>
 			<div class="npcink-toolbox__split">
 				<label>
-					<span><?php esc_html_e( 'Review set size', 'npcink-toolbox' ); ?></span>
+					<span><?php esc_html_e( 'Scan count', 'npcink-toolbox' ); ?></span>
+					<select name="sample_size">
+						<option value="10"><?php esc_html_e( '10 images', 'npcink-toolbox' ); ?></option>
+						<option value="20"><?php esc_html_e( '20 images', 'npcink-toolbox' ); ?></option>
+						<option value="30"><?php esc_html_e( '30 images', 'npcink-toolbox' ); ?></option>
+					</select>
+				</label>
+				<label>
+					<span><?php esc_html_e( 'Rows to review', 'npcink-toolbox' ); ?></span>
 					<select name="review_set_limit">
 						<option value="5"><?php esc_html_e( '5 images', 'npcink-toolbox' ); ?></option>
 						<option value="10"><?php esc_html_e( '10 images', 'npcink-toolbox' ); ?></option>
+					</select>
+				</label>
+			</div>
+			<div class="npcink-toolbox__split">
+				<label>
+					<span><?php esc_html_e( 'Problem type', 'npcink-toolbox' ); ?></span>
+					<select name="media_filter">
+						<option value="missing_or_weak_alt"><?php esc_html_e( 'Missing or weak ALT', 'npcink-toolbox' ); ?></option>
+						<option value="missing_alt"><?php esc_html_e( 'Missing ALT only', 'npcink-toolbox' ); ?></option>
+						<option value="all_recent"><?php esc_html_e( 'All recent images', 'npcink-toolbox' ); ?></option>
 					</select>
 				</label>
 				<label>
@@ -3568,7 +3699,7 @@ final class Admin_Page {
 					<input type="text" name="focus" placeholder="<?php esc_attr_e( 'Optional: product screenshots, diagrams, or missing captions', 'npcink-toolbox' ); ?>" />
 				</label>
 			</div>
-			<div class="npcink-toolbox__result-notice is-pending"><?php esc_html_e( 'This does not scan the whole media library, create proposals, or write media metadata.', 'npcink-toolbox' ); ?></div>
+			<div class="npcink-toolbox__result-notice is-pending"><?php esc_html_e( 'No media ALT is changed here. Review the rows, then submit selected items for Core review.', 'npcink-toolbox' ); ?></div>
 			<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php echo esc_html( $button ); ?></button>
 			<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
 		</form>
@@ -3794,108 +3925,6 @@ final class Admin_Page {
 		<?php
 	}
 
-	private function render_media_derivative_policy_settings( array $toolbox_policy ): void {
-		?>
-		<details class="npcink-toolbox__card npcink-toolbox__result-details">
-			<summary><?php esc_html_e( 'Media optimization defaults', 'npcink-toolbox' ); ?></summary>
-			<p class="description"><?php esc_html_e( 'Toolbox stores the operator defaults for media derivative previews and Core proposal handoffs. Core still owns proposal review, preflight, and audit.', 'npcink-toolbox' ); ?></p>
-			<form class="npcink-toolbox__settings-form" method="post" action="options.php">
-				<?php settings_fields( 'npcink_toolbox_media_optimization' ); ?>
-				<label class="npcink-toolbox__check">
-					<input type="checkbox" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[enabled]" value="1" <?php checked( ! empty( $toolbox_policy['enabled'] ) ); ?> />
-					<span><?php esc_html_e( 'Enable media optimization defaults', 'npcink-toolbox' ); ?></span>
-				</label>
-				<div class="npcink-toolbox__split">
-					<label>
-						<span><?php esc_html_e( 'Default format', 'npcink-toolbox' ); ?></span>
-						<select name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[target_format]">
-							<?php foreach ( $this->settings->allowed_media_derivative_formats() as $format ) : ?>
-								<option value="<?php echo esc_attr( $format ); ?>" <?php selected( (string) $toolbox_policy['target_format'], $format ); ?>><?php echo esc_html( strtoupper( $format ) ); ?></option>
-							<?php endforeach; ?>
-						</select>
-					</label>
-					<label>
-						<span><?php esc_html_e( 'Default max width', 'npcink-toolbox' ); ?></span>
-						<input type="number" min="320" max="7680" step="1" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[max_width]" value="<?php echo esc_attr( (string) $toolbox_policy['max_width'] ); ?>" />
-					</label>
-				</div>
-				<label>
-					<span><?php esc_html_e( 'Default quality', 'npcink-toolbox' ); ?></span>
-					<input type="number" min="1" max="100" step="1" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[quality]" value="<?php echo esc_attr( (string) $toolbox_policy['quality'] ); ?>" />
-				</label>
-				<div class="npcink-toolbox__split">
-					<label class="npcink-toolbox__check">
-						<input type="checkbox" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_enabled]" value="1" <?php checked( ! empty( $toolbox_policy['watermark_enabled'] ) ); ?> />
-						<span><?php esc_html_e( 'Use default watermark', 'npcink-toolbox' ); ?></span>
-					</label>
-					<label>
-						<span><?php esc_html_e( 'Default watermark type', 'npcink-toolbox' ); ?></span>
-						<select name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_type]">
-							<option value="image" <?php selected( (string) $toolbox_policy['watermark_type'], 'image' ); ?>><?php esc_html_e( 'Image/logo', 'npcink-toolbox' ); ?></option>
-							<option value="text" <?php selected( (string) $toolbox_policy['watermark_type'], 'text' ); ?>><?php esc_html_e( 'Text', 'npcink-toolbox' ); ?></option>
-						</select>
-					</label>
-				</div>
-				<div class="npcink-toolbox__split">
-					<label>
-						<span><?php esc_html_e( 'Logo attachment ID', 'npcink-toolbox' ); ?></span>
-						<input type="number" min="0" step="1" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_attachment_id]" value="<?php echo esc_attr( (string) $toolbox_policy['watermark_attachment_id'] ); ?>" />
-					</label>
-					<label>
-						<span><?php esc_html_e( 'Position', 'npcink-toolbox' ); ?></span>
-						<select name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_position]">
-							<?php foreach ( $this->settings->allowed_media_watermark_positions() as $position ) : ?>
-								<option value="<?php echo esc_attr( $position ); ?>" <?php selected( (string) $toolbox_policy['watermark_position'], $position ); ?>><?php echo esc_html( ucwords( str_replace( '_', ' ', $position ) ) ); ?></option>
-							<?php endforeach; ?>
-						</select>
-					</label>
-				</div>
-				<div class="npcink-toolbox__split">
-					<label>
-						<span><?php esc_html_e( 'Text', 'npcink-toolbox' ); ?></span>
-						<input type="text" maxlength="64" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_text]" value="<?php echo esc_attr( (string) $toolbox_policy['watermark_text'] ); ?>" />
-					</label>
-					<label>
-						<span><?php esc_html_e( 'Font size', 'npcink-toolbox' ); ?></span>
-						<input type="number" min="8" max="256" step="1" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_font_size]" value="<?php echo esc_attr( (string) $toolbox_policy['watermark_font_size'] ); ?>" />
-					</label>
-				</div>
-				<div class="npcink-toolbox__split">
-					<label>
-						<span><?php esc_html_e( 'Opacity', 'npcink-toolbox' ); ?></span>
-						<input type="number" min="0" max="100" step="1" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_opacity]" value="<?php echo esc_attr( (string) $toolbox_policy['watermark_opacity'] ); ?>" />
-					</label>
-					<label>
-						<span><?php esc_html_e( 'Image scale', 'npcink-toolbox' ); ?></span>
-						<input type="number" min="1" max="100" step="1" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_scale]" value="<?php echo esc_attr( (string) $toolbox_policy['watermark_scale'] ); ?>" />
-					</label>
-				</div>
-				<div class="npcink-toolbox__split">
-					<label>
-						<span><?php esc_html_e( 'Text color', 'npcink-toolbox' ); ?></span>
-						<input type="text" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_color]" value="<?php echo esc_attr( (string) $toolbox_policy['watermark_color'] ); ?>" />
-					</label>
-					<label>
-						<span><?php esc_html_e( 'Background', 'npcink-toolbox' ); ?></span>
-						<input type="text" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_background]" value="<?php echo esc_attr( (string) $toolbox_policy['watermark_background'] ); ?>" />
-					</label>
-				</div>
-				<div class="npcink-toolbox__split">
-					<label>
-						<span><?php esc_html_e( 'Margin', 'npcink-toolbox' ); ?></span>
-						<input type="number" min="0" max="1000" step="1" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[watermark_margin]" value="<?php echo esc_attr( (string) $toolbox_policy['watermark_margin'] ); ?>" />
-					</label>
-					<label class="npcink-toolbox__check">
-						<input type="checkbox" name="<?php echo esc_attr( Plugin::MEDIA_OPTION_NAME ); ?>[use_cloud_when_available]" value="1" <?php checked( ! empty( $toolbox_policy['use_cloud_when_available'] ) ); ?> />
-						<span><?php esc_html_e( 'Use Cloud execution when available', 'npcink-toolbox' ); ?></span>
-					</label>
-				</div>
-				<?php submit_button( __( 'Save media optimization defaults', 'npcink-toolbox' ) ); ?>
-			</form>
-		</details>
-		<?php
-	}
-
 	private function render_media_derivative_picker_controls(): void {
 		?>
 		<div class="npcink-toolbox__media-picker">
@@ -4055,105 +4084,6 @@ final class Admin_Page {
 		<?php
 	}
 
-	private function render_image_candidate_adoption_tool( string $endpoint, string $title, string $description, string $tool_id, bool $active = false ): void {
-		?>
-		<form class="npcink-toolbox__card" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" <?php echo $active ? '' : 'hidden'; ?>>
-			<h2><?php echo esc_html( $title ); ?></h2>
-			<p><?php echo esc_html( $description ); ?></p>
-			<div class="npcink-toolbox__example">
-				<strong><?php esc_html_e( 'Button flow', 'npcink-toolbox' ); ?></strong>
-				<span><?php esc_html_e( 'Pick or paste one reviewed image, add basic media details, then submit the returned plan to Core for approval. Toolbox does not import media directly.', 'npcink-toolbox' ); ?></span>
-			</div>
-			<div class="npcink-toolbox__split">
-				<label>
-					<span><?php esc_html_e( 'Selected image URL', 'npcink-toolbox' ); ?></span>
-					<input type="url" name="download_url" placeholder="<?php esc_attr_e( 'https://example.com/image.jpg', 'npcink-toolbox' ); ?>" />
-				</label>
-				<label>
-					<span><?php esc_html_e( 'Source type', 'npcink-toolbox' ); ?></span>
-					<select name="source_type">
-						<option value="stock"><?php esc_html_e( 'Stock image', 'npcink-toolbox' ); ?></option>
-						<option value="ai_generated"><?php esc_html_e( 'AI generated', 'npcink-toolbox' ); ?></option>
-						<option value="owned"><?php esc_html_e( 'Owned image', 'npcink-toolbox' ); ?></option>
-						<option value="external"><?php esc_html_e( 'External image', 'npcink-toolbox' ); ?></option>
-					</select>
-				</label>
-			</div>
-			<div class="npcink-toolbox__split">
-				<label>
-					<span><?php esc_html_e( 'Source page', 'npcink-toolbox' ); ?></span>
-					<input type="url" name="source_url" placeholder="<?php esc_attr_e( 'License or source page URL', 'npcink-toolbox' ); ?>" />
-				</label>
-				<label>
-					<span><?php esc_html_e( 'Provider', 'npcink-toolbox' ); ?></span>
-					<input type="text" name="provider" placeholder="<?php esc_attr_e( 'unsplash, pixabay, openai, manual', 'npcink-toolbox' ); ?>" />
-				</label>
-			</div>
-			<div class="npcink-toolbox__split">
-				<label>
-					<span><?php esc_html_e( 'Media title', 'npcink-toolbox' ); ?></span>
-					<input type="text" name="title" placeholder="<?php esc_attr_e( 'Optional media title', 'npcink-toolbox' ); ?>" />
-				</label>
-				<label>
-					<span><?php esc_html_e( 'Alt text', 'npcink-toolbox' ); ?></span>
-					<input type="text" name="alt" placeholder="<?php esc_attr_e( 'Describe the image for accessibility', 'npcink-toolbox' ); ?>" />
-				</label>
-			</div>
-			<div class="npcink-toolbox__split">
-				<label>
-					<span><?php esc_html_e( 'Attach to post ID', 'npcink-toolbox' ); ?></span>
-					<input type="number" min="1" step="1" name="post_id" placeholder="<?php esc_attr_e( 'Optional post ID', 'npcink-toolbox' ); ?>" />
-				</label>
-				<label>
-					<span><?php esc_html_e( 'Approved file name', 'npcink-toolbox' ); ?></span>
-					<input type="text" name="file_name" placeholder="<?php esc_attr_e( 'Optional approved filename', 'npcink-toolbox' ); ?>" />
-				</label>
-			</div>
-			<label class="npcink-toolbox__check">
-				<input type="checkbox" name="set_featured_image" value="1" />
-				<span><?php esc_html_e( 'Set as featured image after approval', 'npcink-toolbox' ); ?></span>
-			</label>
-			<label>
-				<span><?php esc_html_e( 'Attribution', 'npcink-toolbox' ); ?></span>
-				<textarea name="attribution_text" rows="2" placeholder="<?php esc_attr_e( 'Photographer, license, prompt disclosure, or required credit.', 'npcink-toolbox' ); ?>"></textarea>
-			</label>
-			<details class="npcink-toolbox__result-details">
-				<summary><?php esc_html_e( 'Advanced candidate details', 'npcink-toolbox' ); ?></summary>
-				<div class="npcink-toolbox__split">
-					<label>
-						<span><?php esc_html_e( 'Thumbnail URL', 'npcink-toolbox' ); ?></span>
-						<input type="url" name="thumbnail_url" placeholder="<?php esc_attr_e( 'Optional preview URL', 'npcink-toolbox' ); ?>" />
-					</label>
-					<label>
-						<span><?php esc_html_e( 'License review', 'npcink-toolbox' ); ?></span>
-						<select name="license_review_status">
-							<option value="required"><?php esc_html_e( 'Review required', 'npcink-toolbox' ); ?></option>
-							<option value="reviewed"><?php esc_html_e( 'Reviewed', 'npcink-toolbox' ); ?></option>
-							<option value="not_required"><?php esc_html_e( 'Not required', 'npcink-toolbox' ); ?></option>
-						</select>
-					</label>
-				</div>
-				<div class="npcink-toolbox__split">
-					<label>
-						<span><?php esc_html_e( 'Prompt', 'npcink-toolbox' ); ?></span>
-						<input type="text" name="prompt" placeholder="<?php esc_attr_e( 'Optional generation prompt', 'npcink-toolbox' ); ?>" />
-					</label>
-					<label>
-						<span><?php esc_html_e( 'Model', 'npcink-toolbox' ); ?></span>
-						<input type="text" name="model" placeholder="<?php esc_attr_e( 'Optional generation model', 'npcink-toolbox' ); ?>" />
-					</label>
-				</div>
-				<label>
-					<span><?php esc_html_e( 'Candidate JSON', 'npcink-toolbox' ); ?></span>
-					<textarea name="image_candidate" rows="6" placeholder="<?php esc_attr_e( 'Optional. Paste one image_candidate.v1 object to override the fields above.', 'npcink-toolbox' ); ?>"></textarea>
-				</label>
-			</details>
-			<button type="submit" class="button button-primary"><?php esc_html_e( 'Build import proposal plan', 'npcink-toolbox' ); ?></button>
-			<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-		</form>
-		<?php
-	}
-
 	private function render_article_assistant_tool( string $endpoint, string $title, string $description, string $tool_id, bool $active = false ): void {
 		?>
 		<form class="npcink-toolbox__card" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" <?php echo $active ? '' : 'hidden'; ?>>
@@ -4237,162 +4167,108 @@ final class Admin_Page {
 		<?php
 	}
 
-	private function render_media_derivative_tool( string $endpoint, string $title, string $description, string $tool_id, bool $active = false ): void {
-		$toolbox_policy = $this->get_media_derivative_toolbox_policy();
+	private function render_media_derivative_batch_controls( array $toolbox_policy ): void {
 		?>
-		<form class="npcink-toolbox__card" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" data-toolbox-media-derivative <?php echo $active ? '' : 'hidden'; ?>>
-			<h2><?php echo esc_html( $title ); ?></h2>
-			<p><?php echo esc_html( $description ); ?></p>
-			<?php $this->render_media_derivative_toolbox_defaults( $toolbox_policy ); ?>
-			<?php $this->render_media_derivative_picker_controls(); ?>
-			<?php $this->render_media_derivative_format_controls( $toolbox_policy ); ?>
-			<?php $this->render_media_derivative_crop_controls(); ?>
-			<div class="npcink-toolbox__batch-panel">
-				<h3><?php esc_html_e( 'Reviewed media details', 'npcink-toolbox' ); ?></h3>
-				<p><?php esc_html_e( 'These fields are submitted with the derivative artifact as one Core media optimization proposal.', 'npcink-toolbox' ); ?></p>
-				<div class="npcink-toolbox__split">
-					<label>
-						<span><?php esc_html_e( 'Media title', 'npcink-toolbox' ); ?></span>
-						<input type="text" name="media_title" placeholder="<?php esc_attr_e( 'Reviewed media title', 'npcink-toolbox' ); ?>" />
-					</label>
-					<label>
-						<span><?php esc_html_e( 'Alt text', 'npcink-toolbox' ); ?></span>
-						<input type="text" name="media_alt" placeholder="<?php esc_attr_e( 'Describe the image for accessibility', 'npcink-toolbox' ); ?>" />
-					</label>
-				</div>
+		<div class="npcink-toolbox__batch-panel">
+			<h3><?php esc_html_e( 'Batch optimization plan', 'npcink-toolbox' ); ?></h3>
+			<p><?php esc_html_e( 'Choose selected media-library images or a bounded sample, build a review plan, generate selected previews, then submit only selected Core reviews.', 'npcink-toolbox' ); ?></p>
+			<ol class="npcink-toolbox__flow-steps" aria-label="<?php esc_attr_e( 'Batch optimization steps', 'npcink-toolbox' ); ?>">
+				<li><?php esc_html_e( 'Select images', 'npcink-toolbox' ); ?></li>
+				<li><?php esc_html_e( 'Build plan', 'npcink-toolbox' ); ?></li>
+				<li><?php esc_html_e( 'Preview selected', 'npcink-toolbox' ); ?></li>
+				<li><?php esc_html_e( 'Submit Core review', 'npcink-toolbox' ); ?></li>
+			</ol>
+			<label>
+				<span><?php esc_html_e( 'Selected attachment IDs', 'npcink-toolbox' ); ?></span>
+				<input type="text" name="attachment_ids" data-toolbox-selected-attachment-ids placeholder="<?php esc_attr_e( 'Optional: 12, 34, 56', 'npcink-toolbox' ); ?>" />
+			</label>
+			<p class="description" data-toolbox-selected-attachment-summary><?php esc_html_e( 'You can start from the media library bulk action, or leave this empty to use the bounded sample below.', 'npcink-toolbox' ); ?></p>
+			<div class="npcink-toolbox__split">
 				<label>
-					<span><?php esc_html_e( 'Caption', 'npcink-toolbox' ); ?></span>
-					<input type="text" name="media_caption" placeholder="<?php esc_attr_e( 'Optional reviewed caption', 'npcink-toolbox' ); ?>" />
+					<span><?php esc_html_e( 'Media range', 'npcink-toolbox' ); ?></span>
+					<select name="batch_scope_preset">
+						<option value="current_month"><?php esc_html_e( 'This month', 'npcink-toolbox' ); ?></option>
+						<option value="previous_month"><?php esc_html_e( 'Previous month', 'npcink-toolbox' ); ?></option>
+						<option value="custom"><?php esc_html_e( 'Custom range', 'npcink-toolbox' ); ?></option>
+						<option value="all"><?php esc_html_e( 'Eligible media sample', 'npcink-toolbox' ); ?></option>
+					</select>
 				</label>
 				<label>
-					<span><?php esc_html_e( 'Description', 'npcink-toolbox' ); ?></span>
-					<textarea name="media_description" rows="2" placeholder="<?php esc_attr_e( 'Optional reviewed attachment description', 'npcink-toolbox' ); ?>"></textarea>
-				</label>
-				<label>
-					<span><?php esc_html_e( 'Source type', 'npcink-toolbox' ); ?></span>
-					<select name="media_source_type">
-						<option value="ai_generated"><?php esc_html_e( 'AI generated', 'npcink-toolbox' ); ?></option>
-						<option value="owned"><?php esc_html_e( 'Owned image', 'npcink-toolbox' ); ?></option>
-						<option value="stock"><?php esc_html_e( 'Stock image', 'npcink-toolbox' ); ?></option>
-						<option value="external"><?php esc_html_e( 'External image', 'npcink-toolbox' ); ?></option>
-						<option value="test"><?php esc_html_e( 'Test media', 'npcink-toolbox' ); ?></option>
+					<span><?php esc_html_e( 'Processing goal', 'npcink-toolbox' ); ?></span>
+					<select name="batch_recipe">
+						<option value="smart_optimize"><?php esc_html_e( 'Smart optimize', 'npcink-toolbox' ); ?></option>
+						<option value="convert_format"><?php esc_html_e( 'Convert format', 'npcink-toolbox' ); ?></option>
+						<option value="resize_only"><?php esc_html_e( 'Resize only', 'npcink-toolbox' ); ?></option>
+						<option value="watermark"><?php esc_html_e( 'Apply watermark', 'npcink-toolbox' ); ?></option>
 					</select>
 				</label>
 			</div>
-			<?php $this->render_media_derivative_watermark_controls( $toolbox_policy ); ?>
 			<div class="npcink-toolbox__split">
 				<label>
-					<span><?php esc_html_e( 'Exclude formats from setting repair', 'npcink-toolbox' ); ?></span>
-					<input type="text" name="settings_excluded_formats" value="svg,gif,ico,pdf" />
+					<span><?php esc_html_e( 'Output format', 'npcink-toolbox' ); ?></span>
+					<select name="batch_target_format">
+						<?php foreach ( array( 'webp', 'avif', 'jpeg', 'png', 'original' ) as $format ) : ?>
+							<option value="<?php echo esc_attr( $format ); ?>" <?php selected( 'webp', $format ); ?>><?php echo esc_html( strtoupper( $format ) ); ?></option>
+						<?php endforeach; ?>
+					</select>
 				</label>
 				<label>
-					<span><?php esc_html_e( 'Minimum setting image size', 'npcink-toolbox' ); ?></span>
-					<input type="text" name="settings_min_dimensions" value="64x64" />
+					<span><?php esc_html_e( 'Review set size', 'npcink-toolbox' ); ?></span>
+					<input type="number" min="1" max="10" step="1" name="batch_max_items" value="5" />
 				</label>
 			</div>
-			<div class="npcink-toolbox__batch-panel">
-				<h3><?php esc_html_e( 'Batch conversion plan', 'npcink-toolbox' ); ?></h3>
-				<p><?php esc_html_e( 'Fixed batch flow: choose a bounded review set and goal, build a plan, generate selected previews, then submit only selected Core reviews. This is not a one-click whole-site replacement.', 'npcink-toolbox' ); ?></p>
-				<ol class="npcink-toolbox__flow-steps" aria-label="<?php esc_attr_e( 'Batch optimization steps', 'npcink-toolbox' ); ?>">
-					<li><?php esc_html_e( 'Scope', 'npcink-toolbox' ); ?></li>
-					<li><?php esc_html_e( 'Plan', 'npcink-toolbox' ); ?></li>
-					<li><?php esc_html_e( 'Preview', 'npcink-toolbox' ); ?></li>
-					<li><?php esc_html_e( 'Core review', 'npcink-toolbox' ); ?></li>
-				</ol>
+			<?php $this->render_media_derivative_format_controls( $toolbox_policy ); ?>
+			<?php $this->render_media_derivative_crop_controls(); ?>
+			<?php $this->render_media_derivative_watermark_controls( $toolbox_policy ); ?>
+			<details class="npcink-toolbox__result-details npcink-toolbox__advanced-filters">
+				<summary><?php esc_html_e( 'Advanced filters', 'npcink-toolbox' ); ?></summary>
+				<p class="description"><?php esc_html_e( 'Use these only when the fixed review set needs a tighter date, format, or dimension filter. The plan remains bounded by review set size.', 'npcink-toolbox' ); ?></p>
 				<div class="npcink-toolbox__split">
 					<label>
-						<span><?php esc_html_e( 'Media range', 'npcink-toolbox' ); ?></span>
-						<select name="batch_scope_preset">
-							<option value="current_month"><?php esc_html_e( 'This month', 'npcink-toolbox' ); ?></option>
-							<option value="previous_month"><?php esc_html_e( 'Previous month', 'npcink-toolbox' ); ?></option>
-							<option value="custom"><?php esc_html_e( 'Custom range', 'npcink-toolbox' ); ?></option>
-							<option value="all"><?php esc_html_e( 'Eligible media sample', 'npcink-toolbox' ); ?></option>
-						</select>
+						<span><?php esc_html_e( 'Date from', 'npcink-toolbox' ); ?></span>
+						<input type="date" name="batch_date_from" />
 					</label>
 					<label>
-						<span><?php esc_html_e( 'Processing goal', 'npcink-toolbox' ); ?></span>
-						<select name="batch_recipe">
-							<option value="smart_optimize"><?php esc_html_e( 'Smart optimize', 'npcink-toolbox' ); ?></option>
-							<option value="convert_format"><?php esc_html_e( 'Convert format', 'npcink-toolbox' ); ?></option>
-							<option value="resize_only"><?php esc_html_e( 'Resize only', 'npcink-toolbox' ); ?></option>
-							<option value="watermark"><?php esc_html_e( 'Apply watermark', 'npcink-toolbox' ); ?></option>
-						</select>
+						<span><?php esc_html_e( 'Date to', 'npcink-toolbox' ); ?></span>
+						<input type="date" name="batch_date_to" />
 					</label>
 				</div>
 				<div class="npcink-toolbox__split">
 					<label>
-						<span><?php esc_html_e( 'Output format', 'npcink-toolbox' ); ?></span>
-						<select name="batch_target_format">
-							<?php foreach ( array( 'webp', 'avif', 'jpeg', 'png', 'original' ) as $format ) : ?>
-								<option value="<?php echo esc_attr( $format ); ?>" <?php selected( 'webp', $format ); ?>><?php echo esc_html( strtoupper( $format ) ); ?></option>
-							<?php endforeach; ?>
-						</select>
+						<span><?php esc_html_e( 'Exclude formats', 'npcink-toolbox' ); ?></span>
+						<input type="text" name="batch_exclude_formats" value="webp,gif,svg" />
 					</label>
 					<label>
-						<span><?php esc_html_e( 'Review set size', 'npcink-toolbox' ); ?></span>
-						<input type="number" min="1" max="10" step="1" name="batch_max_items" value="5" />
+						<span><?php esc_html_e( 'Min dimensions', 'npcink-toolbox' ); ?></span>
+						<input type="text" name="batch_min_dimensions" value="800x800" />
 					</label>
-				</div>
-				<details class="npcink-toolbox__result-details npcink-toolbox__advanced-filters">
-					<summary><?php esc_html_e( 'Advanced filters', 'npcink-toolbox' ); ?></summary>
-					<p class="description"><?php esc_html_e( 'Use these only when the fixed review set needs a tighter date, format, or dimension filter. The plan remains bounded by review set size.', 'npcink-toolbox' ); ?></p>
-					<div class="npcink-toolbox__split">
-						<label>
-							<span><?php esc_html_e( 'Date from', 'npcink-toolbox' ); ?></span>
-							<input type="date" name="batch_date_from" />
-						</label>
-						<label>
-							<span><?php esc_html_e( 'Date to', 'npcink-toolbox' ); ?></span>
-							<input type="date" name="batch_date_to" />
-						</label>
-					</div>
-					<div class="npcink-toolbox__split">
-						<label>
-							<span><?php esc_html_e( 'Exclude formats', 'npcink-toolbox' ); ?></span>
-							<input type="text" name="batch_exclude_formats" value="webp,gif,svg" />
-						</label>
-						<label>
-							<span><?php esc_html_e( 'Min dimensions', 'npcink-toolbox' ); ?></span>
-							<input type="text" name="batch_min_dimensions" value="800x800" />
-						</label>
-					</div>
-				</details>
-				<div class="npcink-toolbox__inline-actions">
-					<button type="button" class="button" data-toolbox-build-media-batch-plan><?php esc_html_e( 'Build review plan', 'npcink-toolbox' ); ?></button>
-					<button type="button" class="button" data-toolbox-run-media-batch-previews disabled><?php esc_html_e( 'Generate selected previews', 'npcink-toolbox' ); ?></button>
-					<button type="button" class="button" data-toolbox-submit-media-batch-proposals disabled><?php esc_html_e( 'Submit selected Core reviews', 'npcink-toolbox' ); ?></button>
-					<button type="button" class="button button-primary" data-toolbox-execute-media-batch-replacements disabled><?php esc_html_e( 'Approve and execute replacements', 'npcink-toolbox' ); ?></button>
-				</div>
-				<div class="npcink-toolbox__batch-plan" data-toolbox-media-batch-plan hidden></div>
-			</div>
-			<p class="description"><?php esc_html_e( 'Cloud returns a short-lived derivative artifact. Toolbox owns media optimization defaults and reviewed handoff fields; Core creates one proposal for the metadata update and derivative adoption together.', 'npcink-toolbox' ); ?></p>
-			<div class="npcink-toolbox__example">
-				<strong><?php esc_html_e( 'Operator flow', 'npcink-toolbox' ); ?></strong>
-				<span><?php esc_html_e( 'Generate preview first, review the derivative and adoption preflight, then submit the Core optimization review only when the result is acceptable.', 'npcink-toolbox' ); ?></span>
-			</div>
-			<div class="npcink-toolbox__example">
-				<strong><?php esc_html_e( 'Replacement boundary', 'npcink-toolbox' ); ?></strong>
-				<span><?php esc_html_e( 'Adoption changes the media attachment through Core approval. Hard-coded post URLs and URLs stored in settings, themes, or other plugin options require the separate repair actions.', 'npcink-toolbox' ); ?></span>
-			</div>
-			<p class="description"><?php esc_html_e( 'If old image URLs are stored in theme settings or other plugin options, run the settings URL repair action after preview; the derivative adoption proposal does not scan settings automatically.', 'npcink-toolbox' ); ?></p>
-			<div class="npcink-toolbox__inline-actions">
-				<button type="button" class="button button-primary" data-toolbox-run-media-derivative><?php esc_html_e( 'Generate preview', 'npcink-toolbox' ); ?></button>
-				<button type="button" class="button" data-toolbox-submit-media-proposal disabled><?php esc_html_e( 'Submit optimization review', 'npcink-toolbox' ); ?></button>
-			</div>
-			<details class="npcink-toolbox__result-details">
-				<summary><?php esc_html_e( 'Repair and handoff actions', 'npcink-toolbox' ); ?></summary>
-				<p class="description"><?php esc_html_e( 'Use these after preview when old URLs appear in post content, settings, themes, or when another client needs the raw handoff.', 'npcink-toolbox' ); ?></p>
-				<div class="npcink-toolbox__inline-actions">
-					<button type="button" class="button" data-toolbox-submit-reference-repair disabled><?php esc_html_e( 'Submit content URL repair', 'npcink-toolbox' ); ?></button>
-					<button type="button" class="button" data-toolbox-submit-settings-repair disabled><?php esc_html_e( 'Submit settings URL repair', 'npcink-toolbox' ); ?></button>
-					<button type="submit" class="button"><?php esc_html_e( 'Build handoff only', 'npcink-toolbox' ); ?></button>
 				</div>
 			</details>
+			<div class="npcink-toolbox__inline-actions">
+				<button type="button" class="button" data-toolbox-build-media-batch-plan><?php esc_html_e( 'Build review plan', 'npcink-toolbox' ); ?></button>
+				<button type="button" class="button" data-toolbox-run-media-batch-previews disabled><?php esc_html_e( 'Generate selected previews', 'npcink-toolbox' ); ?></button>
+				<button type="button" class="button" data-toolbox-submit-media-batch-proposals disabled><?php esc_html_e( 'Submit selected Core reviews', 'npcink-toolbox' ); ?></button>
+				<button type="button" class="button button-primary" data-toolbox-execute-media-batch-replacements disabled><?php esc_html_e( 'Approve and execute replacements', 'npcink-toolbox' ); ?></button>
+			</div>
+			<div class="npcink-toolbox__batch-plan" data-toolbox-media-batch-plan hidden></div>
+		</div>
+		<?php
+	}
+
+	private function render_media_derivative_batch_tool( string $endpoint, string $title, string $description, string $tool_id, bool $active = false ): void {
+		$toolbox_policy = $this->get_media_derivative_toolbox_policy();
+		?>
+		<form class="npcink-toolbox__card npcink-toolbox__card--media-batch" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" data-toolbox-media-derivative <?php echo $active ? '' : 'hidden'; ?>>
+			<h2><?php echo esc_html( $title ); ?></h2>
+			<p><?php echo esc_html( $description ); ?></p>
+			<div class="npcink-toolbox__example is-ai">
+				<strong><?php esc_html_e( 'Batch workbench', 'npcink-toolbox' ); ?></strong>
+				<span><?php esc_html_e( 'Use the media library bulk action to choose images, then review eligibility, generate previews, and submit only selected rows. This is not a one-click whole-site replacement.', 'npcink-toolbox' ); ?></span>
+			</div>
+			<?php $this->render_media_derivative_toolbox_defaults( $toolbox_policy ); ?>
+			<?php $this->render_media_derivative_batch_controls( $toolbox_policy ); ?>
 			<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
 		</form>
-		<div data-toolbox-tool-panel-extra="<?php echo esc_attr( $tool_id ); ?>" <?php echo $active ? '' : 'hidden'; ?>>
-			<?php $this->render_media_derivative_policy_settings( $toolbox_policy ); ?>
-		</div>
 		<?php
 	}
 

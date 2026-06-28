@@ -1578,6 +1578,14 @@
 	gap: 8px;
 }
 
+.npcink-toolbox__tool-workspace.is-single-tool-group .npcink-toolbox__tool-list {
+	display: none;
+}
+
+.npcink-toolbox__tool-workspace.is-single-tool-group .npcink-toolbox__tool-panels {
+	grid-column: 1 / -1;
+}
+
 .npcink-toolbox__tool-group-panel {
 	display: grid;
 	gap: 8px;
@@ -1657,6 +1665,10 @@
 
 .npcink-toolbox__card {
 	padding: 18px;
+}
+
+.npcink-toolbox__card--alt-review {
+	max-width: 980px;
 }
 
 .npcink-toolbox__card h2 {
@@ -2504,6 +2516,70 @@ pre.npcink-toolbox__result {
 
 .npcink-toolbox__batch-row-body small {
 	color: #646970;
+}
+
+.npcink-toolbox__alt-review-table {
+	display: grid;
+	gap: 10px;
+	margin: 12px 0 0;
+}
+
+.npcink-toolbox__alt-review-header {
+	display: grid;
+	grid-template-columns: 36px 72px minmax(0, 1fr);
+	gap: 12px;
+	align-items: center;
+	padding: 0 12px;
+	color: #646970;
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 1.3;
+	text-transform: uppercase;
+}
+
+.npcink-toolbox__alt-review-row {
+	grid-template-columns: auto 72px minmax(0, 1fr);
+	align-items: start;
+}
+
+.npcink-toolbox__handoff-row {
+	grid-template-columns: 72px minmax(0, 1fr);
+	align-items: start;
+}
+
+.npcink-toolbox__media-thumb {
+	width: 64px;
+	height: 64px;
+	object-fit: cover;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+}
+
+.npcink-toolbox__media-thumb.is-empty {
+	display: grid;
+	place-items: center;
+	color: #646970;
+	font-size: 11px;
+	line-height: 1.2;
+	text-align: center;
+}
+
+.npcink-toolbox__alt-review-field {
+	display: grid;
+	gap: 4px;
+	margin: 6px 0 0;
+}
+
+.npcink-toolbox__alt-review-field span {
+	color: #1d2327;
+	font-weight: 600;
+}
+
+.npcink-toolbox__alt-review-field input,
+.npcink-toolbox__alt-review-field textarea {
+	width: 100%;
+	max-width: 720px;
 }
 
 .npcink-toolbox__result-details {

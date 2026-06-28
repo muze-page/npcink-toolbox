@@ -2,10 +2,11 @@
 
 Status: validated fixed workflow contract; V1 frozen for defect fixes only.
 
-`media_optimization_v1` names the existing **Optimize Existing Image** surface
-as a fixed, governed Toolbox workflow. This is a product contract over the
-current media derivative, metadata review, Adapter recipe, and Core proposal
-handoff. It is not a new workflow runtime.
+`media_optimization_v1` names the fixed governed image optimization workflow.
+It is exposed through media-library single-image actions and the Toolbox Batch
+Optimize Images workbench.
+This is a product contract over the current media derivative, metadata review,
+Adapter recipe, and Core proposal handoff. It is not a new workflow runtime.
 
 The current V1 has passed release smokes and one real-attachment operator trial:
 one single-image execution, one selected batch review set, governed execution,
@@ -60,12 +61,22 @@ The workflow is deterministic:
 
 ## Product Surface
 
-The first product surface remains **Content Support -> Optimize Existing
-Image**. Cloud Checks may keep a preview-only media derivative reachability
-check, but Core proposal submission, batch proposal submission, URL repair, and
-settings repair stay in the Optimize Existing Image surface.
+Single-image optimization starts from the WordPress media-library attachment
+details panel or image row actions, where the operator is already inspecting or
+selecting an image. Those actions carry the attachment ID into the same
+selected-image workbench used for small batches. Deprecated `tool=optimize` and
+legacy `toolbox_tool=media-derivative` URLs fall back to Batch Optimize Images
+rather than exposing a standalone one-image picker in Toolbox.
 
-The UI should present the existing flow as a fixed sequence:
+Batch media optimization lives in the Toolbox **Image Handling -> Batch
+Optimize Images** workbench. Media library bulk actions may send selected
+attachment IDs into that workbench, but eligibility review, selected previews,
+Core proposal submission, and explicit Adapter execution stay inside Toolbox.
+Cloud Checks may keep a preview-only media derivative reachability check, but
+Core proposal submission, batch proposal submission, URL repair, and settings
+repair stay in governed media optimization surfaces.
+
+The single-image UI should present the existing flow as a fixed sequence:
 
 1. Select media.
 2. Generate Cloud preview.
@@ -76,6 +87,14 @@ The UI should present the existing flow as a fixed sequence:
 These steps may be displayed in local browser state or in existing result
 artifacts. They must not require a new REST route such as `/workflow-runs` or a
 new durable Toolbox run store in the current stage.
+
+The batch UI should present a separate fixed sequence:
+
+1. Select images in the media library or use a bounded media sample.
+2. Build an eligibility plan.
+3. Generate previews only for selected rows.
+4. Submit selected Core reviews.
+5. Approve and execute only through the accepted Adapter/Core/Abilities path.
 
 ## Operator Flow
 

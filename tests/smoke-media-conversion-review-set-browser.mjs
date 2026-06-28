@@ -165,7 +165,7 @@ try {
 		});
 	});
 
-	await page.goto(`${baseUrl}/wp-admin/admin.php?page=npcink-toolbox&toolbox_tab=tools&toolbox_tool=media-derivative`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+	await page.goto(`${baseUrl}/wp-admin/admin.php?page=npcink-toolbox&tab=image&tool=batch-optimize`, { waitUntil: 'domcontentloaded', timeout: 45000 });
 	await page.waitForSelector('[data-toolbox-build-media-batch-plan]', { timeout: 30000 });
 	await page.locator('[data-toolbox-build-media-batch-plan]').click();
 	await waitForReviewSet(page);

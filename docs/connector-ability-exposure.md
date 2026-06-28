@@ -30,17 +30,19 @@ Toolbox is not:
 External AI callers should discover and call Toolbox abilities such as:
 
 - `npcink-toolbox/search-image-source`
-- `npcink-toolbox/vector-search`
+- `npcink-toolbox/generate-image`
 - `npcink-toolbox/search-site-knowledge`
+- `npcink-toolbox/cloud-web-search`
 - `npcink-toolbox/get-site-knowledge-status`
 - `npcink-toolbox/request-site-knowledge-sync`
-- `npcink-toolbox/build-article-brief`
+- `npcink-toolbox/build-article-assistant`
 - `npcink-toolbox/build-article-write-plan`
 - `npcink-toolbox/build-article-batch-write-plan`
 - `npcink-toolbox/build-article-media-batch-write-plan`
 - `npcink-abilities-toolkit/build-image-candidate-adoption-plan`
 - `npcink-toolbox/build-site-knowledge-review-plan`
-- `npcink-toolbox/build-media-brief`
+- `npcink-toolbox/build-nightly-inspection-review-plan`
+- `npcink-toolbox/build-media-derivative-handoff`
 - `npcink-toolbox/get-content-discoverability-context`
 - `npcink-toolbox/validate-content-discoverability-context`
 - `npcink-toolbox/build-content-discoverability-brief`

@@ -21,7 +21,7 @@ WordPress writes, or a second approval store.
 | --- | --- | --- | --- |
 | `cap.toolbox.status.read` | `/status` | none | Readiness only; no provider secrets or execution. |
 | `cap.toolbox.image_source` | `/image-candidates`, `/ai/image-generation` | `npcink-toolbox/search-image-source`, `npcink-toolbox/generate-image` | Candidate generation only; no media import or featured-image write. |
-| `cap.toolbox.vector_search` | `/vector-search` | `npcink-toolbox/vector-search` | Compatibility pointer for Cloud-managed Site Knowledge. |
+| `cap.toolbox.vector_search` | `/vector-search` | none | REST compatibility pointer for Cloud-managed Site Knowledge; new Ability clients should use `npcink-toolbox/search-site-knowledge`. |
 | `cap.toolbox.knowledge.read` | `/site-knowledge/status` | `npcink-toolbox/get-site-knowledge-status` | Read-only Cloud status projection. |
 | `cap.toolbox.knowledge.search` | `/knowledge-search`, `/site-knowledge/search` | `npcink-toolbox/search-site-knowledge` | Semantic context candidates only. |
 | `cap.toolbox.knowledge.sync` | `/site-knowledge/sync` | `npcink-toolbox/request-site-knowledge-sync` | Bounded public manifest submission; no indexing lifecycle ownership. |

@@ -55,6 +55,10 @@ final class Plugin {
 		add_action( 'admin_init', array( $this->settings, 'register' ) );
 		add_action( 'admin_menu', array( $this->admin_page, 'register_menu' ), 45 );
 		add_action( 'admin_enqueue_scripts', array( $this->admin_page, 'enqueue' ) );
+		add_filter( 'attachment_fields_to_edit', array( $this->admin_page, 'add_media_library_attachment_actions' ), 10, 2 );
+		add_filter( 'media_row_actions', array( $this->admin_page, 'filter_media_library_row_actions' ), 10, 3 );
+		add_filter( 'bulk_actions-upload', array( $this->admin_page, 'filter_media_library_bulk_actions' ) );
+		add_filter( 'handle_bulk_actions-upload', array( $this->admin_page, 'handle_media_library_bulk_action' ), 10, 3 );
 		add_action( 'enqueue_block_editor_assets', array( $this->editor_content_support, 'enqueue' ) );
 		$this->article_audio_playback->register_hooks();
 		add_filter( 'plugin_action_links_' . plugin_basename( NPCINK_TOOLBOX_FILE ), array( $this, 'filter_plugin_action_links' ) );
