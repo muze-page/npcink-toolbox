@@ -521,17 +521,17 @@ show Cloud-returned status, and search Cloud-managed site knowledge. Toolbox
 must not store vector provider keys, provider endpoints, collection names,
 embedding model settings, or vector database lifecycle controls.
 
-## Connection Diagnostics Surface
+## Troubleshooting Checks Surface
 
 The Toolbox **Cloud Checks** surface is now presented to ordinary site owners
-as **Connection Diagnostics**. It remains a secondary deep-link diagnostics
+as **Troubleshooting Checks**. It remains a secondary deep-link support-check
 panel, not a visible top-level admin tab. The Advanced directory is the single
 low-frequency directory and groups links by operator job: Setup, Diagnostics,
-Review, and Planning/Handoff. It may link to Connection Diagnostics from the
+Review, and Planning/Handoff. It may link to Troubleshooting Checks from the
 Diagnostics group, and legacy `toolbox_tab=cloud-checks` URLs should continue
 to open that panel. Inside that panel, the default operator view should be one
 basic read-only connection check. Detailed Cloud-managed checks should stay
-inside a troubleshooting disclosure, and deep links to specific checks may open
+inside a support diagnostics disclosure, and deep links to specific checks may open
 that disclosure automatically. The detailed tabs should open directly into the
 useful verification tool instead of repeating ownership prose or provider
 catalogs.

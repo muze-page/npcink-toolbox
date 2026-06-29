@@ -5039,6 +5039,33 @@ msgstr "定期站点检查"
 msgid "Use this only when scheduled site review needs preview, status, or recovery checks. Daily article work stays in the editor sidebar."
 msgstr "仅在定期站点检查需要预览、状态或恢复检查时使用。日常文章工作仍在编辑器侧边栏中完成。"
 
+msgid "Scheduled Review / Morning Brief"
+msgstr "定期站点检查 / Morning Brief"
+
+msgid "Preview the scheduled site review, inspect local fallback state, or recover a Cloud inspection run. This is not the ordinary connection-diagnostics path."
+msgstr "预览定期站点检查、查看本地备用状态，或恢复 Cloud 检查运行。这不是普通连接诊断路径。"
+
+msgid "Morning Brief workspace"
+msgstr "Morning Brief 工作区"
+
+msgid "Use this low-frequency area for scheduled-review preview, Pro Cloud Runtime status, and run recovery. Full-site Insights remains the ordinary manual site-check report."
+msgstr "这个低频区域用于定期检查预览、Pro Cloud Runtime 状态和运行恢复。Full-site Insights 仍是普通手动站点检查报告。"
+
+msgid "Open Full-site Insights"
+msgstr "打开 Full-site Insights"
+
+msgid "Scheduled review controls"
+msgstr "定期检查控制项"
+
+msgid "Morning Brief preview, local fallback, Pro Cloud Runtime, and recovery controls."
+msgstr "Morning Brief 预览、本地备用、Pro Cloud Runtime 和恢复控制项。"
+
+msgid "Morning Brief and run recovery"
+msgstr "Morning Brief 和运行恢复"
+
+msgid "Preview the scheduled site review, inspect local fallback state, or recover a Cloud run. Daily article work stays in the editor sidebar."
+msgstr "预览定期站点检查、查看本地备用状态，或恢复 Cloud 运行。日常文章工作仍在编辑器侧边栏中完成。"
+
 msgid "Use these entries only when you need setup, troubleshooting, or occasional review tools."
 msgstr "仅在需要设置、故障排查或偶尔查看工具时使用这些入口。"
 
@@ -6229,6 +6256,129 @@ msgstr "通用 AI 重叠能力为兼容性保持可调用，但不会恢复为 T
 
 msgid "Core handoff boundary"
 msgstr "Core 交接边界"
+
+msgid "Site content index"
+msgstr "站点内容索引"
+
+msgid "Troubleshoot or advanced setup"
+msgstr "排障或高级设置"
+
+msgid "Use only when setup, diagnostics, or support checks are needed."
+msgstr "仅在需要设置、诊断或支持检查时使用。"
+
+msgid "System status"
+msgstr "系统状态"
+
+msgid "Workflow readiness and support-facing details."
+msgstr "工作流就绪状态和面向支持的详情。"
+
+msgid "Workflow readiness summary"
+msgstr "工作流就绪状态摘要"
+
+msgid "Workflow readiness"
+msgstr "工作流就绪状态"
+
+msgid "Read-only status for setup and support. It does not change WordPress content."
+msgstr "用于设置和支持的只读状态。它不会更改 WordPress 内容。"
+
+msgid "Let AI suggestions use existing public posts and pages for links, duplicate checks, and site context."
+msgstr "让 AI 建议使用已有公开文章和页面来辅助内链、重复检查和站点上下文。"
+
+msgid "Troubleshooting checks"
+msgstr "排障检查"
+
+msgid "Run a basic connection check, or open support-only diagnostics when requested."
+msgstr "运行基础连接检查，或在被要求时打开仅供支持使用的诊断。"
+
+msgid "Site Content Index"
+msgstr "站点内容索引"
+
+msgid "Refresh the public content AI can search for links, duplicate checks, and site context. This does not edit posts or pages."
+msgstr "刷新 AI 可搜索的公开内容，用于内链、重复检查和站点上下文。此操作不会编辑文章或页面。"
+
+msgid "Troubleshooting Checks"
+msgstr "排障检查"
+
+msgid "Use the basic check when AI actions seem unavailable. Open support diagnostics only when requested."
+msgstr "当 AI 操作似乎不可用时使用基础检查。仅在被要求时打开支持诊断。"
+
+msgid "Basic AI connection check"
+msgstr "基础 AI 连接检查"
+
+msgid "Support diagnostics"
+msgstr "支持诊断"
+
+msgid "Open only when a support person asks for a specific check."
+msgstr "仅在支持人员要求特定检查时打开。"
+
+msgid "Content index"
+msgstr "内容索引"
+
+msgid "Detailed service monitoring lives in Cloud Addon Monitoring. Toolbox keeps only support checks for this plugin."
+msgstr "详细服务监控在 Cloud Addon Monitoring 中。Toolbox 只保留此插件的支持检查。"
+
+msgid "Basic search test"
+msgstr "基础搜索测试"
+
+msgid "Support: Zhihu source"
+msgstr "支持：知乎来源"
+
+msgid "Support: evidence check"
+msgstr "支持：证据检查"
+
+msgid "Site content index check"
+msgstr "站点内容索引检查"
+
+msgid "Open site content index"
+msgstr "打开站点内容索引"
+
+msgid "Fill the short site brief used by AI suggestions. Most sites can keep the optional preferences unchanged."
+msgstr "填写 AI 建议使用的简短站点简介。大多数站点可以保持可选偏好不变。"
+
+msgid "Drafts only prefill this form. They do not change posts, media, SEO meta, or provider settings."
+msgstr "草稿只会预填此表单。它们不会更改文章、媒体、SEO 元数据或服务商设置。"
+
+msgid "These four fields are enough for normal operation."
+msgstr "这四个字段足够日常使用。"
+
+msgid "Optional AI suggestion preferences"
+msgstr "可选 AI 建议偏好"
+
+msgid "Keep defaults unless a support or editorial policy needs tighter guidance."
+msgstr "除非支持人员或编辑政策需要更严格指引，否则保持默认即可。"
+
+msgid "This profile guides suggestions only. WordPress changes still require review approval."
+msgstr "此画像仅用于指导建议。WordPress 更改仍需审核批准。"
+
+msgid "Find images that may need optimization, generate previews, then submit only reviewed rows."
+msgstr "找出可能需要优化的图片，生成预览，然后只提交已审阅的行。"
+
+msgid "Review image optimization and ALT suggestions. Full-site content opportunities start from Overview."
+msgstr "审阅图片优化和 ALT 建议。全站内容机会从概览开始。"
+
+msgid "Find images, review previews, then submit only the selected items. Nothing is written automatically."
+msgstr "查找图片、审阅预览，然后只提交选中的项目。不会自动写入。"
+
+msgid "Find images to optimize"
+msgstr "查找待优化图片"
+
+msgid "Build a small review list from existing media-library images. Nothing replaces the original files from this page."
+msgstr "从现有媒体库图片构建一个小型审阅列表。此页面不会替换原始文件。"
+
+msgid "No original image is replaced here. Review previews first, then submit selected rows for the governed optimization path."
+msgstr "这里不会替换原始图片。请先审阅预览，再将选中的行提交到受治理的优化路径。"
+
+msgid "Optional filters and processing options"
+msgstr "可选筛选和处理选项"
+
+msgid "Submit selected for review"
+msgstr "提交选中项审核"
+
+msgid "Review before submitting"
+msgstr "提交前审阅"
+
+msgid "This page prepares previews and review requests only. Final media changes happen later through Core approval and Adapter execution."
+msgstr "此页面只准备预览和审核请求。最终媒体更改稍后通过 Core 批准和 Adapter 执行完成。"
 
 msgid "Write-like outcomes remain Core/Adapter/Abilities handoffs; this summary creates no proposals and writes nothing."
 msgstr "类似写入的结果仍然交给 Core/Adapter/Abilities；此摘要不会创建提案，也不会写入任何内容。"

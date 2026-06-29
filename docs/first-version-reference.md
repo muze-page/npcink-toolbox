@@ -70,19 +70,24 @@ Provider raw payloads are excluded by default. Enable
 The first version is single-site global configuration. Do not add multisite or
 per-user isolation without a new decision.
 
-Connection Diagnostics keeps the stable `cloud-checks` deep-link id as a
-secondary diagnostics panel rather than a visible top-level admin tab. Advanced
+Troubleshooting Checks keeps the stable `cloud-checks` deep-link id as a
+secondary support-check panel rather than a visible top-level admin tab. Advanced
 links to it from the Diagnostics group inside the single low-frequency advanced
 directory. That directory groups secondary entries as Setup, Diagnostics,
 Review, and Planning/Handoff instead of duplicating them on Overview. The
 default view is one basic read-only connection check for ordinary operators;
 detailed checks for Cloud-managed search, image-source candidates, preview-only
-media derivatives, content library search, and scheduled review recovery stay
-folded for troubleshooting. Legacy
-deep links may open the detailed area directly. The tabs may show compact
-readiness labels, but each panel should prioritize the Toolbox ability
-reachability check or recovery task instead of repeating provider ownership
-detail.
+media derivatives, and site content index search stay folded for support.
+The same compatible `cloud-checks` secondary panel may still serve the
+Nightly Inspection deep link, but when `toolbox_cloud_check=nightly-inspection`
+is requested the visible page should identify the task as **Scheduled Review /
+Morning Brief**, not as ordinary troubleshooting. That scheduled-review
+entry is for Morning Brief preview, local fallback inspection, Pro Cloud
+Runtime status/result recovery, and a link back to Full-site Insights as the
+ordinary manual site-check report. Legacy deep links may open the detailed area
+directly. The tabs may show compact readiness labels, but each panel should
+prioritize the Toolbox ability reachability check or recovery task instead of
+repeating provider ownership detail.
 Search checks use Cloud auto execution only; provider
 selection, Jina Reader toggles, routing diagnostics, Cloud API key verification,
 entitlement, billing, quota, and request logs belong in Cloud Addon or Cloud

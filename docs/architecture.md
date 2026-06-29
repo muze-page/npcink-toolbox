@@ -528,7 +528,8 @@ site-level opportunities.
 The admin page defaults to an **Overview** surface for ordinary site owners,
 with one recommended next action, compact status rows for AI service, Site
 Profile, and safe mode, followed by common site/image next steps plus one
-folded advanced directory. It also shows **Npcink capability health**, a
+folded advanced directory and a collapsed **System status** disclosure. That
+disclosure shows **Workflow readiness**, a
 read-only summary from `Ability_Surface_Metadata` for site profile readiness,
 Cloud runtime availability, default Npcink workflow entries, route-only
 compatibility, and Core handoff boundary. This summary is not a generic Abilities Explorer,
@@ -551,15 +552,18 @@ local preview does not auto-send the request; when Cloud is ready, the
 administrator may explicitly run Cloud analysis and render the suggestion-only
 `site_ops_cloud_analysis_result.v1`. It is a manual review surface, not a
 Cloud batch owner, local queue, Core proposal creator, or WordPress write path.
-Nightly Inspection fallback
-preview settings, Pro Cloud Runtime checks, and run recovery live under folded
-detailed checks inside the secondary **Connection Diagnostics** deep-link panel, not
-the visible top-level tabs or default Overview view. Site Knowledge status and
-refresh controls live in the secondary **Content Library Setup** panel reached
-from the Advanced Setup group, not as a default top-level tab. Advanced is the
-single low-frequency directory and groups secondary links as Setup,
-Diagnostics, Review, and Planning/Handoff instead of duplicating them on
-Overview.
+Nightly Inspection fallback preview settings, Pro Cloud Runtime checks, and
+run recovery keep the compatible `cloud-checks` deep link but are presented as
+**Scheduled Review / Morning Brief** when opened through the Nightly Inspection
+entry. That visible task framing keeps Morning Brief preview and Cloud run
+recovery separate from ordinary connection diagnostics while preserving old
+URLs. These controls do not belong in the visible top-level tabs or default
+Overview view, and Full-site Insights remains the ordinary manual site-check
+report. Site Knowledge status and refresh controls live in the secondary
+**Site Content Index** panel reached from the Advanced Setup group, not as a
+default top-level tab. Advanced is the single low-frequency directory and
+groups secondary links as Setup, Diagnostics, Review, and Planning/Handoff
+instead of duplicating them on Overview.
 
 The admin **Image Handling** tab groups image-first buttons by operator job and
 defaults to **Image Optimization**, with **Batch Optimize Images** as the first
@@ -689,14 +693,18 @@ replacement callbacks before Toolbox presents it as a fixed best-practice
 button. Toolbox may render review sets, selected previews, proposal submission,
 and returned execution outcomes; it must not own the batch execution semantics.
 
-Connection Diagnostics default to one basic read-only connection test inside
+Troubleshooting Checks default to one basic read-only connection test inside
 the secondary `cloud-checks` panel reached from the Advanced Diagnostics group.
 Detailed checks use compact folded tabs for Cloud-managed search, image-source,
-preview-only media derivative, content library search, and scheduled review
-recovery. Each panel opens directly into the relevant Toolbox ability
-reachability check instead of repeating provider ownership detail. Search checks
-use Cloud auto execution only; provider selection, Jina Reader toggles, routing
-diagnostics, Cloud API key
+preview-only media derivative, and site content index search. The compatible
+Nightly Inspection deep link still uses the `cloud-checks` panel id, but its
+visible page header and first card must say Scheduled Review / Morning Brief so
+operators understand it is the low-frequency scheduled-review preview and
+Cloud run recovery path, not a duplicate manual Full-site Insights report or a
+generic connection test. Each panel opens directly into the relevant Toolbox
+ability reachability check or recovery task instead of repeating provider
+ownership detail. Search checks use Cloud auto execution only; provider
+selection, Jina Reader toggles, routing diagnostics, Cloud API key
 verification, entitlement, quota, billing, and request logs belong in Cloud
 Addon or Cloud service-plane surfaces. Image derivative checks may generate
 short-lived Cloud previews only, including bounded aspect-ratio crop overrides
