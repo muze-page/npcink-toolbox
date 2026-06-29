@@ -97,8 +97,8 @@ read-only projection rather than a registry. Each entry records surface,
 AI-plugin overlap entries stay as route-only compatibility when existing
 workflows still rely on their REST or rendering contracts.
 
-The Overview **Npcink capability health** panel summarizes that projection for
-operators. It can show site profile readiness, Cloud runtime availability,
+The Overview **System status / Workflow readiness** disclosure summarizes that
+projection for operators. It can show site profile readiness, Cloud runtime availability,
 default Npcink workflow coverage, route-only compatibility, and Core handoff
 boundary. It is not a generic Abilities Explorer, provider picker, request log,
 or connector approval surface, and it must not create proposals, queues,
