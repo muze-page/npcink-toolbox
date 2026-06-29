@@ -565,6 +565,8 @@ final class Admin_Page {
 				</div>
 			</section>
 
+			<?php $this->render_npcink_capability_health_summary( $content_context, $cloud_ready ); ?>
+
 			<div class="npcink-toolbox__section-heading npcink-toolbox__section-heading--compact">
 				<div>
 					<h3><?php esc_html_e( 'Common tasks', 'npcink-workflow-toolbox' ); ?></h3>
@@ -607,6 +609,37 @@ final class Admin_Page {
 				</div>
 			</details>
 		</div>
+		<?php
+	}
+
+	private function render_npcink_capability_health_summary( array $content_context, bool $cloud_ready ): void {
+		$rows = Ability_Surface_Metadata::health_summary(
+			array(
+				'cloud_ready'        => $cloud_ready,
+				'site_profile_ready' => $this->content_context_ready( $content_context ),
+			)
+		);
+		?>
+		<section class="npcink-toolbox__ability-health" aria-label="<?php esc_attr_e( 'Npcink capability health summary', 'npcink-workflow-toolbox' ); ?>">
+			<div class="npcink-toolbox__section-heading npcink-toolbox__section-heading--compact">
+				<div>
+					<h3><?php esc_html_e( 'Npcink capability health', 'npcink-workflow-toolbox' ); ?></h3>
+					<p><?php esc_html_e( 'Read-only workflow status. This is not a generic Abilities Explorer, provider picker, request log, or connector approval surface.', 'npcink-workflow-toolbox' ); ?></p>
+				</div>
+			</div>
+			<div class="npcink-toolbox__start-status-list">
+				<?php
+				foreach ( $rows as $row ) {
+					$this->render_start_status_row(
+						(string) ( $row['label'] ?? '' ),
+						(string) ( $row['status'] ?? 'neutral' ),
+						(string) ( $row['status_text'] ?? '' ),
+						(string) ( $row['description'] ?? '' )
+					);
+				}
+				?>
+			</div>
+		</section>
 		<?php
 	}
 
@@ -3381,10 +3414,10 @@ final class Admin_Page {
 				'group_id'    => 'image-text-review',
 				'id'          => 'media-alt-caption-review',
 				'endpoint'    => 'ai/site-helpers',
-				'title'       => __( 'Batch Fill Missing ALT', 'npcink-workflow-toolbox' ),
-				'description' => __( 'Find images that need ALT text, review suggestions, then submit selected rows for review.', 'npcink-workflow-toolbox' ),
+				'title'       => __( 'Batch ALT Review Handoff', 'npcink-workflow-toolbox' ),
+				'description' => __( 'Build a selected media review set for missing ALT text, then hand accepted rows to Core review.', 'npcink-workflow-toolbox' ),
 				'intent'      => 'media_alt_suggestions',
-				'button'      => __( 'Scan and generate suggestions', 'npcink-workflow-toolbox' ),
+				'button'      => __( 'Build review set', 'npcink-workflow-toolbox' ),
 				'custom'      => 'media_alt_caption_review',
 			),
 		);
