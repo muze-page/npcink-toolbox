@@ -5885,17 +5885,20 @@ msgstr "Npcink：补全所选图片 ALT"
 msgid "Npcink: optimize selected images"
 msgstr "Npcink：优化所选图片"
 
-msgid "Batch Optimize Images"
-msgstr "批量优化图片"
+msgid "Batch Image Optimization Review"
+msgstr "批量图片优化审核"
+
+msgid "Build a small review list, generate previews, then submit only approved rows. Original images are not replaced here."
+msgstr "先构建小范围审核列表，生成预览后，只提交已确认的行。这里不会替换原图。"
 
 msgid "Start from selected media-library images, build a bounded review plan, preview selected rows, then continue through Core review."
 msgstr "从已选媒体库图片开始，生成有限审阅计划，预览选中行，然后继续进入 Core 审核。"
 
-msgid "Batch Image Optimization"
-msgstr "批量图片优化"
+msgid "Image Optimization Review"
+msgstr "图片优化审核"
 
-msgid "Use selected media-library images or a bounded sample."
-msgstr "使用所选媒体库图片或有限样本。"
+msgid "Preview selected images before submitting an optimization request."
+msgstr "提交优化申请前，先预览所选图片。"
 
 msgid "Batch work starts from selected media-library images or a bounded sample. Nothing is written automatically."
 msgstr "批量任务从所选媒体库图片或有限样本开始。不会自动写入任何内容。"
@@ -5927,11 +5930,11 @@ msgstr "提交 Core 审核"
 msgid "You can start from the media library bulk action, or leave this empty to use the bounded sample below."
 msgstr "可以从媒体库批量操作进入，也可以留空后使用下面的有限样本。"
 
-msgid "Batch workbench"
-msgstr "批量工作台"
+msgid "Review before replacing"
+msgstr "替换前先审核"
 
-msgid "Use the media library bulk action to choose images, then review eligibility, generate previews, and submit only selected rows. This is not a one-click whole-site replacement."
-msgstr "使用媒体库批量操作选择图片，然后审阅可处理性、生成预览，并只提交选中行。这不是一键全站替换。"
+msgid "This page prepares previews and review requests only. Final media replacement happens later through Core approval and Adapter execution."
+msgstr "本页只准备预览和审核申请。最终媒体替换会在 Core 批准并由 Adapter 执行后发生。"
 
 msgid "Need more than one image?"
 msgstr "需要处理多张图片？"
@@ -5948,8 +5951,8 @@ msgstr "从媒体库选择图片"
 msgid "Open an image attachment, then use Npcink AI to generate an optimization preview."
 msgstr "打开一个图片附件，然后使用 Npcink AI 生成优化预览。"
 
-msgid "Start single-image optimization from the media library attachment details panel. Use Batch Optimize Images when multiple images or URL repair actions are needed."
-msgstr "单张图片优化请从媒体库附件详情面板开始。需要处理多张图片或 URL 修复时，请使用“批量优化图片”。"
+msgid "Start single-image optimization from the media library attachment details panel. Use Batch Image Optimization Review when multiple images or URL repair actions are needed."
+msgstr "单张图片优化请从媒体库附件详情面板开始。需要处理多张图片或 URL 修复时，请使用“批量图片优化审核”。"
 
 msgid "Open Media Library"
 msgstr "打开媒体库"
@@ -6008,9 +6011,6 @@ msgstr "技术预览"
 msgid "Read-only data"
 msgstr "只读数据"
 
-msgid "Choose media-library images, preview safe optimization options, then submit selected items for review."
-msgstr "选择媒体库图片，预览安全的优化选项，然后将选中项提交审核。"
-
 msgid "Batch Fill Missing ALT"
 msgstr "批量补全缺失 ALT"
 
@@ -6032,32 +6032,104 @@ msgstr "可选的一次性裁剪，用于常见发布比例。Cloud 只返回预
 msgid "Generate a short-lived Cloud preview for one existing media-library image. This check does not submit a review request or write media."
 msgstr "为一张已有媒体库图片生成短期 Cloud 预览。此检查不会提交审核请求，也不会写入媒体。"
 
-msgid "Batch optimization review"
-msgstr "批量优化审核"
+msgid "Batch image optimization review"
+msgstr "批量图片优化审核"
 
-msgid "Choose images from the media library or a small sample, preview selected options, then submit only the items you approve for review."
-msgstr "从媒体库或小样本中选择图片，预览选中选项，然后只提交你认可的项目审核。"
+msgid "Use this for multiple existing media-library images. Build a review list first; nothing replaces the original files from this page."
+msgstr "用于处理多张已有媒体库图片。请先构建审核列表；本页不会替换原始文件。"
 
-msgid "Choose images"
-msgstr "选择图片"
+msgid "Choose image source"
+msgstr "选择图片来源"
 
 msgid "Build review list"
 msgstr "生成审阅列表"
 
-msgid "Submit for review"
-msgstr "提交审核"
+msgid "Generate previews"
+msgstr "生成预览"
 
-msgid "Advanced selection and filters"
-msgstr "高级选择和筛选"
+msgid "Submit optimization request"
+msgstr "提交优化申请"
 
-msgid "Use these only when the selected review list needs exact media IDs, dates, formats, or dimensions."
-msgstr "仅当所选审阅列表需要精确媒体 ID、日期、格式或尺寸时使用。"
+msgid "Use Media Library bulk actions to prefill selected image IDs, or use the source below to build a small sample."
+msgstr "可通过媒体库批量操作预填所选图片 ID，也可以使用下面的来源构建小样本。"
+
+msgid "Image source"
+msgstr "图片来源"
+
+msgid "This month's images"
+msgstr "本月图片"
+
+msgid "Previous month's images"
+msgstr "上月图片"
+
+msgid "Custom date range"
+msgstr "自定义日期范围"
+
+msgid "Small eligible sample"
+msgstr "小范围可处理样本"
+
+msgid "Optimization goal"
+msgstr "优化目标"
+
+msgid "Recommended optimization"
+msgstr "推荐优化"
+
+msgid "Change file format"
+msgstr "转换文件格式"
+
+msgid "Resize large images"
+msgstr "缩放大图"
+
+msgid "Add watermark"
+msgstr "添加水印"
+
+msgid "Images to review"
+msgstr "待审核图片数"
+
+msgid "No original image is replaced here. Review previews first, then submit selected rows. Core may execute automatically only when site policy allows."
+msgstr "这里不会替换原图。请先审核预览，再提交所选行。只有站点策略允许时，Core 才会自动执行。"
+
+msgid "Advanced filters and processing options"
+msgstr "高级筛选和处理选项"
+
+msgid "Use these only when the review list needs exact media IDs, dates, formats, dimensions, crop, or watermark changes."
+msgstr "仅在审核列表需要精确媒体 ID、日期、格式、尺寸、裁剪或水印变更时使用。"
 
 msgid "Selected image IDs"
 msgstr "已选图片 ID"
 
-msgid "Submit selected for review"
-msgstr "提交所选项审核"
+msgid "Submit and execute"
+msgstr "提交并执行"
+
+msgid "Submitting and requesting Core execution "
+msgstr "正在提交并请求 Core 执行 "
+
+msgid "Core did not return a proposal id for this selected preview."
+msgstr "Core 没有为这个已选预览返回提案 ID。"
+
+msgid "Batch submission stopped"
+msgstr "批量提交已停止"
+
+msgid "Batch submission finished"
+msgstr "批量提交已完成"
+
+msgid "One selected preview failed before all requests were submitted. Review the failed item and retry after revision."
+msgstr "某个已选预览在全部请求提交前失败。请检查失败项，修改后重试。"
+
+msgid "Selected previews were submitted. Core executed policy-allowed items and kept blocked items in review."
+msgstr "已提交所选预览。Core 已执行策略允许的项目，并将被阻止的项目保留在审核中。"
+
+msgid "Review blocked items in Core before execution."
+msgstr "请先在 Core 中审核被阻止的项目，再执行。"
+
+msgid "Review execution records in Core if needed."
+msgstr "如有需要，请在 Core 中查看执行记录。"
+
+msgid "If Core policy blocked execution, adjust policy or complete review in Core rather than retrying from Toolbox."
+msgstr "如果 Core 策略阻止了执行，请调整策略或在 Core 中完成审核，不要在 Toolbox 中反复重试。"
+
+msgid "Core submission and execution details"
+msgstr "Core 提交和执行详情"
 
 msgid "Review the returned plan, then send it to the review system. Final publishing still requires approval outside Toolbox."
 msgstr "先审阅返回的计划，再发送到审核系统。最终发布仍需在 Toolbox 外完成审批。"

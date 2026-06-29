@@ -401,8 +401,11 @@ back into the discoverability panel while preserving the
 The backend Image Handling tab uses the same hosted site-helper intent only for
 an explicit small media-library review set. Operators can select returned
 items and call `/flows/media-alt-caption-review-plan` to prepare a
-`media_alt_caption_core_handoff_plan.v1` for later Core review; Toolbox does
-not submit, approve, execute, or write media metadata.
+`media_alt_caption_core_handoff_plan.v1`. The plan contains ALT-only proposal
+payloads that the admin UI may submit through Adapter and then request Core
+`approve-and-execute`. Core policy owns auto-approval, execution, and audit;
+Toolbox still does not directly write media metadata, and caption edits stay
+manual-review work.
 The standalone discoverability result is a post-publish optimization task
 panel: SEO title, SEO description, slug, and excerpt are shown as actionable
 review tasks. SEO title and description use the governed SEO handoff, then ask

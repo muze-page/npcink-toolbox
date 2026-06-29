@@ -3510,8 +3510,9 @@ final class Provider_Client {
 			}
 
 			$alt_candidates = is_array( $item['alt_candidates'] ?? null ) ? $item['alt_candidates'] : array();
-			$proposed_alt   = $this->media_alt_caption_clean_candidate( (string) ( $item['accepted_alt'] ?? ( $alt_candidates[0] ?? '' ) ) );
-			$proposed_caption = $this->media_alt_caption_clean_candidate( (string) ( $item['accepted_caption'] ?? ( $item['caption_candidate'] ?? '' ) ) );
+			$raw_alt        = array_key_exists( 'accepted_alt', $item ) ? (string) $item['accepted_alt'] : (string) ( $alt_candidates[0] ?? '' );
+			$proposed_alt   = $this->media_alt_caption_clean_candidate( $raw_alt );
+			$proposed_caption = $this->media_alt_caption_clean_candidate( (string) ( $item['accepted_caption'] ?? '' ) );
 			$alt_rejection = '' !== $proposed_alt ? $this->media_alt_caption_candidate_rejection_reason( $proposed_alt, $item, 'alt' ) : '';
 			if ( '' !== $alt_rejection ) {
 				$blocked_actions[] = array(
@@ -3534,28 +3535,82 @@ final class Provider_Client {
 				);
 				$proposed_caption = '';
 			}
-			if ( '' === $proposed_alt && '' === $proposed_caption ) {
+			if ( '' !== $proposed_caption ) {
+				$blocked_actions[] = array(
+					'action_id'            => 'media-alt-caption:' . $attachment_id . ':caption',
+					'attachment_id'        => $attachment_id,
+					'rejected_field'       => 'caption',
+					'blocked_reason'       => 'caption_requires_manual_review',
+					'operator_next_action' => 'submit_alt_only_or_review_caption_manually',
+				);
+				$proposed_caption = '';
+			}
+			if ( '' === $proposed_alt ) {
 				continue;
 			}
+
+			$title             = sanitize_text_field( (string) ( $item['title'] ?? '' ) );
+			$filename          = sanitize_text_field( (string) ( $item['filename'] ?? '' ) );
+			$current_alt       = sanitize_text_field( (string) ( $item['current_alt'] ?? ( $item['alt'] ?? '' ) ) );
+			$current_caption   = sanitize_textarea_field( (string) ( $item['current_caption'] ?? ( $item['caption'] ?? '' ) ) );
+			$current_alt_status = sanitize_key( (string) ( $item['current_alt_status'] ?? '' ) );
+			$candidate_basis   = $this->sanitize_string_list( $item['candidate_basis'] ?? array() );
+			$candidate_flags   = $this->sanitize_string_list( $item['candidate_quality_flags'] ?? array() );
+			$proposal_input    = array(
+				'attachment_id'   => $attachment_id,
+				'alt'             => $proposed_alt,
+				'dry_run'         => true,
+				'commit'          => false,
+				'idempotency_key' => 'toolbox-media-alt-' . $attachment_id . '-' . substr( md5( $proposed_alt ), 0, 12 ),
+			);
+			$proposal_preview  = array(
+				'artifact_type'                 => 'media_alt_caption_review_item',
+				'contract_version'             => 'media_alt_caption_review_item.v1',
+				'review_set_contract'          => 'media_alt_caption_review_set.v1',
+				'source'                       => array(
+					'type'    => 'toolbox_media_alt_caption_review',
+					'surface' => 'npcink_toolbox_batch_alt',
+				),
+				'attachment_id'                => $attachment_id,
+				'title'                        => $title,
+				'filename'                     => $filename,
+				'current_alt_status'           => $current_alt_status,
+				'current_alt'                  => $current_alt,
+				'proposed_alt'                 => $proposed_alt,
+				'candidate_basis'              => $candidate_basis,
+				'candidate_quality_flags'      => $candidate_flags,
+				'operator_reviewed'            => true,
+				'operator_visual_review_confirmed' => true,
+				'visual_confirmation_required' => true,
+				'direct_wordpress_write'       => false,
+			);
 
 			$actions[] = array(
 				'action_id'                   => 'media-alt-caption:' . $attachment_id,
 				'attachment_id'               => $attachment_id,
-				'title'                       => sanitize_text_field( (string) ( $item['title'] ?? '' ) ),
-				'filename'                    => sanitize_text_field( (string) ( $item['filename'] ?? '' ) ),
-				'current_alt_status'          => sanitize_key( (string) ( $item['current_alt_status'] ?? '' ) ),
+				'title'                       => $title,
+				'filename'                    => $filename,
+				'current_alt_status'          => $current_alt_status,
 				'current_caption_status'      => sanitize_key( (string) ( $item['current_caption_status'] ?? '' ) ),
-				'current_alt'                 => sanitize_text_field( (string) ( $item['current_alt'] ?? ( $item['alt'] ?? '' ) ) ),
-				'current_caption'             => sanitize_textarea_field( (string) ( $item['current_caption'] ?? ( $item['caption'] ?? '' ) ) ),
+				'current_alt'                 => $current_alt,
+				'current_caption'             => $current_caption,
 				'thumbnail_url'               => esc_url_raw( (string) ( $item['thumbnail_url'] ?? '' ) ),
 				'accepted_alt'                => $proposed_alt,
-				'accepted_caption'            => $proposed_caption,
+				'accepted_caption'            => '',
 				'needs_human_visual_check'    => true,
 				'visual_confirmation_required' => true,
-				'candidate_basis'             => $this->sanitize_string_list( $item['candidate_basis'] ?? array() ),
-				'candidate_quality_flags'     => $this->sanitize_string_list( $item['candidate_quality_flags'] ?? array() ),
+				'candidate_basis'             => $candidate_basis,
+				'candidate_quality_flags'     => $candidate_flags,
 				'target_ability_id'           => 'npcink-abilities-toolkit/update-media-details',
 				'target_write_path'           => 'core_proposal_required',
+				'auto_execution_supported'    => true,
+				'proposal_payload'            => array(
+					'ability_id' => 'npcink-abilities-toolkit/update-media-details',
+					'title'      => sprintf( 'Update ALT for attachment #%d', $attachment_id ),
+					'summary'    => 'Apply one reviewed ALT text suggestion for a media-library image. Core owns approval, execution, and audit.',
+					'input'      => $proposal_input,
+					'preview'    => $proposal_preview,
+				),
 				'direct_wordpress_write'      => false,
 			);
 		}
@@ -3569,7 +3624,7 @@ final class Provider_Client {
 			'final_write_path'       => 'core_proposal_required',
 			'direct_wordpress_write' => false,
 			'proposal_created'       => false,
-			'core_submission'        => 'not_submitted',
+			'core_submission'        => 'adapter_submit_ready',
 			'workflow_runtime'       => false,
 			'queue_created'          => false,
 			'selected_count'         => count( $actions ),
@@ -3582,18 +3637,18 @@ final class Provider_Client {
 				'selected_count'   => absint( $review_set['selected_count'] ?? count( $actions ) ),
 			),
 			'core_auto_approval_policy' => array(
-				'request_supported'          => false,
+				'request_supported'          => true,
 				'toolbox_direct_apply'       => false,
 				'approval_owner'             => 'npcink-governance-core',
 				'execution_owner'            => 'wordpress_abilities',
-				'future_safe_action_candidate' => 'fill_missing_alt_only',
+				'safe_action_candidate'      => 'fill_missing_or_weak_alt_only',
 				'required_policy_checks'     => array(
 					'operator_enabled_core_policy',
-					'missing_alt_only',
+					'missing_or_weak_alt_only',
 					'candidate_quality_gate_passed',
 					'no_runtime_provenance_text',
 					'no_source_attribution_text',
-					'human_visual_confirmation_or_trusted_visual_evidence',
+					'operator_visual_confirmation',
 					'bounded_batch_size',
 					'old_value_audit_and_rollback_evidence',
 				),
@@ -3605,17 +3660,19 @@ final class Provider_Client {
 				'recipe_id'              => 'media_alt_caption_review_v1',
 				'core_route'             => '/wp-json/npcink-governance-core/v1/proposals/from-plan',
 				'proposal_ready'         => 0 < count( $actions ),
-				'core_submission'        => 'not_submitted',
+				'core_submission'        => 'adapter_submit_ready',
 				'final_write_path'       => 'core_proposal_required',
 				'direct_wordpress_write' => false,
 			),
 			'operator_next_action'   => 0 < count( $actions )
-				? 'review_handoff_in_core_before_media_metadata_update'
+				? 'submit_selected_alt_updates_through_adapter'
 				: 'select_reviewed_media_alt_caption_items',
 			'guardrails'             => array(
 				'no_media_metadata_write_in_toolbox',
-				'no_automatic_proposal_creation',
 				'no_toolbox_auto_approval',
+				'adapter_creates_core_proposal_on_operator_request',
+				'core_policy_owns_auto_approval',
+				'alt_only_auto_execution_candidate',
 				'human_visual_confirmation_required',
 				'core_approval_required_before_final_write',
 			),

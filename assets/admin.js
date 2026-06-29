@@ -2209,25 +2209,120 @@
 				}
 				const item = Object.assign({}, row.__npcinkMediaAltCaptionItem);
 				const altInput = row.querySelector('[data-toolbox-media-alt-caption-accepted-alt]');
-				const captionInput = row.querySelector('[data-toolbox-media-alt-caption-accepted-caption]');
 				if (altInput instanceof HTMLInputElement) {
 					item.accepted_alt = altInput.value.trim();
-				}
-				if (captionInput instanceof HTMLTextAreaElement || captionInput instanceof HTMLInputElement) {
-					item.accepted_caption = captionInput.value.trim();
 				}
 				return item;
 			})
 			.filter(Boolean);
 	}
 
+	function mediaAltCaptionProposalId(payload) {
+		const ids = collectCoreHandoffProposalIds(payload, [], 0);
+		return ids.length ? ids[0] : proposalIdFromResponse(proposalFromPlanResponse(payload));
+	}
+
+	async function submitAndExecuteMediaAltCaptionAction(action, index) {
+		const proposalPayload = asObject(action.proposal_payload);
+		if (!proposalPayload.ability_id) {
+			throw { message: 'This ALT row is missing a Core proposal payload.' };
+		}
+
+		const proposal = await postJson(config.adapterRestUrl, 'proposals', proposalPayload);
+		const proposalId = mediaAltCaptionProposalId(proposal);
+		if (!proposalId) {
+			throw { message: 'Core did not return a proposal id for this ALT row.' };
+		}
+
+		const result = {
+			action: action,
+			proposal: proposal,
+			proposal_id: proposalId,
+			status: 'submitted'
+		};
+
+		try {
+			result.execution = await postJson(
+				config.adapterRestUrl,
+				'proposals/' + encodeURIComponent(proposalId) + '/approve-and-execute',
+				{
+					note: 'Approved from Toolbox batch ALT review after operator row selection. Core policy owns approval, preflight, audit, and execution.',
+					source: 'toolbox_batch_media_alt_review',
+					batch_index: index,
+					source_item_id: action.attachment_id || ''
+				}
+			);
+			result.status = 'executed';
+		} catch (error) {
+			result.execution_error = error;
+			result.status = 'needs_core_review';
+		}
+
+		return result;
+	}
+
+	function renderMediaAltCaptionExecutionSummary(container, plan, results, failed) {
+		const section = createSection('ALT update results');
+		const submitted = results.length;
+		const executed = results.filter((item) => item.status === 'executed').length;
+		const needsReview = results.filter((item) => item.status === 'needs_core_review').length;
+		const meta = el('div', 'npcink-toolbox__result-meta');
+		appendMeta(meta, 'Submitted', submitted);
+		appendMeta(meta, 'Updated', executed);
+		appendMeta(meta, 'Needs Core review', needsReview);
+		appendMeta(meta, 'Failed', failed ? 1 : 0);
+		section.appendChild(meta);
+
+		if (executed > 0) {
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-success', 'Core executed approved ALT updates. Media metadata changes are recorded by Core and WordPress abilities.'));
+		}
+		if (needsReview > 0) {
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Some proposals were created but Core policy kept them for manual review.'));
+		}
+		if (failed) {
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-error', failed.message || 'One selected ALT row could not be submitted.'));
+		}
+
+		if (results.length) {
+			const list = el('div', 'npcink-toolbox__batch-list');
+			results.forEach((result) => {
+				const action = asObject(result.action);
+				const row = el('div', 'npcink-toolbox__batch-row');
+				if (action.thumbnail_url) {
+					const image = document.createElement('img');
+					image.className = 'npcink-toolbox__media-thumb';
+					image.src = String(action.thumbnail_url);
+					image.alt = '';
+					row.appendChild(image);
+				}
+				const body = el('span', 'npcink-toolbox__batch-row-body');
+				body.appendChild(el('strong', '', '#' + String(action.attachment_id || '') + ' ' + String(action.title || action.filename || 'Media item')));
+				body.appendChild(el('small', '', (result.status === 'executed' ? t('Updated ALT: ') : t('Submitted ALT: ')) + String(action.accepted_alt || '')));
+				body.appendChild(el('small', '', result.status === 'executed' ? 'Updated by Core execution.' : 'Waiting for Core review.'));
+				if (result.proposal_id && coreHandoffProposalUrl(result.proposal_id)) {
+					body.appendChild(createLink(coreHandoffProposalUrl(result.proposal_id), 'Open Core proposal'));
+				}
+				row.appendChild(body);
+				list.appendChild(row);
+			});
+			section.appendChild(list);
+		}
+
+		section.appendChild(createRawDetails({
+			plan: plan,
+			results: results,
+			failed: failed || null
+		}, 'Advanced: Core submission payload'));
+		container.appendChild(section);
+	}
+
 	function renderMediaAltCaptionHandoffPlan(container, plan) {
-		const section = createSection('Review handoff draft');
+		const section = createSection('ALT update draft');
 		const meta = el('div', 'npcink-toolbox__result-meta');
 		appendMeta(meta, 'Selected images', plan.selected_count);
-		appendMeta(meta, 'Status', plan.selected_count > 0 ? 'Ready for Core review' : '');
+		appendMeta(meta, 'Status', plan.selected_count > 0 ? 'Ready to submit through Adapter' : '');
 		section.appendChild(meta);
-		section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Draft prepared. Review it in Core before any media metadata update.'));
+		section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Draft prepared. Adapter is unavailable, so no Core proposal was created.'));
 
 		const actions = asArray(plan.selected_actions);
 		if (actions.length) {
@@ -2246,10 +2341,7 @@
 				if (action.accepted_alt) {
 					body.appendChild(el('small', '', t('Accepted ALT: ') + String(action.accepted_alt)));
 				}
-				if (action.accepted_caption) {
-					body.appendChild(el('small', '', t('Accepted caption: ') + String(action.accepted_caption)));
-				}
-				body.appendChild(el('small', '', 'Human visual confirmation required before Core approval.'));
+				body.appendChild(el('small', '', 'Toolbox will not write media metadata directly.'));
 				row.appendChild(body);
 				list.appendChild(row);
 			});
@@ -2260,7 +2352,7 @@
 	}
 
 	function updateMediaAltCaptionHandoffButton(section) {
-		const selectedCount = selectedMediaAltCaptionReviewItems(section).length;
+		const selectedCount = selectedMediaAltCaptionReviewItems(section).filter((item) => String(item.accepted_alt || '').trim()).length;
 		const button = section.querySelector('[data-toolbox-media-alt-caption-handoff]');
 		const count = section.querySelector('[data-toolbox-media-alt-caption-selected-count]');
 		if (count) {
@@ -2317,7 +2409,7 @@
 		const imageContextRequestItems = asArray(imageContextRequest.items);
 		const meta = el('div', 'npcink-toolbox__result-meta');
 		appendMeta(meta, 'Scanned images', eligibility.scanned_count);
-		appendMeta(meta, 'Ready for Core review', eligibility.selected_count || selectedItems.length);
+		appendMeta(meta, 'Ready to update', eligibility.selected_count || selectedItems.length);
 		appendMeta(meta, 'Need manual check', imageContextRequestItems.length);
 		appendMeta(meta, 'Excluded', eligibility.blocked_count || blockedItems.length);
 		if (meta.childNodes.length) {
@@ -2328,8 +2420,8 @@
 			section.appendChild(el('div', 'npcink-toolbox__result-notice is-warning', 'No ALT suggestions are ready to submit from this sample. Try another sample or review excluded images.'));
 		} else {
 			const noticeText = imageContextRequestItems.length
-				? 'Review the rows below. Some images still need visual confirmation before Core review.'
-				: 'Review the rows below, edit suggested ALT if needed, then submit selected rows for Core review.';
+				? 'Review the rows below. Some images still need visual confirmation before updating ALT.'
+				: 'Review the rows below, edit suggested ALT if needed, then submit selected rows.';
 			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', noticeText));
 			const list = el('div', 'npcink-toolbox__alt-review-table');
 			const header = el('div', 'npcink-toolbox__alt-review-header');
@@ -2373,17 +2465,12 @@
 				altInput.value = firstMediaAltCandidate(item);
 				altInput.setAttribute('data-toolbox-media-alt-caption-accepted-alt', '');
 				altInput.placeholder = t('Write concise ALT text');
+				altInput.addEventListener('input', () => updateMediaAltCaptionHandoffButton(section));
 				altField.appendChild(altInput);
 				body.appendChild(altField);
-				const captionField = el('label', 'npcink-toolbox__alt-review-field');
-				captionField.appendChild(el('span', '', 'Optional caption'));
-				const captionInput = document.createElement('textarea');
-				captionInput.rows = 2;
-				captionInput.value = String(item.accepted_caption || item.caption_candidate || '');
-				captionInput.setAttribute('data-toolbox-media-alt-caption-accepted-caption', '');
-				captionInput.placeholder = t('Optional caption suggestion');
-				captionField.appendChild(captionInput);
-				body.appendChild(captionField);
+				if (item.caption_candidate) {
+					body.appendChild(el('small', 'npcink-toolbox__muted', 'Caption suggestions are not applied by this ALT batch action.'));
+				}
 				const evidence = asObject(item.image_context_evidence);
 				if (evidence.visual_summary) {
 					body.appendChild(el('small', '', t('Image clue: ') + String(evidence.visual_summary)));
@@ -2401,7 +2488,7 @@
 			const selectedCount = el('strong', '', String(selectedItems.length));
 			selectedCount.setAttribute('data-toolbox-media-alt-caption-selected-count', '');
 			actions.appendChild(selectedCount);
-			const handoffButton = el('button', 'button button-primary', 'Submit selected rows for Core review');
+			const handoffButton = el('button', 'button button-primary', 'Submit and update selected ALT');
 			handoffButton.type = 'button';
 			handoffButton.setAttribute('data-toolbox-media-alt-caption-handoff', '');
 			handoffButton.addEventListener('click', async () => {
@@ -2410,17 +2497,33 @@
 					return;
 				}
 				handoffButton.disabled = true;
-				handoffButton.textContent = t('Preparing Core review...');
+				handoffButton.textContent = t('Submitting selected ALT...');
 				try {
 					const plan = await postJson(config.restUrl, 'flows/media-alt-caption-review-plan', {
 						selected_items: selected,
 						review_set: reviewSet
 					});
-					renderMediaAltCaptionHandoffPlan(section, plan);
+					if (!config.adapterRestUrl) {
+						renderMediaAltCaptionHandoffPlan(section, plan);
+						return;
+					}
+					const actions = asArray(plan.selected_actions);
+					const results = [];
+					let failed = null;
+					for (let index = 0; index < actions.length; index += 1) {
+						handoffButton.textContent = t('Submitting ALT ') + String(index + 1) + t(' of ') + String(actions.length) + '...';
+						try {
+							results.push(await submitAndExecuteMediaAltCaptionAction(actions[index], index));
+						} catch (error) {
+							failed = error;
+							break;
+						}
+					}
+					renderMediaAltCaptionExecutionSummary(section, plan, results, failed);
 				} catch (error) {
-					section.appendChild(el('div', 'npcink-toolbox__result-notice is-error', error && error.message ? error.message : 'Could not prepare Core review.'));
+					section.appendChild(el('div', 'npcink-toolbox__result-notice is-error', error && error.message ? error.message : 'Could not submit ALT updates.'));
 				} finally {
-					handoffButton.textContent = t('Submit selected rows for Core review');
+					handoffButton.textContent = t('Submit and update selected ALT');
 					updateMediaAltCaptionHandoffButton(section);
 				}
 			});
@@ -3599,6 +3702,22 @@
 		return asObject(firstFilled([payload.result, execution.result], {}));
 	}
 
+	async function executeCoreProposalFromBatchState(state, index) {
+		const proposalId = proposalIdFromResponse(state && state.batchProposalResult);
+		if (!proposalId) {
+			throw { message: 'Core did not return a proposal id for this selected preview.' };
+		}
+		return postJson(
+			config.adapterRestUrl,
+			'proposals/' + encodeURIComponent(proposalId) + '/approve-and-execute',
+			{
+				note: 'Approved from Toolbox batch image optimization after selected preview review. Core policy owns approval, preflight, audit, and execution.',
+				source: 'toolbox_batch_image_optimization_review',
+				batch_index: index,
+			}
+		);
+	}
+
 	function renderMediaDerivativeRun(form, state, message) {
 		const payload = state.result || state.create || {};
 		const derivative = state.derivative || derivativeFromResult(payload);
@@ -4463,21 +4582,33 @@
 			}
 
 		const proposals = [];
+		const executions = [];
 		let failed = null;
+		let executionBlocked = 0;
 			for (let index = 0; index < states.length; index += 1) {
 				const state = states[index];
-				renderTextResult(form, t('Submitting review request ') + String(index + 1) + t(' of ') + String(states.length) + '...', 'pending');
+				renderTextResult(form, t('Submitting and requesting Core execution ') + String(index + 1) + t(' of ') + String(states.length) + '...', 'pending');
 				try {
 				const proposal = await postJson(config.adapterRestUrl, 'proposals', {
 					ability_id: 'npcink-abilities-toolkit/adopt-cloud-media-derivative',
 					title: 'Replace media file with Cloud derivative',
-					summary: 'Review one short-lived Cloud derivative artifact before local WordPress media replacement. Final writes require Core approval and preflight.',
+					summary: 'Review one short-lived Cloud derivative artifact before local WordPress media replacement. Core policy may approve and execute automatically only when allowed.',
 					input: proposalInputFromState(state),
 					preview: state.proposalPayload,
 				});
 				state.batchProposalResult = proposal;
 				state.batchStatus = 'submitted';
 				proposals.push(proposal);
+				try {
+					const execution = await executeCoreProposalFromBatchState(state, index);
+					state.batchExecutionResult = execution;
+					state.batchStatus = 'executed';
+					executions.push(execution);
+				} catch (executionError) {
+					state.batchExecutionError = executionError;
+					state.batchStatus = 'execution_blocked';
+					executionBlocked += 1;
+				}
 			} catch (error) {
 				state.batchProposalError = error;
 				state.batchStatus = 'proposal_failed';
@@ -4488,20 +4619,28 @@
 			renderMediaDerivativeBatchResults(
 				form,
 				states,
-				failed ? 'Batch review submission stopped' : 'Batch review requests submitted',
-				failed ? 'One selected preview failed before all review requests were submitted. Review the failed item and retry after revision.' : 'Selected previews are now waiting for review. WordPress media is not changed here.',
+				failed ? 'Batch submission stopped' : 'Batch submission finished',
+				failed ? 'One selected preview failed before all requests were submitted. Review the failed item and retry after revision.' : 'Selected previews were submitted. Core executed policy-allowed items and kept blocked items in review.',
 				{
 					selected_count: states.length,
 					submitted_count: proposals.length,
+					executed_count: executions.length,
 					failed_count: failed ? 1 : 0,
+					blocked_count: executionBlocked,
+					partial_success: executions.length > 0 && (executionBlocked > 0 || failed),
 					retryable: Boolean(failed),
-					operator_next_action: failed ? 'Resolve the failed item before submitting the remaining previews.' : 'Continue approval and final media changes in the review system.',
-					retry_guidance: failed ? 'Retry after revising the failed preview, authorization, or review input.' : 'If more media are needed, rebuild the review list rather than reusing stale previews.',
+					operator_next_action: failed ? 'Resolve the failed item before submitting the remaining previews.' : (executionBlocked ? 'Review blocked items in Core before execution.' : 'Review execution records in Core if needed.'),
+					retry_guidance: failed ? 'Retry after revising the failed preview, authorization, or review input.' : 'If Core policy blocked execution, adjust policy or complete review in Core rather than retrying from Toolbox.',
 				}
 			);
 			const result = form.querySelector('.npcink-toolbox__result');
 			if (result) {
-				result.appendChild(createRawDetails({ proposals, failed: failed ? formatErrorMessage(failed) : null }, 'Review request details'));
+				result.appendChild(createRawDetails({
+					proposals,
+					executions,
+					blocked_execution_count: executionBlocked,
+					failed: failed ? formatErrorMessage(failed) : null,
+				}, 'Core submission and execution details'));
 			}
 		}
 

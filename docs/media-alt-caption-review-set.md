@@ -1,6 +1,6 @@
 # Media ALT/Caption Review Set
 
-Status: P0 review-only contract.
+Status: P0 reviewed ALT proposal path.
 
 ## Purpose
 
@@ -10,7 +10,10 @@ review images already used by one article and inspect possible ALT or caption
 text before any governed write path exists. Recent media-library sampling stays
 available only as an explicit advanced fallback.
 
-This stage is intentionally not a media metadata writer.
+This stage is intentionally not a Toolbox-owned media metadata writer. The
+admin UI may submit reviewed ALT-only proposal payloads through Adapter and ask
+Core to approve and execute them. Core policy remains the only place that can
+auto-approve a low-risk ALT update.
 
 ## Contract
 
@@ -54,6 +57,21 @@ Required operational fields:
 - `retryable`;
 - `retry_guidance`;
 - per-item `status`, `review_reasons`, and `result_ref`.
+
+The follow-up `/flows/media-alt-caption-review-plan` response is
+`media_alt_caption_core_handoff_plan.v1`. It may include per-row
+`proposal_payload` objects for
+`npcink-abilities-toolkit/update-media-details` with only:
+
+- `attachment_id`;
+- `alt`;
+- `dry_run=true`;
+- `commit=false`;
+- an idempotency key.
+
+Caption, title, description, source, and attribution fields are not part of
+the batch ALT auto-execution path. If they are present, Core must keep the
+proposal in manual review or reject the candidate.
 
 ## Source Boundary
 

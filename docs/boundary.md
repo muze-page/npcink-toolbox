@@ -434,14 +434,16 @@ The dedicated batch admin surface may call
 `npcink-abilities-toolkit/build-media-derivative-batch-plan` through Adapter
 `run-read-ability` for selected attachment IDs or bounded bulk requests such as
 date-range format conversion. The batch surface may show candidates, skipped
-reasons, selected per-attachment previews, and selected Core proposal
-submissions. It must still use the per-attachment Adapter media derivative
-recipe for Cloud artifacts and must not create a Toolbox-side media registry,
-approval queue, scheduler, or write executor.
-When "replace original image" becomes available for selected batch items, it
-must be the Adapter/Core/Abilities approved execution path: Core approval and
-preflight first, Adapter allowlisted execution second, Abilities media
-replacement callback last. Toolbox may show Adapter's per-action results and
+reasons, selected per-attachment previews, selected Core proposal submissions,
+and a policy-gated Adapter/Core execution request for selected proposals. It
+must still use the per-attachment Adapter media derivative recipe for Cloud
+artifacts and must not create a Toolbox-side media registry, approval queue,
+scheduler, or write executor.
+When selected batch items are submitted and executed, it must be the
+Adapter/Core/Abilities approved execution path: Core approval and preflight
+first, Adapter allowlisted execution second, Abilities media replacement
+callback last. If Core policy blocks automatic execution, the proposal remains
+pending for Core review. Toolbox may show Adapter's per-action results and
 rollback evidence, but it must not update attachment files or URL references
 directly.
 

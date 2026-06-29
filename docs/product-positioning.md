@@ -118,9 +118,11 @@ and the final write goes through Core proposal governance.
 Media optimization is the first fixed governed media workflow. Toolbox may
 present `media_optimization_v1` through media-library single-image actions and
 a Toolbox Batch Optimize Images workbench, with visible steps from media
-selection through Cloud preview and Core proposal handoff, but it must not add
-a workflow runtime, persistent run store, media registry, approval path,
-provider routing UI, or direct WordPress write executor.
+selection through Cloud preview, Core proposal handoff, and policy-gated
+Adapter/Core execution for selected proposals. Core policy decides whether
+automatic execution is allowed or the proposal stays pending for review. Toolbox
+must not add a workflow runtime, persistent run store, media registry, approval
+path, provider routing UI, or direct WordPress write executor.
 Batch media conversion and direct replacement should reuse the same
 OpenClaw/Adapter/Core/Abilities replacement path once the OpenClaw batch
 contract is accepted; Toolbox should not duplicate attachment replacement or URL
