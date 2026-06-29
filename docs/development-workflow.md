@@ -574,7 +574,7 @@ test:all` because it performs real local media replacements and requires
 Adapter, Core, Abilities, Cloud Addon, and Cloud runtime availability.
 
 Before adding another media or batch surface, run the
-[Media Optimization Operator Trial](media-optimization-operator-trial.md). The
+[Media Optimization Operator Trial](archive/2026-06/media-optimization-operator-trial.md). The
 trial records 5 to 10 low-risk real attachments, checks that selected batch
 work stays at or below the UI cap of 10 candidates, and verifies that operators
 understand preview, Core review, execution, partial failure recovery, and
