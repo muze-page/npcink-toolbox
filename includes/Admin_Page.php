@@ -487,7 +487,6 @@ final class Admin_Page {
 				<button type="button" class="npcink-toolbox__tab is-active" data-toolbox-tab-target="start" aria-selected="true"><?php esc_html_e( 'Overview', 'npcink-toolbox' ); ?></button>
 				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="context" aria-selected="false"><?php esc_html_e( 'Site Profile', 'npcink-toolbox' ); ?></button>
 				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="tools" aria-selected="false"><?php esc_html_e( 'Image Handling', 'npcink-toolbox' ); ?></button>
-				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="content-preparation" aria-selected="false"><?php esc_html_e( 'Content Review', 'npcink-toolbox' ); ?></button>
 				<button type="button" class="npcink-toolbox__tab" data-toolbox-tab-target="advanced" aria-selected="false"><?php esc_html_e( 'Advanced', 'npcink-toolbox' ); ?></button>
 			</nav>
 
@@ -505,10 +504,6 @@ final class Admin_Page {
 
 			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="tools" aria-label="<?php esc_attr_e( 'Image handling', 'npcink-toolbox' ); ?>" hidden>
 				<?php $this->render_tool_cards( $cloud_ready, 'image' ); ?>
-			</section>
-
-			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="content-preparation" aria-label="<?php esc_attr_e( 'Content review', 'npcink-toolbox' ); ?>" hidden>
-				<?php $this->render_tool_cards( $cloud_ready, 'content-preparation' ); ?>
 			</section>
 
 			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="advanced" aria-label="<?php esc_attr_e( 'Advanced Toolbox entries', 'npcink-toolbox' ); ?>" hidden>
@@ -3392,19 +3387,7 @@ final class Admin_Page {
 					'button'      => __( 'Scan and generate suggestions', 'npcink-toolbox' ),
 					'custom'      => 'media_alt_caption_review',
 			),
-			array(
-				'surface'     => 'content-preparation',
-				'group'       => __( 'Content Opportunities', 'npcink-toolbox' ),
-				'group_id'    => 'content-checks',
-				'id'          => 'ai-content-snapshot-suggestions',
-				'endpoint'    => 'ai/site-helpers',
-				'title'       => __( 'Content Opportunity Check', 'npcink-toolbox' ),
-				'description' => __( 'Review a small public-content sample and find practical opportunities to update, expand, link, or add images. It does not generate articles or change content.', 'npcink-toolbox' ),
-				'intent'      => 'content_snapshot_suggestions',
-				'button'      => __( 'Find content opportunities', 'npcink-toolbox' ),
-				'custom'      => 'hosted_ai_site_helper',
-			),
-		);
+			);
 
 		$tools = array_values(
 			array_filter(
@@ -3427,11 +3410,7 @@ final class Admin_Page {
 					'title'       => __( 'Batch Image ALT', 'npcink-toolbox' ),
 					'description' => __( 'Review selected image ALT suggestions before submitting them for review.', 'npcink-toolbox' ),
 				),
-				'content-checks'    => array(
-					'title'       => __( 'Content Opportunity Checks', 'npcink-toolbox' ),
-					'description' => __( 'Find practical update, linking, expansion, or image opportunities from a bounded public-content sample.', 'npcink-toolbox' ),
-				),
-			);
+				);
 		$group_counts = array();
 		foreach ( $tools as $tool ) {
 			$group_id = (string) ( $tool['group_id'] ?? '' );
@@ -3441,17 +3420,12 @@ final class Admin_Page {
 			$group_counts[ $group_id ] = (int) ( $group_counts[ $group_id ] ?? 0 ) + 1;
 		}
 
-		$surface_header = 'content-preparation' === $surface ? array(
-			'title'             => __( 'Content Review', 'npcink-toolbox' ),
-			'description'       => __( 'Find practical update, linking, expansion, or image opportunities from public content samples. Article writing stays with the editor.', 'npcink-toolbox' ),
-			'scope_title'       => __( 'Opportunity checks only', 'npcink-toolbox' ),
-			'scope_description' => __( 'This page returns reviewable suggestions only. Reviewed draft import remains available through REST and Abilities when a real import workflow exists.', 'npcink-toolbox' ),
-		) : array(
-			'title'             => __( 'Image Handling', 'npcink-toolbox' ),
-			'description'       => __( 'Use the media library for one image, or use this page for selected image batches. Content review lives in its own tab.', 'npcink-toolbox' ),
-			'scope_title'       => __( 'Image tasks', 'npcink-toolbox' ),
-			'scope_description' => __( 'Batch work starts from selected media-library images or a bounded sample. Nothing is written automatically.', 'npcink-toolbox' ),
-		);
+			$surface_header = array(
+				'title'             => __( 'Image Handling', 'npcink-toolbox' ),
+				'description'       => __( 'Use the media library for one image, or use this page for selected image batches. Full-site content opportunities start from Overview.', 'npcink-toolbox' ),
+				'scope_title'       => __( 'Image tasks', 'npcink-toolbox' ),
+				'scope_description' => __( 'Batch work starts from selected media-library images or a bounded sample. Nothing is written automatically.', 'npcink-toolbox' ),
+			);
 		?>
 		<div class="npcink-toolbox__panel-header">
 			<h2><?php echo esc_html( (string) $surface_header['title'] ); ?></h2>
@@ -3537,19 +3511,6 @@ final class Admin_Page {
 								(string) $tool['intent'],
 								(string) $tool['button'],
 								'hosted_ai' === (string) ( $tool['powered_by'] ?? '' ),
-								0 === $index,
-								$cloud_ready
-							);
-							continue;
-						}
-						if ( 'hosted_ai_site_helper' === (string) ( $tool['custom'] ?? '' ) ) {
-							$this->render_hosted_ai_site_helper_tool(
-								(string) $tool['endpoint'],
-								(string) $tool['title'],
-								(string) $tool['description'],
-								(string) $tool['id'],
-								(string) $tool['intent'],
-								(string) $tool['button'],
 								0 === $index,
 								$cloud_ready
 							);
@@ -3661,29 +3622,6 @@ final class Admin_Page {
 			<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php echo esc_html( $button ); ?></button>
 			<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
 		</form>
-		<?php
-	}
-
-	private function render_hosted_ai_site_helper_tool( string $endpoint, string $title, string $description, string $tool_id, string $intent, string $button, bool $active = false, bool $cloud_ready = true ): void {
-		?>
-		<form class="npcink-toolbox__card" data-toolbox-endpoint="<?php echo esc_attr( $endpoint ); ?>" data-toolbox-tool-panel="<?php echo esc_attr( $tool_id ); ?>" <?php echo $active ? '' : 'hidden'; ?>>
-				<h2><?php echo esc_html( $title ); ?></h2>
-				<p><?php echo esc_html( $description ); ?></p>
-				<?php if ( ! $cloud_ready ) : ?>
-					<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before running AI site helpers.', 'npcink-toolbox' ); ?></div>
-				<?php endif; ?>
-				<input type="hidden" name="intent" value="<?php echo esc_attr( $intent ); ?>" />
-				<div class="npcink-toolbox__example is-ai">
-					<strong><?php esc_html_e( 'Content opportunity helper', 'npcink-toolbox' ); ?></strong>
-					<span><?php esc_html_e( 'Toolbox sends a limited public-content sample to Cloud and returns reviewable suggestions only. No media, content, SEO, or proposal data is changed.', 'npcink-toolbox' ); ?></span>
-				</div>
-				<label>
-					<span><?php esc_html_e( 'Focus area', 'npcink-toolbox' ); ?></span>
-					<textarea name="focus" rows="3" placeholder="<?php esc_attr_e( 'Optional: product pages, tutorials, recent campaigns, one category, or a problem to review', 'npcink-toolbox' ); ?>"></textarea>
-				</label>
-				<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php echo esc_html( $button ); ?></button>
-				<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-			</form>
 		<?php
 	}
 

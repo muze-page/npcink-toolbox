@@ -27,9 +27,10 @@ The first version provides:
   candidate artifact path, and Toolbox may prepare a Core-governed article
   audio adoption plan with lightweight source-content freshness evidence, but
   does not adopt, import, regenerate, or write audio itself;
-- a content opportunity helper that samples recent, older, missing-image, and
-  taxonomy-backed public content to find bounded update, linking, expansion,
-  or image opportunities; media
+- a route-only content opportunity helper intent that samples recent, older,
+  missing-image, and taxonomy-backed public content for bounded update,
+  linking, expansion, or image opportunities; operator-facing site opportunity
+  review lives in **Full-site Insights**; media
   ALT/caption helper contracts stay available for editor-sidebar use and future
   batch review sets, but the standalone admin tool is not exposed;
 - a **Full-site Insights** tab that builds a local
@@ -322,8 +323,10 @@ button; it must not create a separate batch writer.
 The article plan flow and `npcink-toolbox/build-article-write-plan` ability
 assemble a Core-ready `article_write_plan` for a reviewed draft. They do not
 call Core, approve proposals, publish content, or write WordPress data.
-The admin **Content Review** surface keeps site content opportunity checks as
-the default path. The reviewed-draft write-plan route and Ability stay
+The **Full-site Insights** surface is the operator-facing path for site content
+opportunities. The bounded content snapshot helper remains available through
+`/ai/site-helpers` for route/internal composition, while the reviewed-draft
+write-plan route and Ability stay
 available for machine clients, future Cloud bulk import, and explicit API
 composition, but they are not exposed as a backend operator tool while there is
 no active external-draft import workflow.
@@ -471,8 +474,9 @@ and publish-readiness support because those actions need the current article con
 **Workflows** tab stays focused on site helpers, fallback
 bundles, governed handoffs, and media planning rather than draft-side writing
 buttons.
-The admin Content Review surface keeps only the bounded site content
-opportunity check. Reviewed draft write-plan contracts remain available only
+Full-site Insights owns site-level content opportunity review. The bounded
+`content_snapshot_suggestions` helper remains route-only for hosted AI
+composition, and reviewed draft write-plan contracts remain available only
 through REST and Abilities for future bulk import or machine-client composition.
 Media ALT/caption helper contracts remain available to editor-sidebar flows and
 future batch review sets, where the operator has either current article context

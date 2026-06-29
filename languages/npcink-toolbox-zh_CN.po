@@ -5717,8 +5717,8 @@ msgstr "审核交接"
 msgid "Use only after reviewed inputs exist and a Core-ready handoff is needed."
 msgstr "仅在已有审阅输入且需要 Core-ready 交接时使用。"
 
-msgid "Use the media library for one image, or use this page for selected image batches. Content review lives in its own tab."
-msgstr "单张图片请从媒体库进入；批量处理所选图片时使用本页。内容检查在单独标签页中。"
+msgid "Use the media library for one image, or use this page for selected image batches. Full-site content opportunities start from Overview."
+msgstr "单张图片请从媒体库进入；批量处理所选图片时使用本页。全站内容机会请从概览开始。"
 
 msgid "Image tasks"
 msgstr "图片任务"

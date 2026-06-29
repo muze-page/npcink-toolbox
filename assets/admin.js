@@ -6335,9 +6335,6 @@
 		if (tab === 'tools') {
 			return 'image';
 		}
-		if (tab === 'content-preparation') {
-			return 'content';
-		}
 		return tab;
 	}
 
@@ -6345,10 +6342,20 @@
 		if (tab === 'image') {
 			return 'tools';
 		}
-		if (tab === 'content') {
-			return 'content-preparation';
+		if (tab === 'content' || tab === 'content-preparation') {
+			return 'operations-insights';
 		}
 		return tab;
+	}
+
+	function isRetiredContentTool(tool) {
+		return [
+			'ai-content-snapshot-suggestions',
+			'image-candidate-adoption',
+			'article-brief',
+			'article-assistant',
+			'article-plan',
+		].includes(tool);
 	}
 
 	function publicToolForToolboxTool(tool) {
@@ -6459,7 +6466,7 @@
 	}
 
 	function updateUrlForTopTab(target) {
-		if (target === 'tools' || target === 'content-preparation') {
+		if (target === 'tools') {
 			const workspace = toolWorkspaceForTab(target);
 			updateToolboxUrl(toolUrlState(workspace, workspace ? activeTarget(workspace, '[data-toolbox-tool-target]', 'data-toolbox-tool-target') : ''));
 			return;
@@ -6601,23 +6608,17 @@
 		let tab = requestedTab;
 		let canonicalizeLegacyConnector = false;
 		let canonicalizeToolUrl = false;
+		let canonicalizeRetiredContentUrl = (rawRequestedTab === 'content' || rawRequestedTab === 'content-preparation') && !rawRequestedTool;
 
 		if (rawRequestedTool === 'optimize' || rawRequestedTool === 'media-derivative') {
 			requestedTool = 'media-batch-optimize';
 			canonicalizeToolUrl = true;
 		}
-			if (rawRequestedTool === 'image-candidate-adoption') {
-				requestedTool = 'ai-content-snapshot-suggestions';
-				canonicalizeToolUrl = true;
-			}
-			if (rawRequestedTool === 'article-brief') {
-				requestedTool = 'ai-content-snapshot-suggestions';
-				canonicalizeToolUrl = true;
-			}
-			if (rawRequestedTool === 'article-assistant' || rawRequestedTool === 'article-plan') {
-				requestedTool = 'ai-content-snapshot-suggestions';
-				canonicalizeToolUrl = true;
-			}
+		if (isRetiredContentTool(rawRequestedTool)) {
+			requestedTool = '';
+			tab = 'operations-insights';
+			canonicalizeRetiredContentUrl = true;
+		}
 
 		const requestedToolWorkspace = requestedTool ? toolWorkspaceForTarget(requestedTool) : null;
 		const requestedToolTab = requestedToolWorkspace ? toolboxTabForWorkspace(requestedToolWorkspace) : '';
@@ -6647,11 +6648,21 @@
 		if (tab) {
 			activateTopTab(tab, false);
 		}
-		if ((tab === 'tools' || tab === 'content-preparation') && requestedTool) {
+		if (tab === 'tools' && requestedTool) {
 			activateToolPanel(requestedTool, false, toolWorkspaceForTab(tab) || requestedToolWorkspace);
 			if (canonicalizeToolUrl) {
 				updateToolboxUrl(toolUrlState(toolWorkspaceForTab(tab) || requestedToolWorkspace, requestedTool));
 			}
+		}
+		if (canonicalizeRetiredContentUrl) {
+			updateToolboxUrl({
+				tab: null,
+				tool: null,
+				toolbox_tab: 'operations-insights',
+				toolbox_tool: null,
+				toolbox_cloud_check: null,
+				toolbox_cloud_check_group: null,
+			});
 		}
 		if (tab === 'cloud-checks' && requestedCloudCheck) {
 			activateCloudCheckPanel(requestedCloudCheck, false);
