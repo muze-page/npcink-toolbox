@@ -343,10 +343,12 @@ and the result is suggestion-only. This route must not claim full-site
 crawling, site-health scoring, analytics/indexing coverage, image-pixel
 inspection, media-library batch updates, local queues, proposal creation,
 approval, or WordPress writes.
-The backend admin surface exposes content opportunity checks and selected media
-ALT/caption review sets. Content opportunity checks use bounded public samples
-for reviewable update, linking, expansion, or image suggestions only; they are
-not full-site audits, content generators, local crawlers, or write plans.
+The backend admin surface exposes selected media ALT/caption review sets. The
+`content_snapshot_suggestions` intent remains route-only/internal for bounded
+public samples, while operator-facing site opportunity review belongs in
+Full-site Insights. Those samples may support reviewable update, linking,
+expansion, or image suggestions only; they are not full-site audits, content
+generators, local crawlers, or write plans.
 Current article media ALT support belongs in the editor sidebar; backend batch
 media ALT support must stay on the explicit selected review-set surface and
 must not become a whole-library update path.
@@ -432,14 +434,16 @@ The dedicated batch admin surface may call
 `npcink-abilities-toolkit/build-media-derivative-batch-plan` through Adapter
 `run-read-ability` for selected attachment IDs or bounded bulk requests such as
 date-range format conversion. The batch surface may show candidates, skipped
-reasons, selected per-attachment previews, and selected Core proposal
-submissions. It must still use the per-attachment Adapter media derivative
-recipe for Cloud artifacts and must not create a Toolbox-side media registry,
-approval queue, scheduler, or write executor.
-When "replace original image" becomes available for selected batch items, it
-must be the Adapter/Core/Abilities approved execution path: Core approval and
-preflight first, Adapter allowlisted execution second, Abilities media
-replacement callback last. Toolbox may show Adapter's per-action results and
+reasons, selected per-attachment previews, selected Core proposal submissions,
+and a policy-gated Adapter/Core execution request for selected proposals. It
+must still use the per-attachment Adapter media derivative recipe for Cloud
+artifacts and must not create a Toolbox-side media registry, approval queue,
+scheduler, or write executor.
+When selected batch items are submitted and executed, it must be the
+Adapter/Core/Abilities approved execution path: Core approval and preflight
+first, Adapter allowlisted execution second, Abilities media replacement
+callback last. If Core policy blocks automatic execution, the proposal remains
+pending for Core review. Toolbox may show Adapter's per-action results and
 rollback evidence, but it must not update attachment files or URL references
 directly.
 

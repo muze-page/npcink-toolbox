@@ -331,11 +331,11 @@ actually execute the request.
 
 `/ai/site-helpers` is the hosted AI contract for narrow site-helper suggestions:
 bounded content opportunity samples, editor/sidebar current-article image
-metadata, or a future explicitly selected media review set. The standalone
-admin tool exposes only content opportunity checks over a small mix of recent
-content, older content, missing-featured-image content, and top taxonomy terms;
-single-article media ALT/caption review belongs in the editor sidebar, and
-batch media review needs a selected review-set surface. The route returns a
+metadata, or an explicitly selected media review set. The content opportunity
+intent remains route-only/internal; operator-facing site opportunity review
+belongs in Full-site Insights, not a standalone backend tool. Single-article
+media ALT/caption review belongs in the editor sidebar, and batch media review
+needs a selected review-set surface. The route returns a
 `hosted_ai_site_helper` artifact and must not become a crawler, scoring engine,
 batch media updater, proposal creator, or local queue.
 When the post editor needs ALT suggestions, `/editor/content-support` passes a
@@ -401,8 +401,11 @@ back into the discoverability panel while preserving the
 The backend Image Handling tab uses the same hosted site-helper intent only for
 an explicit small media-library review set. Operators can select returned
 items and call `/flows/media-alt-caption-review-plan` to prepare a
-`media_alt_caption_core_handoff_plan.v1` for later Core review; Toolbox does
-not submit, approve, execute, or write media metadata.
+`media_alt_caption_core_handoff_plan.v1`. The plan contains ALT-only proposal
+payloads that the admin UI may submit through Adapter and then request Core
+`approve-and-execute`. Core policy owns auto-approval, execution, and audit;
+Toolbox still does not directly write media metadata, and caption edits stay
+manual-review work.
 The standalone discoverability result is a post-publish optimization task
 panel: SEO title, SEO description, slug, and excerpt are shown as actionable
 review tasks. SEO title and description use the governed SEO handoff, then ask
@@ -512,26 +515,28 @@ Content Assistant product-surface discipline:
 4. keep provider raw responses and complete payloads inside collapsed result
    disclosures.
 
-The **Reviewed Draft Handoff** fallback tool has a dedicated panel for reviewed
-draft title, draft body, SEO hints, and risk level. Its result renderer shows
-`article_write_plan` workflow artifacts, the risk report, the final
-`npcink-abilities-toolkit/create-draft` action, and the Core from-plan handoff route. It does
-not submit the plan to Core or approve execution.
+The reviewed-draft write-plan flow remains available through REST and the
+`npcink-toolbox/build-article-write-plan` Ability for machine clients, future
+Cloud bulk import, and explicit API composition. It is no longer exposed as a
+backend admin tool because there is no active external-draft import workflow;
+the ordinary operator path is the editor sidebar plus Full-site Insights for
+site-level opportunities.
 
 The admin page defaults to an **Overview** surface for ordinary site owners,
 with one recommended next action, compact status rows for AI service, Site
 Profile, and safe mode, followed by common site/image next steps plus one
 folded advanced directory. Single-post article support stays in the post editor
 sidebar and is not rendered as an Overview work block. The visible top-level
-admin tabs after Overview are **Site Profile**, **Image Handling**,
-**Content Review**, and **Advanced**. **Full-site Insights** remains a
+admin tabs after Overview are **Site Profile**, **Image Handling**, and
+**Advanced**. **Full-site Insights** remains a
 secondary deep-link panel and is the Overview page's recommended site-check
 action; it builds a local
 `site_ops_insight_pack.v1` from bounded public content, approved comment signal
 counts, media metadata, taxonomy summaries, Site Context readiness, and Cloud
 availability, then presents it as a current-run full-site analysis report with
 coverage metrics, lightweight charts, deterministic local summary, content,
-media, comments, structure, findings, Cloud analysis, and advanced data views.
+media, comments, structure, findings, Cloud analysis, and advanced data views,
+including site content opportunity findings.
 It can also prepare a copyable
 `site_ops_cloud_analysis_request.v1` for Cloud runtime/detail analysis. The
 local preview does not auto-send the request; when Cloud is ready, the
@@ -556,11 +561,13 @@ single-article image text helper; article-specific image text needs current
 editor context in the editor sidebar. The separate **Batch Image ALT** group
 builds a small selected media-library review set and can prepare a Core handoff
 draft without creating a proposal or writing media metadata. The separate
-**Content Review** tab owns site content opportunity checks and reviewed draft handoffs.
+standalone content opportunity admin tool is retired; site-level opportunities
+are reviewed through Full-site Insights.
 The old Article Planning Bundle is not an operator-facing admin tool;
 `/flows/article-brief` remains available only as a compatibility REST route for
-OpenClaw or external AI callers, and the old `tool=article-assistant` URL falls
-back to the reviewed draft Core handoff.
+OpenClaw or external AI callers. The old `tool=article-assistant` and
+`tool=article-plan` URLs fall back to Full-site Insights instead of restoring
+draft-side backend tools.
 Batch entry points use `tab=image&tool=bulk-alt` and
 `tab=image&tool=batch-optimize`; deprecated `tool=optimize` and legacy
 `toolbox_tool=media-derivative` URLs remain accepted only as compatibility

@@ -93,7 +93,7 @@ not belong in Toolbox.
 The admin page should default to Overview: one recommended site-level action,
 compact readiness rows for AI service, Site Profile, and safe mode, site-level
 and media next actions, and one folded advanced directory. The visible
-top-level tabs are Overview, Site Profile, Image Handling, Content Review,
+top-level tabs are Overview, Site Profile, Image Handling,
 and Advanced; Full-site Insights, Site Knowledge, and Cloud Checks remain
 secondary deep-link panels. Overview should not render a single-post
 article-support work block.
@@ -131,9 +131,14 @@ Article-level featured-image recommendation and media brief planning belong in t
 Image ALT is a separate selected media-library review-set surface that can
 prepare a Core handoff draft without scanning the whole library, creating
 proposals, approving, executing, or writing media metadata.
-The separate Content Review tab contains site content opportunity checks and
-reviewed draft handoffs. The old article-brief and article-assistant URLs remain
-compatibility paths, not operator-facing admin tools or public Abilities. Batch media entry points use
+The separate Content Review tab and standalone content opportunity tool are
+retired. Site content opportunity review belongs in Full-site Insights; the
+bounded `content_snapshot_suggestions` helper remains route-only/internal for
+hosted AI composition.
+Reviewed draft write plans remain route/Ability-only for future import
+workflows and machine clients. The old article-brief, article-assistant, and
+article-plan URLs remain compatibility paths that fall back to Full-site
+Insights, not operator-facing admin tools. Batch media entry points use
 `tab=image&tool=bulk-alt` and `tab=image&tool=batch-optimize`;
 deprecated `tool=optimize` and legacy `toolbox_tool=media-derivative` URLs
 canonicalize to Batch Optimize Images. The
@@ -211,7 +216,7 @@ General-purpose provider abilities:
   media upload, metadata, and optional featured-image proposal intake.
   This is consumed by editor-side image adoption and machine clients, not by a
   standalone Toolbox admin button. The old `tool=image-candidate-adoption`
-  admin URL is deprecated and should fall back to Content Review defaults.
+  admin URL is deprecated and should fall back to Full-site Insights.
 - `npcink-toolbox/search-site-knowledge` is the Cloud-managed site knowledge
   ability for semantic site search, related content, writing context, internal
   links, refresh suggestions, or image context. When Cloud returns

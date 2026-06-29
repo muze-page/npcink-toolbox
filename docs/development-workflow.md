@@ -557,8 +557,8 @@ Adapter `run-read-ability`, generates selected Cloud previews, builds reviewed
 media optimization proposal payloads, and creates two Core review proposals. It
 does not approve, preflight, execute, or replace media files.
 
-For the selected batch execution proof behind the fixed "replace original
-image" button, run:
+For the selected batch execution proof behind the fixed "Submit and execute"
+button, run:
 
 ```bash
 composer smoke:media-derivative-batch-execute
