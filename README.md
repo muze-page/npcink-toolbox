@@ -1,8 +1,13 @@
-# Npcink Toolbox
+# Npcink Workflow Toolbox
 
-Npcink Toolbox is an operator-facing WordPress plugin for Cloud-managed web
+Npcink Workflow Toolbox turns proven AI-assisted WordPress operations into
+fixed, review-only buttons for site operators, including Cloud-managed web
 search, Cloud-managed image-source candidates, Cloud-managed site knowledge,
-and fixed-flow AI actions.
+and governed handoff flows. The WordPress.org release slug is
+`npcink-workflow-toolbox`. The first-version runtime contracts keep the
+existing `npcink-toolbox` REST namespace, ability ids, option names, and hook
+names for compatibility with Core, Adapter, Cloud, and existing site
+integrations.
 
 It is intentionally separate from:
 
@@ -15,8 +20,9 @@ It is intentionally separate from:
 
 The first version provides:
 
-- a Npcink admin page at **Npcink -> Toolbox** when a Npcink host menu
-  exists, with a **Tools -> Npcink Toolbox** fallback for standalone installs;
+- a Npcink admin page at **Npcink -> Workflow Toolbox** when a Npcink host menu
+  exists, with a **Tools -> Npcink Workflow Toolbox** fallback for standalone
+  installs;
 - a post editor **Npcink Content Support** sidebar for title suggestions,
   article checkup, outline support, summary suggestions, taxonomy/tag,
   internal-link, image, and publish readiness support around human-written

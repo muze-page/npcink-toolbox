@@ -2,15 +2,15 @@
 
 Status: active for the first Toolbox build.
 
-Npcink Toolbox is the WordPress operator-facing AI tool surface: it gives
-site owners and editors buttons for Cloud-managed web search, Cloud-managed
-image-source candidates, Cloud-managed site knowledge abilities, and repeatable
-AI-assisted content-support workflows.
+Npcink Workflow Toolbox is the WordPress operator-facing AI workflow surface:
+it gives site owners and editors fixed buttons for Cloud-managed web search,
+Cloud-managed image-source candidates, Cloud-managed site knowledge abilities,
+and repeatable AI-assisted content-support workflows.
 
 ## One-Sentence Positioning
 
-Npcink Toolbox turns WordPress content-support abilities into safe,
-click-driven operator tools around human-written articles.
+Npcink Workflow Toolbox turns proven AI-assisted WordPress operations and
+content-support abilities into fixed, review-only buttons for site operators.
 
 ## Relationship To OpenClaw
 
@@ -72,7 +72,7 @@ semantics.
 
 ## Non-Goals
 
-Npcink Toolbox does not own:
+Npcink Workflow Toolbox does not own:
 
 - Core proposal records, approvals, audit logs, or app-key governance;
 - reusable WordPress ability packages owned by `npcink-abilities-toolkit`;
@@ -88,7 +88,7 @@ Npcink Toolbox does not own:
 | --- | --- |
 | `npcink-governance-core` | Governance, proposal records, approval boundaries, audit logs, and host policy. |
 | `npcink-abilities-toolkit` | Reusable WordPress Abilities API definitions, schemas, callbacks, and dry-run previews. |
-| `npcink-toolbox` | Operator tool UI, fixed workflow buttons, content discoverability context, configured external research, optional result reading, Cloud-managed image-source candidates, and Cloud-managed site knowledge actions. |
+| `npcink-workflow-toolbox` | Operator tool UI, fixed workflow buttons, content discoverability context, configured external research, optional result reading, Cloud-managed image-source candidates, and Cloud-managed site knowledge actions. Runtime REST routes, ability ids, options, and hook names keep the first-version `npcink-toolbox` contract for compatibility. |
 | Provider connector plugins | Durable provider configuration, key rotation, quotas, billing, and request logs when those surfaces mature. |
 
 ## Design Rule
