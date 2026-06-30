@@ -558,9 +558,10 @@ Brief** panel reached from the Advanced Planning/Handoff group. They do not
 live inside Cloud Checks. That keeps Morning Brief preview and Cloud run
 recovery separate from ordinary connection diagnostics. These controls do not
 belong in the visible top-level tabs or default Overview view, and Full-site
-Insights remains the ordinary manual site-check report. Site Knowledge status
-and refresh controls live in the secondary **Site Content Index** panel reached
-from the Advanced Setup group, not as a default top-level tab. Advanced is the
+Insights remains the ordinary manual site-check report. Site Knowledge
+connection, refresh, indexing, and deep delivery detail live in
+`npcink-cloud-addon`; Toolbox keeps only a secondary **Content Library Usage**
+panel for read-only status and best-practice result consumption. Advanced is the
 single low-frequency directory and groups secondary links as Setup,
 Review, and Planning/Handoff instead of duplicating them on
 Overview.
@@ -698,8 +699,8 @@ panel. Cloud connection checks, hosted runtime health, provider/search/image
 diagnostics, key verification, entitlement, quota, billing, request logs,
 content-operations coverage, and Agent quality summaries belong in
 `npcink-cloud-addon` or Cloud service-plane surfaces. Toolbox keeps only
-task-owned product panels: Site Content Index for explicit content index
-operations, Full-site Insights for manual site reports, Morning Brief for
+task-owned product panels: Content Library Usage for read-only Site Knowledge
+status/result consumption, Full-site Insights for manual site reports, Morning Brief for
 scheduled-review preview and bounded Cloud run recovery, and Image Handling for
 selected-media review/handoff flows. Cloud runtime routes may remain bounded
 call sites for those product workflows, but standalone diagnostics do not live

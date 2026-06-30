@@ -57,10 +57,11 @@ review detail.
 Cloud diagnostics no longer render as a Toolbox panel. Cloud connection,
 hosted runtime, search/image-source, entitlement, quota, and service health
 checks belong in Cloud Addon or Cloud service-plane surfaces. Site Knowledge
-status and refresh controls stay in the secondary **Content Library Setup**
-panel reached from Advanced. The Advanced page is now the single low-frequency
-directory and groups entries as Setup, Review, and Planning/Handoff instead of
-duplicating secondary links on Overview. Nightly Inspection local fallback
+connection, refresh, indexing, and delivery detail belong in Cloud Addon; the
+secondary **Content Library Usage** panel remains a compatibility/read-only
+usage surface and is not linked from Advanced. The Advanced page is now the
+single low-frequency directory and groups entries as Review and
+Planning/Handoff instead of duplicating secondary links on Overview. Nightly Inspection local fallback
 settings, Pro Cloud Runtime quota/detail, and Cloud run recovery stay in the
 dedicated Morning Brief panel instead of competing with the Start page's
 primary operator entries.
@@ -116,7 +117,7 @@ Browser verification during the earlier consolidation pass confirmed:
 - Full-site Insights owns site content opportunity review; reviewed draft write
   plans remain route/Ability-only.
 - Site Knowledge returned `200` after Cloud quota was updated.
-- Content Library Setup status rendered as ready with no console warning or
+- Content Library Usage status rendered as ready with no console warning or
   error.
 
 The final browser session was no longer logged in, so the last localization and

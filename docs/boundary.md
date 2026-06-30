@@ -536,8 +536,9 @@ Cloud Addon Monitoring.
 
 Toolbox product surfaces stay task-owned:
 
-- **Site Content Index** owns explicit content indexing/search setup and review
-  handoff context.
+- **Content Library Usage** owns read-only Site Knowledge status/result
+  consumption and review handoff context. Cloud Addon owns connector state,
+  refresh, indexing, and delivery detail.
 - **Full-site Insights** owns manual read-only site reports and explicit Cloud
   analysis requests.
 - **Morning Brief** owns scheduled-review preview, local fallback settings, and

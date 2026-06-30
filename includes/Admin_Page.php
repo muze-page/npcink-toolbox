@@ -510,7 +510,7 @@ final class Admin_Page {
 				<?php $this->render_advanced_panel(); ?>
 			</section>
 
-			<section class="npcink-toolbox__panel npcink-toolbox__panel--secondary" data-toolbox-tab-panel="site-knowledge" aria-label="<?php esc_attr_e( 'Site content index', 'npcink-workflow-toolbox' ); ?>" hidden>
+			<section class="npcink-toolbox__panel npcink-toolbox__panel--secondary" data-toolbox-tab-panel="site-knowledge" aria-label="<?php esc_attr_e( 'Content library usage', 'npcink-workflow-toolbox' ); ?>" hidden>
 				<?php $this->render_site_knowledge_panel( $cloud_ready ); ?>
 			</section>
 
@@ -631,20 +631,10 @@ final class Admin_Page {
 		?>
 		<div class="npcink-toolbox__panel-header">
 			<h2><?php esc_html_e( 'Advanced', 'npcink-workflow-toolbox' ); ?></h2>
-			<p><?php esc_html_e( 'Use these entries only when you need setup, occasional review tools, or governed handoff previews.', 'npcink-workflow-toolbox' ); ?></p>
+			<p><?php esc_html_e( 'Use these entries only when you need occasional review tools or governed handoff previews.', 'npcink-workflow-toolbox' ); ?></p>
 		</div>
 
 		<section class="npcink-toolbox__advanced-home" aria-label="<?php esc_attr_e( 'Advanced Toolbox directory', 'npcink-workflow-toolbox' ); ?>">
-			<div class="npcink-toolbox__advanced-group">
-				<div class="npcink-toolbox__advanced-group-heading">
-					<h3><?php esc_html_e( 'Setup', 'npcink-workflow-toolbox' ); ?></h3>
-					<p><?php esc_html_e( 'Prepare reference context before running review tools.', 'npcink-workflow-toolbox' ); ?></p>
-				</div>
-				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=site-knowledge' ) ); ?>">
-					<strong><?php esc_html_e( 'Site content index', 'npcink-workflow-toolbox' ); ?></strong>
-					<span><?php esc_html_e( 'Let AI suggestions use existing public posts and pages for links, duplicate checks, and site context.', 'npcink-workflow-toolbox' ); ?></span>
-				</a>
-			</div>
 			<div class="npcink-toolbox__advanced-group">
 				<div class="npcink-toolbox__advanced-group-heading">
 					<h3><?php esc_html_e( 'Review', 'npcink-workflow-toolbox' ); ?></h3>
@@ -667,6 +657,16 @@ final class Admin_Page {
 			</div>
 		</section>
 		<?php
+	}
+
+	private function cloud_addon_details_url(): string {
+		return add_query_arg(
+			array(
+				'page' => 'npcink-cloud-addon',
+				'tab'  => 'details',
+			),
+			admin_url( 'admin.php' )
+		);
 	}
 
 	private function site_ops_insights_preview_url(): string {
@@ -2728,15 +2728,15 @@ final class Admin_Page {
 	private function render_site_knowledge_panel( bool $cloud_ready ): void {
 		?>
 		<div class="npcink-toolbox__panel-header">
-			<h2><?php esc_html_e( 'Site Content Index', 'npcink-workflow-toolbox' ); ?></h2>
-			<p><?php esc_html_e( 'Refresh the public content AI can search for links, duplicate checks, and site context. This does not edit posts or pages.', 'npcink-workflow-toolbox' ); ?></p>
+			<h2><?php esc_html_e( 'Content Library Usage', 'npcink-workflow-toolbox' ); ?></h2>
+			<p><?php esc_html_e( 'Toolbox uses Cloud-managed Site Knowledge as suggestion context for fixed best-practice flows. Connection, refresh, indexing, and diagnostics live in Cloud Addon.', 'npcink-workflow-toolbox' ); ?></p>
 		</div>
 
 		<div class="npcink-toolbox__site-knowledge" data-toolbox-site-knowledge>
 				<section class="npcink-toolbox__card">
 					<div class="npcink-toolbox__section-heading">
 						<div>
-							<h3><?php esc_html_e( 'Index status', 'npcink-workflow-toolbox' ); ?></h3>
+							<h3><?php esc_html_e( 'Library status', 'npcink-workflow-toolbox' ); ?></h3>
 							<p><?php esc_html_e( 'Read-only coverage summary for public content AI can use as suggestion context.', 'npcink-workflow-toolbox' ); ?></p>
 						</div>
 						<button type="button" class="button" data-toolbox-site-knowledge-status <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Refresh status', 'npcink-workflow-toolbox' ); ?></button>
@@ -2752,28 +2752,13 @@ final class Admin_Page {
 					</div>
 				</section>
 
-			<section class="npcink-toolbox__card">
-				<h3><?php esc_html_e( 'Index actions', 'npcink-workflow-toolbox' ); ?></h3>
-				<p><?php esc_html_e( 'Start or refresh the public content library used by AI suggestions. Advanced cleanup stays outside this page.', 'npcink-workflow-toolbox' ); ?></p>
-				<form data-toolbox-site-knowledge-sync>
-					<input type="hidden" name="sync_mode" value="refresh" />
-					<input type="hidden" name="max_posts" value="20" />
-					<p class="description"><?php esc_html_e( 'Toolbox sends the latest public posts and pages. Approved comments are included only when the hosted service enables comment indexing.', 'npcink-workflow-toolbox' ); ?></p>
-					<div class="npcink-toolbox__inline-actions">
-							<button
-								type="submit"
-								class="button button-primary"
-								data-toolbox-site-knowledge-sync-submit
-								data-start-label="<?php esc_attr_e( 'Start indexing', 'npcink-workflow-toolbox' ); ?>"
-								data-refresh-label="<?php esc_attr_e( 'Refresh index', 'npcink-workflow-toolbox' ); ?>"
-								<?php echo disabled( ! $cloud_ready, true, false ); ?>
-							><?php esc_html_e( 'Start indexing', 'npcink-workflow-toolbox' ); ?></button>
-						</div>
-						<?php if ( ! $cloud_ready ) : ?>
-							<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Indexing is disabled until the AI service connection is available.', 'npcink-workflow-toolbox' ); ?></div>
-						<?php endif; ?>
-						<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-				</form>
+			<section class="npcink-toolbox__info-panel">
+				<h3><?php esc_html_e( 'Manage content library in Cloud Addon', 'npcink-workflow-toolbox' ); ?></h3>
+				<p><?php esc_html_e( 'Use Cloud Addon for connector state, public content refresh requests, and Site Knowledge delivery diagnostics. Toolbox keeps only the review and suggestion workflows that consume those results.', 'npcink-workflow-toolbox' ); ?></p>
+				<div class="npcink-toolbox__inline-actions">
+					<a class="button button-primary" href="<?php echo esc_url( $this->cloud_addon_details_url() ); ?>"><?php esc_html_e( 'Open Cloud Addon', 'npcink-workflow-toolbox' ); ?></a>
+				</div>
+				<p class="description"><?php esc_html_e( 'The compatibility ability and REST contracts remain available for existing callers, but daily index operations are no longer surfaced in Toolbox.', 'npcink-workflow-toolbox' ); ?></p>
 			</section>
 
 			<section class="npcink-toolbox__info-panel">

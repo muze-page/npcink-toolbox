@@ -29,8 +29,9 @@ or Cloud service-plane surfaces.
 
 Toolbox keeps only task-owned product surfaces:
 
-- Site Content Index for explicit Site Knowledge setup, status, search, and
-  governed review handoff context.
+- Content Library Usage for read-only Site Knowledge status, result
+  consumption, search checks, and governed review handoff context. Connection,
+  refresh, indexing, and detailed delivery diagnostics live in Cloud Addon.
 - Full-site Insights for manual read-only site analysis and explicit Cloud
   analysis requests.
 - Morning Brief for scheduled-review preview, local fallback settings, Cloud

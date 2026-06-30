@@ -662,17 +662,18 @@ it owns the public content-change bridge for Site Knowledge. Toolbox then shows
 that bridge health in the Site Knowledge status response and does not register
 its legacy local auto-sync hooks. Standalone installs without the Cloud Addon
 bridge show an install-and-verify requirement instead of running a Toolbox-owned
-fallback queue. Manual Site Knowledge sync remains available from Toolbox, but
-automatic public-change delivery belongs to Cloud Addon. Toolbox does not store
-provider credentials, run embeddings locally, own the index lifecycle, or write
-WordPress content.
+fallback queue. Manual Site Knowledge sync remains as a compatibility REST and
+Ability contract for existing callers, but the operator-facing connection,
+refresh, indexing, and detailed delivery status live in Cloud Addon. Toolbox
+does not store provider credentials, run embeddings locally, own the index
+lifecycle, or write WordPress content.
 
-The admin **Site Knowledge** tab lets operators start or refresh the
-Cloud-managed index and inspect coverage without configuring vector provider
-keys in Toolbox. Cloud owns embedding, vector storage, and detailed run health;
-Toolbox only starts explicit sync requests, displays returned status, and
-surfaces Cloud Addon bridge health when automatic public-change delivery is
-available.
+The secondary **Content Library Usage** panel is read-only from a daily
+operator perspective. It displays coverage/status returned by Cloud-managed
+Site Knowledge and points setup or refresh work to Cloud Addon. Toolbox keeps
+the best-practice flows that consume those results, such as internal-link
+candidates, duplicate checks, publish preflight context, and governed review
+handoff preparation.
 Standalone Cloud diagnostics are not exposed in Toolbox. Cloud Addon owns the
 WordPress-side Cloud connection, hosted runtime status, search/image-source
 diagnostics, entitlement, quota, billing, request logs, and service health

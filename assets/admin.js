@@ -4694,7 +4694,6 @@
 				feedbackSummary.appendChild(createRawDetails(error, 'Agent feedback summary error'));
 			}
 		});
-		updateSiteKnowledgeActionState(root, payload);
 		return payload;
 	}
 
@@ -6177,49 +6176,9 @@
 		});
 	}
 
-	function setSiteKnowledgeSyncBusy(form, busy) {
-		const submitButton = form.querySelector('[data-toolbox-site-knowledge-sync-submit]') || form.querySelector('button[type="submit"]');
-		if (!submitButton) {
-			return;
-		}
-		if (!submitButton.__npcinkOriginalText) {
-			submitButton.__npcinkOriginalText = submitButton.textContent;
-		}
-		submitButton.disabled = busy;
-		submitButton.setAttribute('aria-busy', busy ? 'true' : 'false');
-		submitButton.textContent = busy ? 'Sending index request...' : submitButton.__npcinkOriginalText;
-	}
-
-	function updateSiteKnowledgeActionState(root, payload) {
-		const button = root.querySelector('[data-toolbox-site-knowledge-sync-submit]');
-		if (!button) {
-			return;
-		}
-		const modeInput = root.querySelector('[data-toolbox-site-knowledge-sync] input[name="sync_mode"]');
-		const coverage = payload && payload.coverage && typeof payload.coverage === 'object' ? payload.coverage : {};
-		const indexedChunks = Number(coverage.indexed_chunks || 0);
-		const hasIndex = indexedChunks > 0;
-		const active = siteKnowledgeStatusStillActive(payload);
-		const startLabel = button.getAttribute('data-start-label') || 'Start indexing';
-		const refreshLabel = button.getAttribute('data-refresh-label') || 'Refresh index';
-		button.dataset.indexState = hasIndex ? 'ready' : 'empty';
-		button.__npcinkOriginalText = hasIndex ? refreshLabel : startLabel;
-		if (modeInput) {
-			modeInput.value = hasIndex ? 'rebuild' : 'refresh';
-		}
-		button.disabled = active;
-		button.setAttribute('aria-busy', active ? 'true' : 'false');
-		button.textContent = active ? siteKnowledgeActiveButtonLabel(payload) : button.__npcinkOriginalText;
-	}
-
 	function siteKnowledgeStatusStillActive(payload) {
 		const status = String(payload && payload.status ? payload.status : '').toLowerCase();
 		return status === 'queued' || status === 'running' || status === 'syncing';
-	}
-
-	function siteKnowledgeActiveButtonLabel(payload) {
-		const status = String(payload && payload.status ? payload.status : '').toLowerCase();
-		return status === 'queued' ? 'Index refresh queued...' : 'Indexing in Cloud...';
 	}
 
 	function siteKnowledgeActiveStatusMessage(payload) {
@@ -6228,20 +6187,6 @@
 			return 'Index refresh is queued in Cloud. Search results may not include the latest changes yet.';
 		}
 		return 'Cloud is still indexing. Search results may not include the latest changes until status is ready.';
-	}
-
-	async function pollSiteKnowledgeStatus(root, attempts) {
-		let payload = null;
-		for (let index = 0; index < attempts; index += 1) {
-			payload = await refreshSiteKnowledgeStatus(root);
-			if (!siteKnowledgeStatusStillActive(payload)) {
-				return payload;
-			}
-			await new Promise((resolve) => {
-				window.setTimeout(resolve, 2000);
-			});
-		}
-		return payload;
 	}
 
 	function initSiteKnowledge() {
@@ -6266,32 +6211,6 @@
 					}
 				});
 			});
-
-			const syncForm = root.querySelector('[data-toolbox-site-knowledge-sync]');
-			if (syncForm) {
-				syncForm.addEventListener('submit', async (event) => {
-					event.preventDefault();
-					let latestPayload = null;
-					setSiteKnowledgeSyncBusy(syncForm, true);
-					setSiteKnowledgeButtonsBusy(root, true);
-					try {
-						const payload = await runSiteKnowledgeForm(syncForm, 'site-knowledge/sync');
-						if (siteKnowledgeStatusStillActive(payload)) {
-							latestPayload = await pollSiteKnowledgeStatus(root, 60);
-						} else {
-							latestPayload = await refreshSiteKnowledgeStatus(root);
-						}
-					} catch (error) {
-						renderTextResult(syncForm, error.message || 'Site knowledge sync failed.', 'error');
-					} finally {
-						setSiteKnowledgeButtonsBusy(root, false);
-						setSiteKnowledgeSyncBusy(syncForm, false);
-						if (latestPayload) {
-							updateSiteKnowledgeActionState(root, latestPayload);
-						}
-					}
-				});
-			}
 
 			const searchForm = root.querySelector('[data-toolbox-site-knowledge-search]');
 			if (searchForm) {

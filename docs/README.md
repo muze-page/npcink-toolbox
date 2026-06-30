@@ -67,6 +67,7 @@ Start from the active documents below before changing code.
 
 - [Article Assistant Workbench](article-assistant-workbench.md)
 - [Cloud Diagnostics Transition Summary](cloud-diagnostics-transition-summary.md)
+- [Site Knowledge UI Migration Closeout](archive/2026-06/site-knowledge-ui-migration-closeout-2026-06-30.md)
 - [Cloud Bulk Article Import](cloud-bulk-article-import.md)
 - [Content Assistant Surface Lessons](content-assistant-surface-lessons.md)
 - [OpenClaw Content Discoverability Handoff](openclaw-content-discoverability-handoff.md)

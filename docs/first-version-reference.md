@@ -74,10 +74,11 @@ Toolbox does not expose a Cloud Checks or Troubleshooting Checks panel in the
 first version. Cloud connection checks, hosted runtime health, provider/search
 or image diagnostics, Cloud API key verification, entitlement, billing, quota,
 request logs, and service monitoring belong in Cloud Addon or Cloud
-service-plane surfaces. Toolbox keeps task-owned product panels only: Site
-Content Index for explicit content index operations, Full-site Insights for
-manual site reports, Morning Brief for scheduled-review preview and bounded
-Cloud run recovery, and Image Handling for selected-media review/handoff flows.
+service-plane surfaces. Toolbox keeps task-owned product panels only: Content
+Library Usage for read-only Site Knowledge status/result consumption,
+Full-site Insights for manual site reports, Morning Brief for scheduled-review
+preview and bounded Cloud run recovery, and Image Handling for selected-media
+review/handoff flows.
 Cloud runtime routes may remain bounded call sites for those workflows.
 Standalone diagnostics do not live in Toolbox. Marketplace, provider routing,
 vector provider settings, and vector lifecycle controls do not belong in
@@ -230,9 +231,10 @@ Site knowledge status and sync:
 
 - `npcink-toolbox/get-site-knowledge-status` reads Cloud-managed coverage
   and freshness state.
-- `npcink-toolbox/request-site-knowledge-sync` requests bounded Cloud sync
-  or rebuild work from public WordPress content. It does not write WordPress
-  content and does not create a local indexing queue.
+- `npcink-toolbox/request-site-knowledge-sync` remains a compatibility contract
+  for existing callers. Operator-facing refresh and detailed delivery status
+  live in Cloud Addon; the ability does not write WordPress content and does
+  not create a local indexing queue.
 
 Site Knowledge Agent handoff acceptance:
 
