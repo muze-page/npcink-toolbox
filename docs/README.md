@@ -57,6 +57,7 @@ Start from the active documents below before changing code.
 - [Media ALT/Caption Review Set](media-alt-caption-review-set.md)
 - [Media ALT/Caption Toolkit Validation Plan](media-alt-caption-toolkit-validation-plan.md)
 - [Site Check Operator Loop](full-site-insights-operator-loop.md)
+- [Site Check Decision Entry Closeout](site-check-decision-entry-closeout-2026-06-30.md)
 - [Batch Automation Governance Plan](batch-automation-governance-plan.md)
 - [Nightly Inspection Cross-Repo Handoff Checklist](nightly-inspection-cross-repo-handoff-checklist.md)
 - [Nightly Inspection Pro Cloud Runtime Acceptance](nightly-inspection-pro-cloud-runtime-acceptance.md)
