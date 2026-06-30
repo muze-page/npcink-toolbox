@@ -8,6 +8,12 @@ review queue, then help the operator decide whether each item stays manual,
 moves into an existing Toolbox workflow, needs optional Cloud detail, or should
 later move into a Core-governed handoff path.
 
+It is also the ordinary site-maintenance starting point. Low-frequency
+scheduled review and Nightly/Morning Brief preview remain available as a folded
+Scheduled Review path. Cloud run recovery is linked from that path to Cloud
+Addon Runtime Runs, but operators should not need to understand that runtime
+path before using Site Check.
+
 ## Purpose
 
 The current purpose is not "operations only", not "article analysis only", and

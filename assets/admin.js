@@ -5264,17 +5264,17 @@
 			button.textContent = 'Sending...';
 		}
 		statusNode.className = 'npcink-toolbox__result-notice is-pending';
-		statusNode.textContent = 'Sending Morning Brief feedback to Cloud eval...';
+		statusNode.textContent = 'Sending scheduled review feedback to Cloud eval...';
 		try {
 			const receipt = await postJson(config.restUrl, 'agent-feedback', nightlyCloudFeedbackPayload(payload, item, outcome, labels));
 			statusNode.className = 'npcink-toolbox__result-notice is-ok';
 			statusNode.textContent = receipt && receipt.accepted_for_eval
-				? 'Morning Brief feedback accepted for Cloud eval. WordPress approval and writes remain local.'
-				: 'Morning Brief feedback sent. WordPress approval and writes remain local.';
+				? 'Scheduled review feedback accepted for Cloud eval. WordPress approval and writes remain local.'
+				: 'Scheduled review feedback sent. WordPress approval and writes remain local.';
 			refreshVisibleAgentFeedbackSummaries();
 		} catch (error) {
 			statusNode.className = 'npcink-toolbox__result-notice is-error';
-			statusNode.textContent = (error && error.message ? error.message : 'Could not send Morning Brief feedback.') + ' WordPress approval and writes remain local.';
+			statusNode.textContent = (error && error.message ? error.message : 'Could not send scheduled review feedback.') + ' WordPress approval and writes remain local.';
 		} finally {
 			if (button) {
 				button.disabled = false;
@@ -5287,7 +5287,7 @@
 		const feedback = el('div', 'npcink-toolbox__result-feedback');
 		feedback.setAttribute('data-toolbox-nightly-agent-feedback', 'true');
 		feedback.setAttribute('data-toolbox-agent-feedback-quick', 'true');
-		feedback.appendChild(el('h4', '', 'Morning Brief feedback'));
+		feedback.appendChild(el('h4', '', 'Scheduled review feedback'));
 		const actions = el('div', 'npcink-toolbox__result-actions');
 		const status = el('div', 'npcink-toolbox__result-notice is-pending', 'Feedback updates Cloud eval only. Core approval, preflight, and final WordPress writes stay local.');
 		const options = [
@@ -5300,7 +5300,7 @@
 		options.forEach((option) => {
 			const button = el('button', 'button button-small', option.label);
 			button.type = 'button';
-			button.title = 'Send metadata-only Morning Brief feedback to Cloud eval.';
+			button.title = 'Send metadata-only scheduled review feedback to Cloud eval.';
 			button.setAttribute('data-toolbox-nightly-feedback-outcome', option.outcome);
 			button.setAttribute('data-toolbox-nightly-feedback-labels', option.labels.join(','));
 			button.addEventListener('click', () => submitNightlyCloudFeedback(status, payload, item, button, option.outcome, option.labels));
@@ -5369,7 +5369,7 @@
 		const selectedIds = nightlyCloudSelectedReviewItemIds(selectedItems);
 		const evidenceRefs = selectedItems.map((item, index) => ({
 			action_id: selectedIds[index] || '',
-			title: String((item && item.title) || 'Morning Brief review item').slice(0, 180),
+			title: String((item && item.title) || 'Scheduled review item').slice(0, 180),
 			object_type: String((item && item.object_type) || '').slice(0, 64),
 			object_id: String((item && item.object_id) || '').slice(0, 128),
 			score: Number.isFinite(Number(item && item.score)) ? Number(item.score) : null,
@@ -5382,7 +5382,7 @@
 		const idempotencyBasis = [runId || 'nightly-inspection', selectedIds.join(','), fields.title].join('|');
 		return {
 			ability_id: 'npcink-abilities-toolkit/create-draft',
-			title: 'Create draft from Nightly Morning Brief',
+			title: 'Create draft from scheduled review',
 			summary: 'Review a completed draft prepared from selected Nightly Intelligence evidence. Core approval and execution remain local.',
 			input: {
 				title: fields.title,
@@ -5444,7 +5444,7 @@
 		const originalText = button ? button.textContent : '';
 		if (!selectedItems.length) {
 			statusNode.className = 'npcink-toolbox__result-notice is-warning';
-			statusNode.textContent = 'Select at least one Morning Brief review item before creating a Core proposal.';
+			statusNode.textContent = 'Select at least one scheduled review item before creating a Core proposal.';
 			return;
 		}
 		if (!config.adapterRestUrl) {
@@ -5468,7 +5468,7 @@
 				selected_items: selectedItems,
 				core_intake_package: nightlyCloudCoreIntakePackage(payload)
 			});
-			statusNode.textContent = 'Submitting selected Morning Brief items to Core proposal intake...';
+			statusNode.textContent = 'Submitting selected scheduled review items to Core proposal intake...';
 			const bridge = await postJson(config.adapterRestUrl, 'proposals/from-plan', {
 				plan_ability_id: 'npcink-toolbox/build-nightly-inspection-review-plan',
 				plan,
@@ -5485,20 +5485,20 @@
 			});
 			renderProposalCreated(root, proposalFromPlanResponse(bridge), {
 				title: 'Nightly Inspection review proposal submitted',
-				summary: 'Core created a blocked review proposal from selected Morning Brief evidence. Human title and content input are required before approval, preflight, or execution can proceed.',
+				summary: 'Core created a blocked review proposal from selected scheduled review evidence. Human title and content input are required before approval, preflight, or execution can proceed.',
 				rawTitle: 'Core Nightly Inspection review response',
 				receiptContext: {
 					handoffType: 'nightly_inspection_review_plan',
 					sourceItemId: 'morning_brief_selected_review_items',
-					sourceLabel: 'Morning Brief selected review items',
+					sourceLabel: 'Scheduled review selected items',
 					targetAbilityId: 'npcink-abilities-toolkit/create-draft',
 				},
 			});
 		} catch (error) {
-			renderCoreHandoffStatusError(statusNode, error, 'Could not submit selected Morning Brief items to Core.', {
+			renderCoreHandoffStatusError(statusNode, error, 'Could not submit selected scheduled review items to Core.', {
 				handoffType: 'nightly_inspection_review_plan',
 				sourceItemId: 'morning_brief_selected_review_items',
-				sourceLabel: 'Morning Brief selected review items',
+				sourceLabel: 'Scheduled review selected items',
 				targetAbilityId: 'npcink-abilities-toolkit/create-draft',
 			}, 'Core review submission error');
 		} finally {
@@ -5516,7 +5516,7 @@
 		const originalText = button ? button.textContent : '';
 		if (!selectedItems.length) {
 			statusNode.className = 'npcink-toolbox__result-notice is-warning';
-			statusNode.textContent = 'Select at least one Morning Brief review item before creating a completed Core proposal.';
+			statusNode.textContent = 'Select at least one scheduled review item before creating a completed Core proposal.';
 			return;
 		}
 		if (!fields.title || !fields.content) {
@@ -5535,7 +5535,7 @@
 			button.textContent = 'Submitting completed draft...';
 		}
 		statusNode.className = 'npcink-toolbox__result-notice is-pending';
-		statusNode.textContent = 'Submitting completed Morning Brief draft to Core proposal intake...';
+		statusNode.textContent = 'Submitting completed scheduled review draft to Core proposal intake...';
 
 		try {
 			const proposal = await postJson(
@@ -5545,20 +5545,20 @@
 			);
 			renderProposalCreated(root, proposalFromPlanResponse(proposal), {
 				title: 'Nightly Inspection draft proposal submitted',
-				summary: 'Core created a complete draft proposal from selected Morning Brief evidence. Review, approval, preflight, and execution remain in Core/Adapter.',
+				summary: 'Core created a complete draft proposal from selected scheduled review evidence. Review, approval, preflight, and execution remain in Core/Adapter.',
 				rawTitle: 'Core Nightly Inspection completed draft response',
 				receiptContext: {
 					handoffType: 'nightly_inspection_completed_draft',
 					sourceItemId: 'morning_brief_completed_draft',
-					sourceLabel: 'Morning Brief completed draft',
+					sourceLabel: 'Scheduled review completed draft',
 					targetAbilityId: 'npcink-abilities-toolkit/create-draft',
 				},
 			});
 		} catch (error) {
-			renderCoreHandoffStatusError(statusNode, error, 'Could not submit the completed Morning Brief draft to Core.', {
+			renderCoreHandoffStatusError(statusNode, error, 'Could not submit the completed scheduled review draft to Core.', {
 				handoffType: 'nightly_inspection_completed_draft',
 				sourceItemId: 'morning_brief_completed_draft',
-				sourceLabel: 'Morning Brief completed draft',
+				sourceLabel: 'Scheduled review completed draft',
 				targetAbilityId: 'npcink-abilities-toolkit/create-draft',
 			}, 'Completed draft submission error');
 		} finally {
@@ -5578,7 +5578,7 @@
 			return;
 		}
 
-		const section = createSection('Morning Brief review queue');
+		const section = createSection('Scheduled review queue');
 		const topSummary = brief.top_summary && typeof brief.top_summary === 'object' ? brief.top_summary : {};
 		const meta = el('div', 'npcink-toolbox__result-meta');
 		appendMeta(meta, 'Scanned', topSummary.items_scanned);
@@ -5671,7 +5671,7 @@
 			contentInput.placeholder = 'Reviewed draft content for Core proposal review';
 			contentLabel.appendChild(contentInput);
 			completedDraft.appendChild(contentLabel);
-			completedDraft.appendChild(el('p', '', 'Use this only after the selected Morning Brief evidence has been turned into reviewed draft text. Core remains the approval and execution surface.'));
+			completedDraft.appendChild(el('p', '', 'Use this only after the selected scheduled review evidence has been turned into reviewed draft text. Core remains the approval and execution surface.'));
 			handoff.appendChild(completedDraft);
 			const actions = el('div', 'npcink-toolbox__result-actions');
 			const submit = el('button', 'button button-primary', 'Submit selected to Core review');
@@ -5766,7 +5766,7 @@
 		if (mergedCount !== null && mergedCount > 0) {
 			return {
 				label: String(mergedCount) + ' local priorities',
-				description: 'Review the matched Morning Brief priorities before proposal work.'
+				description: 'Review the matched scheduled review priorities before proposal work.'
 			};
 		}
 		if (actionCount !== null && actionCount > 0) {
@@ -5846,7 +5846,7 @@
 		const section = createSection('Core handoff');
 		section.appendChild(strip);
 		if (hasMerged) {
-			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Review the merged Morning Brief locally, then open Core for proposal work. Final approval and WordPress writes stay in Core.'));
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Review the merged scheduled review locally, then open Core for proposal work. Final approval and WordPress writes stay in Core.'));
 			const actions = el('div', 'npcink-toolbox__result-actions');
 			if (config.coreAdminUrl) {
 				actions.appendChild(createLink(config.coreAdminUrl, 'Review in Core'));
@@ -5938,8 +5938,8 @@
 		renderNightlyCloudHandoff(result, payload, patch, merged);
 
 		if (merged.cloud_runtime) {
-			result.appendChild(el('div', 'npcink-toolbox__result-notice is-success', 'Cloud scoring was merged into the local Morning Brief preview for review.'));
-			result.appendChild(createRawDetails(merged, 'Advanced details: merged Morning Brief'));
+			result.appendChild(el('div', 'npcink-toolbox__result-notice is-success', 'Cloud scoring was merged into the local scheduled review preview for review.'));
+			result.appendChild(createRawDetails(merged, 'Advanced details: merged scheduled review'));
 		} else if (!nightlyCloudTerminal(payload)) {
 			result.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Cloud run is still processing. This panel will check briefly after submit; manual status and result reads remain available.'));
 		} else if (nightlyCloudSucceeded(payload)) {
@@ -5971,7 +5971,7 @@
 			morning_brief: nightlyCloudLocalMorningBrief(root)
 		});
 		setNightlyCloudRunId(root, nightlyCloudRunIdFromPayload(payload) || runId);
-		renderNightlyCloudBatchPayload(root, payload, 'Cloud inspection result', 'Cloud scoring was automatically merged into the local review-only Morning Brief preview.');
+		renderNightlyCloudBatchPayload(root, payload, 'Cloud inspection result', 'Cloud scoring was automatically merged into the local review-only scheduled review preview.');
 		return payload;
 	}
 
@@ -6081,7 +6081,7 @@
 				morning_brief: nightlyCloudLocalMorningBrief(root)
 			});
 			setNightlyCloudRunId(root, nightlyCloudRunIdFromPayload(payload) || runId);
-			renderNightlyCloudBatchPayload(root, payload, 'Cloud inspection result', 'Cloud scoring was returned as a review-only Morning Brief patch.');
+			renderNightlyCloudBatchPayload(root, payload, 'Cloud inspection result', 'Cloud scoring was returned as a review-only scheduled review patch.');
 			return payload;
 		} catch (error) {
 			if (error && (Number(error.status) === 409 || String(error.code || '').toLowerCase().indexOf('not_terminal') >= 0 || String(error.message || '').toLowerCase().indexOf('not terminal') >= 0)) {

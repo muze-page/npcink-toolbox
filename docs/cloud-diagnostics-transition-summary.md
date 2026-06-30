@@ -34,8 +34,8 @@ Toolbox keeps only task-owned product surfaces:
   refresh, indexing, and detailed delivery diagnostics live in Cloud Addon.
 - Site Check for manual read-only site checks and explicit Cloud detail
   requests.
-- Morning Brief for scheduled-review preview, local fallback settings, Cloud
-  entitlement display, and bounded Cloud run recovery.
+- Morning Brief for scheduled-review preview and local fallback settings; Cloud
+  run status, result reads, and recovery now live in Cloud Addon Runtime Runs.
 - Image Handling for selected-media review, derivative preview, and governed
   handoff flows.
 

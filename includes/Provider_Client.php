@@ -3304,7 +3304,7 @@ final class Provider_Client {
 		if ( empty( $selected_items ) ) {
 			return new WP_Error(
 				'npcink_toolbox_nightly_inspection_review_items_required',
-				__( 'Select at least one Morning Brief review item before creating a Core proposal.', 'npcink-workflow-toolbox' ),
+				__( 'Select at least one scheduled review item before creating a Core proposal.', 'npcink-workflow-toolbox' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -3347,7 +3347,7 @@ final class Provider_Client {
 
 			$evidence_refs[] = array(
 				'action_id'               => $action_id,
-				'title'                   => $this->bounded_text( sanitize_text_field( (string) ( $item['title'] ?? __( 'Morning Brief review item', 'npcink-workflow-toolbox' ) ) ), 160 ),
+				'title'                   => $this->bounded_text( sanitize_text_field( (string) ( $item['title'] ?? __( 'Scheduled review item', 'npcink-workflow-toolbox' ) ) ), 160 ),
 				'object_type'             => $object_type,
 				'object_id'               => $object_id,
 				'post_id'                 => absint( $item['post_id'] ?? ( 'post' === $object_type ? $object_id : 0 ) ),
@@ -3438,7 +3438,7 @@ final class Provider_Client {
 					'commit_execution'  => false,
 					'proposal_ready'    => false,
 					'requires_input'    => array( 'title', 'content' ),
-					'reason'            => __( 'Morning Brief found reviewable content quality signals. Human draft title and content are required before execution can be considered.', 'npcink-workflow-toolbox' ),
+					'reason'            => __( 'Scheduled review found reviewable content quality signals. Human draft title and content are required before execution can be considered.', 'npcink-workflow-toolbox' ),
 				),
 			),
 			'handoff'                => array(

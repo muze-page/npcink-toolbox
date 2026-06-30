@@ -77,9 +77,10 @@ request logs, and service monitoring belong in Cloud Addon or Cloud
 service-plane surfaces. Toolbox keeps task-owned product panels only: Content
 Library Usage for read-only Site Knowledge status/result consumption,
 Site Check for manual site reports, Morning Brief for scheduled-review
-preview and bounded Cloud run recovery, and Image Handling for selected-media
-review/handoff flows.
-Cloud runtime routes may remain bounded call sites for those workflows.
+preview and local fallback settings, and Image Handling for selected-media
+review/handoff flows. Nightly Inspection Cloud run recent/status/result/retry
+detail lives in the Cloud Addon Runtime Runs tab.
+Cloud runtime routes may remain bounded compatibility call sites for those workflows.
 Standalone diagnostics do not live in Toolbox. Marketplace, provider routing,
 vector provider settings, and vector lifecycle controls do not belong in
 Toolbox.
@@ -96,8 +97,9 @@ publish preflight, summary suggestions, category suggestions, tag suggestions,
 internal links, and image candidates. Related existing-post review is folded
 into publish preflight duplicate-risk checks and internal-link candidates, so
 `writing_support` remains route-compatible but is not a default editor button.
-Site Check is the site-level decision surface and the Overview page's
-recommended next action. It is no longer a visible top-level tab, but the
+Site Check is the site-level decision surface, the Overview page's
+recommended next action, and the ordinary site-maintenance entry for operators.
+It is no longer a visible top-level tab, but the
 stable `operations-insights` deep link still opens its secondary panel. It
 builds a manual local `site_ops_insight_pack.v1` from bounded public content,
 approved-comment signal counts, media metadata, taxonomy summaries, Site
@@ -113,6 +115,11 @@ send it or create local runtime state. When Cloud is ready, an administrator
 can explicitly run Cloud detail and review the suggestion-only
 `site_ops_cloud_analysis_result.v1` without Toolbox creating a local queue,
 local run table, Core proposal, or WordPress write.
+The low-frequency Scheduled Review entry is reached from Site Check and the
+Advanced directory. It uses the existing `morning-brief` deep link for
+Nightly/Morning Brief preview and local fallback settings, but it is not
+presented as a second site-check product. Its Cloud run recovery action links to
+Cloud Addon Runtime Runs instead of rendering run recovery controls locally.
 The admin Image Handling tab defaults to Image Optimization, with
 Batch Optimize Images as the first visible workbench. Single-image actions
 start from the WordPress media-library attachment details panel or image row

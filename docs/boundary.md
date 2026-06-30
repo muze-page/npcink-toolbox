@@ -545,35 +545,37 @@ Toolbox product surfaces stay task-owned:
 - **Content Library Usage** owns read-only Site Knowledge status/result
   consumption and review handoff context. Cloud Addon owns connector state,
   refresh, indexing, and delivery detail.
-- **Site Check** owns manual read-only site checks and explicit Cloud detail
-  requests.
-- **Morning Brief** owns scheduled-review preview, local fallback settings, and
-  bounded Cloud run recovery.
+- **Site Check** owns the everyday site-maintenance entry: manual read-only site
+  checks, explicit Cloud detail requests, and the operator-facing path to
+  low-frequency scheduled review.
+- **Scheduled Review** owns the Nightly/Morning Brief implementation details:
+  scheduled-review preview and local fallback settings. Cloud Addon owns
+  Nightly Inspection run status, result reads, and recovery.
 - **Image Handling** owns selected-media review and governed handoff flows.
 
 Cloud web search, image-source, and site-knowledge runtime routes may remain as
 bounded call sites for those product workflows, but their standalone diagnostic
 UI belongs outside Toolbox. Standalone diagnostics do not live in Toolbox.
 
-## Morning Brief Surface
+## Scheduled Review Surface
 
-The **Morning Brief** surface is a separate secondary panel reached from the
-Advanced Planning/Handoff group. It owns the low-frequency scheduled-review
-preview entry, local fallback preview settings, Pro Cloud Runtime summary, and
-explicit Cloud run recovery controls. It must not live inside Cloud Checks and
-must not be presented as an ordinary connection diagnostic.
+The **Scheduled Review** surface is a low-frequency secondary panel reached
+from Site Check and the Advanced directory. It owns the Nightly/Morning Brief
+preview entry and local fallback preview settings. Cloud run status, result
+reads, recent runs, and retry requests belong in the Cloud Addon Runtime Runs
+tab. Scheduled Review must not live inside Cloud Checks and must not be
+presented as an ordinary connection diagnostic or as a second site-check
+product.
 
-The default Morning Brief view should show one primary action: preview the
-Morning Brief. Site Check remains the ordinary manual site-check report.
-Local fallback settings and Cloud run ID recovery controls should stay folded
-behind an advanced disclosure. The surface may read Cloud entitlement, submit a
-bounded Cloud inspection, read recent runs, read results, and request retries
-through the existing Nightly Inspection routes. It may show read-only Pro Cloud
-Runtime quota detail by reading Cloud `pro_cloud_runtime` entitlement through
-the Cloud Addon seam and may disable new Cloud Batch submissions when Cloud
-reports exhausted `nightly_site_inspection_runs`, but Cloud remains
-runtime/detail owner and Toolbox must not become a local billing ledger,
-entitlement engine, retry queue, scheduler truth, local run history, Core
+The default Scheduled Review view should show one primary action: preview the
+scheduled review. Site Check remains the ordinary manual site-check report and
+the primary operator-facing site-maintenance entry.
+Local fallback settings should stay folded behind an advanced disclosure.
+Toolbox may retain compatibility routes for existing Nightly Inspection Cloud
+callers, but the visible recovery workspace should link operators to Cloud
+Addon. Cloud remains runtime/detail owner and Toolbox must not become a local
+billing ledger, entitlement engine, retry queue, scheduler truth, local run
+history, Core
 proposal creator, or WordPress write owner.
 
 The connector surface must not become provider billing, quota, key-rotation,

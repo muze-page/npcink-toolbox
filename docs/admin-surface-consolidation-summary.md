@@ -60,10 +60,10 @@ connection, refresh, indexing, and delivery detail belong in Cloud Addon; the
 secondary **Content Library Usage** panel remains a compatibility/read-only
 usage surface and is not linked from Advanced. The Advanced page is now the
 single low-frequency directory and groups entries as Review and
-Planning/Handoff instead of duplicating secondary links on Overview. Nightly Inspection local fallback
-settings, Pro Cloud Runtime quota/detail, and Cloud run recovery stay in the
-dedicated Morning Brief panel instead of competing with the Start page's
-primary operator entries.
+Planning/Handoff instead of duplicating secondary links on Overview. Nightly
+Inspection local fallback settings stay in the dedicated Morning Brief panel;
+Cloud run status, result reads, and recovery now open in Cloud Addon Runtime
+Runs instead of competing with the Start page's primary operator entries.
 
 Site Profile now defaults to the four-field site brief: positioning, audience,
 voice, and primary keywords. SEO, AEO, GEO, claim boundaries, and the read-only
