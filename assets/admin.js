@@ -1947,25 +1947,23 @@
 			const notice = el('div', 'npcink-toolbox__result-notice is-warning', payload.research.error);
 			notice.appendChild(createLink(
 				toolboxAdminUrl({
-					toolbox_tab: 'cloud-checks',
-					toolbox_cloud_check: 'search',
-					toolbox_cloud_check_group: 'search-test',
+					page: 'npcink-cloud-addon',
+					toolbox_tab: null,
 					toolbox_tool: null,
 				}),
-				'Open Cloud search check'
+				'Open Cloud Addon diagnostics'
 			));
 			result.appendChild(notice);
 		} else if (payload.research) {
 			const section = createSection('External search');
-			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Live Cloud web search verification belongs in Cloud Checks. Use this bundle for combined fallback planning and handoff context.'));
+			section.appendChild(el('div', 'npcink-toolbox__result-notice is-pending', 'Live Cloud web search diagnostics belong in Cloud Addon. Use this bundle for combined fallback planning and handoff context.'));
 			section.appendChild(createLink(
 				toolboxAdminUrl({
-					toolbox_tab: 'cloud-checks',
-					toolbox_cloud_check: 'search',
-					toolbox_cloud_check_group: 'search-test',
+					page: 'npcink-cloud-addon',
+					toolbox_tab: null,
 					toolbox_tool: null,
 				}),
-				'Open Cloud search check'
+				'Open Cloud Addon diagnostics'
 			));
 			result.appendChild(section);
 		}
@@ -6529,8 +6527,6 @@
 			tool: publicToolForToolboxTool(target),
 			toolbox_tab: null,
 			toolbox_tool: null,
-			toolbox_cloud_check: null,
-			toolbox_cloud_check_group: null,
 		};
 	}
 
@@ -6549,14 +6545,6 @@
 			url.searchParams.set(key, value);
 		});
 		window.history.replaceState({}, '', url.toString());
-	}
-
-	function activeCloudCheckGroup() {
-		const panel = document.querySelector('[data-toolbox-cloud-check-panel]:not([hidden])');
-		if (!panel) {
-			return '';
-		}
-		return activeTarget(panel, '[data-toolbox-cloud-check-group-target]', 'data-toolbox-cloud-check-group-target');
 	}
 
 	function toolGroupForTool(workspace, target) {
@@ -6611,25 +6599,11 @@
 			return;
 		}
 
-		if (target === 'cloud-checks') {
-			updateToolboxUrl({
-				tab: null,
-				tool: null,
-				toolbox_tab: 'cloud-checks',
-				toolbox_tool: null,
-				toolbox_cloud_check: activeTarget(document, '[data-toolbox-cloud-check-target]', 'data-toolbox-cloud-check-target'),
-				toolbox_cloud_check_group: activeCloudCheckGroup(),
-			});
-			return;
-		}
-
 		updateToolboxUrl({
 			tab: publicTabForToolboxTab(target),
 			tool: null,
 			toolbox_tab: null,
 			toolbox_tool: null,
-			toolbox_cloud_check: null,
-			toolbox_cloud_check_group: null,
 		});
 	}
 
@@ -6702,50 +6676,13 @@
 		return activateToolPanel(target, updateUrl, workspace);
 	}
 
-	function activateCloudCheckPanel(target, updateUrl) {
-		const workspace = document.querySelector('[data-toolbox-cloud-checks]');
-		if (!workspace || !hasTarget(workspace, '[data-toolbox-cloud-check-target]', 'data-toolbox-cloud-check-target', target)) {
-			return false;
-		}
-
-		const details = workspace.querySelector('[data-toolbox-cloud-check-details]');
-		if (details) {
-			details.open = true;
-		}
-
-		activateTarget(
-			workspace,
-			'[data-toolbox-cloud-check-target]',
-			'[data-toolbox-cloud-check-panel]',
-			'data-toolbox-cloud-check-target',
-			'data-toolbox-cloud-check-panel',
-			target
-		);
-
-		if (updateUrl) {
-			updateToolboxUrl({
-				tab: null,
-				tool: null,
-				toolbox_tab: 'cloud-checks',
-				toolbox_tool: null,
-				toolbox_cloud_check: target,
-				toolbox_cloud_check_group: activeCloudCheckGroup(),
-			});
-		}
-		return true;
-	}
-
 	function initUrlState() {
 		const params = new URL(window.location.href).searchParams;
 		const rawRequestedTab = params.get('tab') || params.get('toolbox_tab') || '';
 		const rawRequestedTool = params.get('tool') || params.get('toolbox_tool') || '';
 		const requestedTab = toolboxTabFromPublicTab(rawRequestedTab);
 		let requestedTool = toolboxToolFromPublicTool(rawRequestedTool);
-		const requestedConnector = params.get('toolbox_connector') || '';
-		let requestedCloudCheck = params.get('toolbox_cloud_check') || '';
-		const requestedCloudCheckGroup = params.get('toolbox_cloud_check_group') || '';
 		let tab = requestedTab;
-		let canonicalizeLegacyConnector = false;
 		let canonicalizeToolUrl = false;
 		let canonicalizeRetiredContentUrl = (rawRequestedTab === 'content' || rawRequestedTab === 'content-preparation') && !rawRequestedTool;
 
@@ -6762,12 +6699,6 @@
 		const requestedToolWorkspace = requestedTool ? toolWorkspaceForTarget(requestedTool) : null;
 		const requestedToolTab = requestedToolWorkspace ? toolboxTabForWorkspace(requestedToolWorkspace) : '';
 
-		if (tab === 'connectors' && requestedConnector && hasTarget(document, '[data-toolbox-cloud-check-target]', 'data-toolbox-cloud-check-target', requestedConnector)) {
-			tab = 'cloud-checks';
-			requestedCloudCheck = requestedConnector;
-			canonicalizeLegacyConnector = true;
-		}
-
 		if (requestedToolTab) {
 			const requestedTabWorkspace = tab ? toolWorkspaceForTab(tab) : null;
 			if (!tab || !requestedTabWorkspace || !hasTarget(requestedTabWorkspace, '[data-toolbox-tool-target]', 'data-toolbox-tool-target', requestedTool)) {
@@ -6779,8 +6710,6 @@
 		if (!tab) {
 			if (requestedToolTab) {
 				tab = requestedToolTab;
-			} else if (requestedCloudCheck && hasTarget(document, '[data-toolbox-cloud-check-target]', 'data-toolbox-cloud-check-target', requestedCloudCheck)) {
-				tab = 'cloud-checks';
 			}
 		}
 
@@ -6799,26 +6728,6 @@
 				tool: null,
 				toolbox_tab: 'operations-insights',
 				toolbox_tool: null,
-				toolbox_cloud_check: null,
-				toolbox_cloud_check_group: null,
-			});
-		}
-		if (tab === 'cloud-checks' && requestedCloudCheck) {
-			activateCloudCheckPanel(requestedCloudCheck, false);
-		}
-		if (tab === 'cloud-checks' && requestedCloudCheckGroup) {
-			const panel = document.querySelector('[data-toolbox-cloud-check-panel]:not([hidden])');
-			const workspace = panel ? panel.querySelector('[data-toolbox-cloud-check-groups]') : null;
-			activateCloudCheckGroup(workspace, requestedCloudCheckGroup, false);
-		}
-		if (canonicalizeLegacyConnector) {
-			updateToolboxUrl({
-				tab: null,
-				tool: null,
-				toolbox_tab: 'cloud-checks',
-				toolbox_connector: null,
-				toolbox_cloud_check: requestedCloudCheck,
-				toolbox_cloud_check_group: requestedCloudCheckGroup || activeCloudCheckGroup(),
 			});
 		}
 	}
@@ -6933,64 +6842,6 @@
 					prefillSelectedAttachmentIds(form);
 					updateMediaAltCaptionScope(form);
 				}
-			});
-		});
-	}
-
-	function initCloudCheckSwitcher() {
-		document.querySelectorAll('[data-toolbox-cloud-checks]').forEach((workspace) => {
-			workspace.addEventListener('click', (event) => {
-				if (!(event.target instanceof Element)) {
-					return;
-				}
-
-				const button = event.target.closest('[data-toolbox-cloud-check-target]');
-				if (!button || !workspace.contains(button)) {
-					return;
-				}
-
-				activateCloudCheckPanel(button.getAttribute('data-toolbox-cloud-check-target'), true);
-			});
-		});
-	}
-
-	function activateCloudCheckGroup(workspace, target, updateUrl) {
-		if (!workspace || !hasTarget(workspace, '[data-toolbox-cloud-check-group-target]', 'data-toolbox-cloud-check-group-target', target)) {
-			return false;
-		}
-
-		activateTarget(
-			workspace,
-			'[data-toolbox-cloud-check-group-target]',
-			'[data-toolbox-cloud-check-group-panel]',
-			'data-toolbox-cloud-check-group-target',
-			'data-toolbox-cloud-check-group-panel',
-			target
-		);
-		if (updateUrl) {
-			updateToolboxUrl({
-				toolbox_tab: 'cloud-checks',
-				toolbox_tool: null,
-				toolbox_cloud_check: activeTarget(document, '[data-toolbox-cloud-check-target]', 'data-toolbox-cloud-check-target'),
-				toolbox_cloud_check_group: target,
-			});
-		}
-		return true;
-	}
-
-	function initCloudCheckGroupSwitcher() {
-		document.querySelectorAll('[data-toolbox-cloud-check-groups]').forEach((workspace) => {
-			workspace.addEventListener('click', (event) => {
-				if (!(event.target instanceof Element)) {
-					return;
-				}
-
-				const button = event.target.closest('[data-toolbox-cloud-check-group-target]');
-				if (!button || !workspace.contains(button)) {
-					return;
-				}
-
-				activateCloudCheckGroup(workspace, button.getAttribute('data-toolbox-cloud-check-group-target'), true);
 			});
 		});
 	}
@@ -7350,8 +7201,6 @@
 
 	initTopTabs();
 	initToolSwitcher();
-	initCloudCheckSwitcher();
-	initCloudCheckGroupSwitcher();
 	initContextSectionSwitcher();
 	initContextGroupSwitcher();
 	initOperationsInsightsTabs();

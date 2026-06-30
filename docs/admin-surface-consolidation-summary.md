@@ -5,7 +5,7 @@ Date: 2026-06-11
 ## Context
 
 The Toolbox admin page was confusing because high-frequency article work,
-fallback bundles, Cloud checks, Site Knowledge status, and media operations all
+fallback bundles, Cloud diagnostics, Site Knowledge status, and media operations all
 competed for attention on the same surface. The work in this pass keeps Toolbox
 as an operator-facing product surface while preserving the existing boundary:
 Toolbox prepares suggestions, plans, checks, and handoff artifacts; final
@@ -54,20 +54,16 @@ instead of a visible top-level tab. It keeps the stable `operations-insights`
 deep-link panel for report URLs, nonce-protected scan links, and Cloud analysis
 review detail.
 
-**Connection Diagnostics** keeps the stable `cloud-checks` deep-link id as a
-secondary diagnostics panel instead of a visible top-level tab. It now defaults
-to one basic read-only connection check for ordinary operators. Search, image,
-content library, and scheduled review diagnostics stay folded under detailed
-diagnostics and open automatically for old deep links. Content Operations
-coverage and Agent feedback quality summaries link out to Cloud Addon
-Monitoring instead of rendering as Toolbox panels. Site Knowledge status and
-refresh controls stay in the secondary **Content Library Setup** panel reached
-from Advanced. The Advanced page is now the single low-frequency directory and
-groups entries as Setup, Diagnostics, Review, and Planning/Handoff instead of
+Cloud diagnostics no longer render as a Toolbox panel. Cloud connection,
+hosted runtime, search/image-source, entitlement, quota, and service health
+checks belong in Cloud Addon or Cloud service-plane surfaces. Site Knowledge
+status and refresh controls stay in the secondary **Content Library Setup**
+panel reached from Advanced. The Advanced page is now the single low-frequency
+directory and groups entries as Setup, Review, and Planning/Handoff instead of
 duplicating secondary links on Overview. Nightly Inspection local fallback
-settings, Pro Cloud Runtime
-quota/detail, and Cloud run recovery stay in detailed checks instead of
-competing with the Start page's primary operator entries.
+settings, Pro Cloud Runtime quota/detail, and Cloud run recovery stay in the
+dedicated Morning Brief panel instead of competing with the Start page's
+primary operator entries.
 
 Site Profile now defaults to the four-field site brief: positioning, audience,
 voice, and primary keywords. SEO, AEO, GEO, claim boundaries, and the read-only

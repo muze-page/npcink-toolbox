@@ -70,39 +70,24 @@ Provider raw payloads are excluded by default. Enable
 The first version is single-site global configuration. Do not add multisite or
 per-user isolation without a new decision.
 
-Troubleshooting Checks keeps the stable `cloud-checks` deep-link id as a
-secondary support-check panel rather than a visible top-level admin tab. Advanced
-links to it from the Diagnostics group inside the single low-frequency advanced
-directory. That directory groups secondary entries as Setup, Diagnostics,
-Review, and Planning/Handoff instead of duplicating them on Overview. The
-default view is one basic read-only connection check for ordinary operators;
-detailed checks for Cloud-managed search, image-source candidates, preview-only
-media derivatives, and site content index search stay folded for support.
-The same compatible `cloud-checks` secondary panel may still serve the
-Nightly Inspection deep link, but when `toolbox_cloud_check=nightly-inspection`
-is requested the visible page should identify the task as **Scheduled Review /
-Morning Brief**, not as ordinary troubleshooting. That scheduled-review
-entry is for Morning Brief preview, local fallback inspection, Pro Cloud
-Runtime status/result recovery, and a link back to Full-site Insights as the
-ordinary manual site-check report. Legacy deep links may open the detailed area
-directly. The tabs may show compact readiness labels, but each panel should
-prioritize the Toolbox ability reachability check or recovery task instead of
-repeating provider ownership detail.
-Search checks use Cloud auto execution only; provider
-selection, Jina Reader toggles, routing diagnostics, Cloud API key verification,
-entitlement, billing, quota, and request logs belong in Cloud Addon or Cloud
-service-plane surfaces. Image derivative checks may generate short-lived Cloud
-preview artifacts only, with one-run text or image/logo watermark overrides
-that stay compatible with OpenClaw media derivative handoffs; Core proposal,
-batch proposal, and URL repair handoffs stay in Workflows. Marketplace,
-provider routing, vector provider settings, and vector lifecycle controls do
-not belong in Toolbox.
+Toolbox does not expose a Cloud Checks or Troubleshooting Checks panel in the
+first version. Cloud connection checks, hosted runtime health, provider/search
+or image diagnostics, Cloud API key verification, entitlement, billing, quota,
+request logs, and service monitoring belong in Cloud Addon or Cloud
+service-plane surfaces. Toolbox keeps task-owned product panels only: Site
+Content Index for explicit content index operations, Full-site Insights for
+manual site reports, Morning Brief for scheduled-review preview and bounded
+Cloud run recovery, and Image Handling for selected-media review/handoff flows.
+Cloud runtime routes may remain bounded call sites for those workflows.
+Standalone diagnostics do not live in Toolbox. Marketplace, provider routing,
+vector provider settings, and vector lifecycle controls do not belong in
+Toolbox.
 
 The admin page should default to Overview: one recommended site-level action,
 compact readiness rows for AI service, Site Profile, and safe mode, site-level
 and media next actions, and one folded advanced directory. The visible
 top-level tabs are Overview, Site Profile, Image Handling,
-and Advanced; Full-site Insights, Site Knowledge, and Cloud Checks remain
+and Advanced; Full-site Insights, Site Knowledge, and Morning Brief remain
 secondary deep-link panels. Overview should not render a single-post
 article-support work block.
 Article-specific jobs use the editor Content Support sidebar:

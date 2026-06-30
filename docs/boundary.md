@@ -521,56 +521,53 @@ show Cloud-returned status, and search Cloud-managed site knowledge. Toolbox
 must not store vector provider keys, provider endpoints, collection names,
 embedding model settings, or vector database lifecycle controls.
 
-## Troubleshooting Checks Surface
+## Cloud Diagnostics Ownership
 
-The Toolbox **Cloud Checks** surface is now presented to ordinary site owners
-as **Troubleshooting Checks**. It remains a secondary deep-link support-check
-panel, not a visible top-level admin tab. The Advanced directory is the single
-low-frequency directory and groups links by operator job: Setup, Diagnostics,
-Review, and Planning/Handoff. It may link to Troubleshooting Checks from the
-Diagnostics group, and legacy `toolbox_tab=cloud-checks` URLs should continue
-to open that panel. Inside that panel, the default operator view should be one
-basic read-only connection check. Detailed Cloud-managed checks should stay
-inside a support diagnostics disclosure, and deep links to specific checks may open
-that disclosure automatically. The detailed tabs should open directly into the
-useful verification tool instead of repeating ownership prose or provider
-catalogs.
+Toolbox does not own a Cloud Checks or Troubleshooting Checks product surface.
+Cloud connection checks, hosted runtime health, provider/search/image-source
+diagnostics, entitlement, quota, request logs, key verification, and service
+monitoring belong in `npcink-cloud-addon` or Cloud service-plane surfaces.
 
-The verification surface may identify whether a Cloud-backed action is
-reachable from Toolbox, but it should keep provider ownership detail in Cloud
-or in documentation.
+Toolbox may show Cloud availability as read-only readiness state inside a
+specific product workflow and may disable Cloud-only submits when the Cloud
+Addon transport is unavailable. It must not render a local Cloud diagnostics
+console, provider catalog, support-check workspace, or compatibility copy of
+Cloud Addon Monitoring.
 
-When Cloud Addon transport is missing or unverified, Cloud Checks should show a
-blocked state and disable Cloud-only submits instead of waiting for a failed
-runtime request. Content Context and governed handoff planning may remain
-available because they are local suggestion/planning surfaces.
+Toolbox product surfaces stay task-owned:
 
-Cloud web search checks must use the Cloud-managed auto route. Toolbox must not
-expose provider selection, Jina Reader toggles, provider routing diagnostics,
-quota, billing, request logs, entitlement, or key verification controls here.
-Cloud Addon owns the WordPress-side connection and authorization check; Cloud
-service-plane surfaces own provider/runtime diagnostics.
+- **Site Content Index** owns explicit content indexing/search setup and review
+  handoff context.
+- **Full-site Insights** owns manual read-only site reports and explicit Cloud
+  analysis requests.
+- **Morning Brief** owns scheduled-review preview, local fallback settings, and
+  bounded Cloud run recovery.
+- **Image Handling** owns selected-media review and governed handoff flows.
 
-Content Operations coverage and Agent feedback quality summaries belong in
-Cloud Addon Monitoring or the Cloud service-plane read surface. Toolbox may
-link operators there, but it must not render those summaries as local Cloud
-Checks panels or treat quality rollups as local proposal, approval, workflow,
-or write truth.
+Cloud web search, image-source, and site-knowledge runtime routes may remain as
+bounded call sites for those product workflows, but their standalone diagnostic
+UI belongs outside Toolbox. Standalone diagnostics do not live in Toolbox.
 
-Cloud Checks may include a preview-only media derivative check under Image. It
-may select a local attachment, resolve a local uploads URL, apply one-run
-format/size/quality overrides, and show the short-lived Cloud preview artifact.
-It must not submit Core proposals, run batch proposal submission, repair URLs,
-replace media files, update attachment metadata, or treat preview artifacts as
-WordPress media writes. Those handoff actions stay in Content Support and Core
-governance.
+## Morning Brief Surface
 
-The Cloud Checks Nightly Inspection panel may show read-only Pro Cloud
+The **Morning Brief** surface is a separate secondary panel reached from the
+Advanced Planning/Handoff group. It owns the low-frequency scheduled-review
+preview entry, local fallback preview settings, Pro Cloud Runtime summary, and
+explicit Cloud run recovery controls. It must not live inside Cloud Checks and
+must not be presented as an ordinary connection diagnostic.
+
+The default Morning Brief view should show one primary action: preview the
+Morning Brief. Full-site Insights remains the ordinary manual site-check report.
+Local fallback settings and Cloud run ID recovery controls should stay folded
+behind an advanced disclosure. The surface may read Cloud entitlement, submit a
+bounded Cloud inspection, read recent runs, read results, and request retries
+through the existing Nightly Inspection routes. It may show read-only Pro Cloud
 Runtime quota detail by reading Cloud `pro_cloud_runtime` entitlement through
-the Cloud Addon seam. That display may disable new Cloud Batch submissions when
-Cloud reports exhausted `nightly_site_inspection_runs`, but it must not become
-a local billing ledger, entitlement engine, retry queue, scheduler truth, or
-WordPress write owner.
+the Cloud Addon seam and may disable new Cloud Batch submissions when Cloud
+reports exhausted `nightly_site_inspection_runs`, but Cloud remains
+runtime/detail owner and Toolbox must not become a local billing ledger,
+entitlement engine, retry queue, scheduler truth, local run history, Core
+proposal creator, or WordPress write owner.
 
 The connector surface must not become provider billing, quota, key-rotation,
 request-log, marketplace, provider-routing, vector-provider, or vector

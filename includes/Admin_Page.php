@@ -514,8 +514,8 @@ final class Admin_Page {
 				<?php $this->render_site_knowledge_panel( $cloud_ready ); ?>
 			</section>
 
-			<section class="npcink-toolbox__panel npcink-toolbox__panel--secondary" data-toolbox-tab-panel="cloud-checks" aria-label="<?php esc_attr_e( 'Cloud checks', 'npcink-workflow-toolbox' ); ?>" hidden>
-				<?php $this->render_cloud_checks_panel( $settings, $cloud_ready, $nightly_preview ); ?>
+			<section class="npcink-toolbox__panel npcink-toolbox__panel--secondary" data-toolbox-tab-panel="morning-brief" aria-label="<?php esc_attr_e( 'Morning Brief', 'npcink-workflow-toolbox' ); ?>" hidden>
+				<?php $this->render_morning_brief_panel( $settings, $cloud_ready, $nightly_preview ); ?>
 			</section>
 		</div>
 		<?php
@@ -581,8 +581,8 @@ final class Admin_Page {
 					<span><?php esc_html_e( 'Keep the basic site description, audience, tone, and keywords clear.', 'npcink-workflow-toolbox' ); ?></span>
 				</a>
 				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=advanced' ) ); ?>">
-					<strong><?php esc_html_e( 'Troubleshoot or advanced setup', 'npcink-workflow-toolbox' ); ?></strong>
-					<span><?php esc_html_e( 'Use only when setup, diagnostics, or support checks are needed.', 'npcink-workflow-toolbox' ); ?></span>
+					<strong><?php esc_html_e( 'Advanced setup', 'npcink-workflow-toolbox' ); ?></strong>
+					<span><?php esc_html_e( 'Use only when setup, review, or handoff previews are needed.', 'npcink-workflow-toolbox' ); ?></span>
 				</a>
 			</section>
 			<details class="npcink-toolbox__start-advanced">
@@ -631,7 +631,7 @@ final class Admin_Page {
 		?>
 		<div class="npcink-toolbox__panel-header">
 			<h2><?php esc_html_e( 'Advanced', 'npcink-workflow-toolbox' ); ?></h2>
-			<p><?php esc_html_e( 'Use these entries only when you need setup, troubleshooting, or occasional review tools.', 'npcink-workflow-toolbox' ); ?></p>
+			<p><?php esc_html_e( 'Use these entries only when you need setup, occasional review tools, or governed handoff previews.', 'npcink-workflow-toolbox' ); ?></p>
 		</div>
 
 		<section class="npcink-toolbox__advanced-home" aria-label="<?php esc_attr_e( 'Advanced Toolbox directory', 'npcink-workflow-toolbox' ); ?>">
@@ -643,16 +643,6 @@ final class Admin_Page {
 				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=site-knowledge' ) ); ?>">
 					<strong><?php esc_html_e( 'Site content index', 'npcink-workflow-toolbox' ); ?></strong>
 					<span><?php esc_html_e( 'Let AI suggestions use existing public posts and pages for links, duplicate checks, and site context.', 'npcink-workflow-toolbox' ); ?></span>
-				</a>
-			</div>
-			<div class="npcink-toolbox__advanced-group">
-				<div class="npcink-toolbox__advanced-group-heading">
-					<h3><?php esc_html_e( 'Diagnostics', 'npcink-workflow-toolbox' ); ?></h3>
-					<p><?php esc_html_e( 'Check Cloud-backed reachability without changing WordPress.', 'npcink-workflow-toolbox' ); ?></p>
-				</div>
-				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=cloud-checks' ) ); ?>">
-					<strong><?php esc_html_e( 'Troubleshooting checks', 'npcink-workflow-toolbox' ); ?></strong>
-					<span><?php esc_html_e( 'Run a basic connection check, or open support-only diagnostics when requested.', 'npcink-workflow-toolbox' ); ?></span>
 				</a>
 			</div>
 			<div class="npcink-toolbox__advanced-group">
@@ -2416,8 +2406,7 @@ final class Admin_Page {
 			add_query_arg(
 				array(
 					'page'                       => self::MENU_SLUG,
-					'toolbox_tab'                => 'cloud-checks',
-					'toolbox_cloud_check'        => 'nightly-inspection',
+					'toolbox_tab'                => 'morning-brief',
 					'nightly_inspection_preview' => '1',
 				),
 				admin_url( 'admin.php' )
@@ -2888,288 +2877,40 @@ final class Admin_Page {
 			<?php
 	}
 
-	private function render_cloud_checks_panel( array $settings, bool $cloud_ready, ?array $nightly_preview ): void {
-		$image_ready = $this->settings->has_image_source_provider();
-		$is_nightly_entry = 'nightly-inspection' === $this->requested_cloud_check();
+	private function render_morning_brief_panel( array $settings, bool $cloud_ready, ?array $nightly_preview ): void {
 		?>
 		<div class="npcink-toolbox__panel-header">
-			<?php if ( $is_nightly_entry ) : ?>
-				<h2><?php esc_html_e( 'Scheduled Review / Morning Brief', 'npcink-workflow-toolbox' ); ?></h2>
-				<p><?php esc_html_e( 'Preview the scheduled site review, inspect local fallback state, or recover a Cloud inspection run. This is not the ordinary connection-diagnostics path.', 'npcink-workflow-toolbox' ); ?></p>
-			<?php else : ?>
-				<h2><?php esc_html_e( 'Troubleshooting Checks', 'npcink-workflow-toolbox' ); ?></h2>
-				<p><?php esc_html_e( 'Use the basic check when AI actions seem unavailable. Open support diagnostics only when requested.', 'npcink-workflow-toolbox' ); ?></p>
-			<?php endif; ?>
+			<h2><?php esc_html_e( 'Scheduled Review / Morning Brief', 'npcink-workflow-toolbox' ); ?></h2>
+			<p><?php esc_html_e( 'Preview the scheduled site review, inspect local fallback state, or recover a Cloud inspection run. This is separate from troubleshooting checks and does not change WordPress content.', 'npcink-workflow-toolbox' ); ?></p>
 		</div>
 		<?php
 		if ( ! $cloud_ready ) {
 			$this->render_cloud_runtime_notice();
 		}
 		?>
-
-		<div class="npcink-toolbox__cloud-check-workspace" data-toolbox-cloud-checks>
-			<?php if ( $is_nightly_entry ) : ?>
-				<section class="npcink-toolbox__card">
-					<div class="npcink-toolbox__section-heading">
-						<div>
-							<h3><?php esc_html_e( 'Morning Brief workspace', 'npcink-workflow-toolbox' ); ?></h3>
-							<p><?php esc_html_e( 'Use this low-frequency area for scheduled-review preview, Pro Cloud Runtime status, and run recovery. Full-site Insights remains the ordinary manual site-check report.', 'npcink-workflow-toolbox' ); ?></p>
-						</div>
+		<div class="npcink-toolbox__cloud-check-workspace" data-toolbox-morning-brief>
+			<section class="npcink-toolbox__card">
+				<div class="npcink-toolbox__section-heading">
+					<div>
+						<h3><?php esc_html_e( 'Morning Brief workspace', 'npcink-workflow-toolbox' ); ?></h3>
+						<p><?php esc_html_e( 'Use this low-frequency area for scheduled-review preview. Full-site Insights remains the ordinary manual site-check report.', 'npcink-workflow-toolbox' ); ?></p>
+					</div>
+					<div class="npcink-toolbox__inline-actions">
+						<a class="button button-primary" href="<?php echo esc_url( $this->nightly_inspection_preview_url() ); ?>"><?php esc_html_e( 'Preview Morning Brief', 'npcink-workflow-toolbox' ); ?></a>
 						<a class="button" href="<?php echo esc_url( $this->site_ops_insights_preview_url() ); ?>"><?php esc_html_e( 'Open Full-site Insights', 'npcink-workflow-toolbox' ); ?></a>
 					</div>
-				</section>
-			<?php else : ?>
-				<section class="npcink-toolbox__card">
-					<div class="npcink-toolbox__section-heading">
-						<div>
-							<h3><?php esc_html_e( 'Basic AI connection check', 'npcink-workflow-toolbox' ); ?></h3>
-							<p><?php esc_html_e( 'Start here when AI tools seem unavailable. This sends one read-only test request.', 'npcink-workflow-toolbox' ); ?></p>
-						</div>
-					</div>
-					<form class="npcink-toolbox__inline-form" data-toolbox-endpoint="web-search/test">
-						<input type="hidden" name="query" value="WordPress AI content workflow status check" />
-						<input type="hidden" name="intent" value="article_background" />
-						<input type="hidden" name="max_results" value="1" />
-						<input type="hidden" name="recency_days" value="30" />
-						<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run basic connection check', 'npcink-workflow-toolbox' ); ?></button>
-						<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-					</form>
-				</section>
-			<?php endif; ?>
-
-			<details class="npcink-toolbox__start-advanced" data-toolbox-cloud-check-details>
-				<summary>
-					<?php if ( $is_nightly_entry ) : ?>
-						<span><?php esc_html_e( 'Scheduled review controls', 'npcink-workflow-toolbox' ); ?></span>
-						<small><?php esc_html_e( 'Morning Brief preview, local fallback, Pro Cloud Runtime, and recovery controls.', 'npcink-workflow-toolbox' ); ?></small>
-					<?php else : ?>
-						<span><?php esc_html_e( 'Support diagnostics', 'npcink-workflow-toolbox' ); ?></span>
-						<small><?php esc_html_e( 'Open only when a support person asks for a specific check.', 'npcink-workflow-toolbox' ); ?></small>
-					<?php endif; ?>
-				</summary>
-
-				<nav class="npcink-toolbox__cloud-check-tabs" aria-label="<?php esc_attr_e( 'Connection diagnostic groups', 'npcink-workflow-toolbox' ); ?>">
-					<button type="button" class="npcink-toolbox__cloud-check-tab is-active" data-toolbox-cloud-check-target="search" aria-selected="true">
-						<span><?php esc_html_e( 'Search', 'npcink-workflow-toolbox' ); ?></span>
-						<small><?php echo esc_html( $cloud_ready ? __( 'Connected', 'npcink-workflow-toolbox' ) : __( 'Needs connection', 'npcink-workflow-toolbox' ) ); ?></small>
-					</button>
-					<button type="button" class="npcink-toolbox__cloud-check-tab" data-toolbox-cloud-check-target="image" aria-selected="false">
-						<span><?php esc_html_e( 'Image suggestions', 'npcink-workflow-toolbox' ); ?></span>
-						<small><?php echo esc_html( $image_ready ? __( 'Connected', 'npcink-workflow-toolbox' ) : __( 'Needs connection', 'npcink-workflow-toolbox' ) ); ?></small>
-					</button>
-					<button type="button" class="npcink-toolbox__cloud-check-tab" data-toolbox-cloud-check-target="site-knowledge" aria-selected="false">
-						<span><?php esc_html_e( 'Content index', 'npcink-workflow-toolbox' ); ?></span>
-						<small><?php echo esc_html( $cloud_ready ? __( 'Connected', 'npcink-workflow-toolbox' ) : __( 'Needs connection', 'npcink-workflow-toolbox' ) ); ?></small>
-					</button>
-					<button type="button" class="npcink-toolbox__cloud-check-tab" data-toolbox-cloud-check-target="nightly-inspection" aria-selected="false">
-						<span><?php esc_html_e( 'Scheduled review', 'npcink-workflow-toolbox' ); ?></span>
-						<small><?php esc_html_e( 'Detailed check', 'npcink-workflow-toolbox' ); ?></small>
-					</button>
-				</nav>
-				<div class="npcink-toolbox__result-notice is-pending">
-					<?php esc_html_e( 'Detailed service monitoring lives in Cloud Addon Monitoring. Toolbox keeps only support checks for this plugin.', 'npcink-workflow-toolbox' ); ?>
-					<a href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-cloud-addon&tab=monitoring' ) ); ?>"><?php esc_html_e( 'Open Cloud Addon Monitoring', 'npcink-workflow-toolbox' ); ?></a>
 				</div>
-
-				<div class="npcink-toolbox__cloud-check-panels">
-				<section class="npcink-toolbox__card" data-toolbox-cloud-check-panel="search">
-					<div class="npcink-toolbox__cloud-check-group-workspace" data-toolbox-cloud-check-groups>
-							<nav class="npcink-toolbox__cloud-check-group-list" aria-label="<?php esc_attr_e( 'Search checks', 'npcink-workflow-toolbox' ); ?>">
-								<button type="button" class="npcink-toolbox__cloud-check-group-button is-active" data-toolbox-cloud-check-group-target="search-test" aria-selected="true">
-									<span><?php esc_html_e( 'Basic search test', 'npcink-workflow-toolbox' ); ?></span>
-									<small><?php esc_html_e( 'Read-only query', 'npcink-workflow-toolbox' ); ?></small>
-								</button>
-								<button type="button" class="npcink-toolbox__cloud-check-group-button" data-toolbox-cloud-check-group-target="zhihu-capability" aria-selected="false">
-									<span><?php esc_html_e( 'Support: Zhihu source', 'npcink-workflow-toolbox' ); ?></span>
-									<small><?php esc_html_e( 'Optional source', 'npcink-workflow-toolbox' ); ?></small>
-								</button>
-								<button type="button" class="npcink-toolbox__cloud-check-group-button" data-toolbox-cloud-check-group-target="search-diagnostic" aria-selected="false">
-									<span><?php esc_html_e( 'Support: evidence check', 'npcink-workflow-toolbox' ); ?></span>
-									<small><?php esc_html_e( 'Result evidence', 'npcink-workflow-toolbox' ); ?></small>
-								</button>
-							</nav>
-							<div>
-								<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="search-test">
-									<form class="npcink-toolbox__inline-form" data-toolbox-endpoint="web-search/test">
-										<h3><?php esc_html_e( 'Search service test', 'npcink-workflow-toolbox' ); ?></h3>
-										<?php if ( ! $cloud_ready ) : ?>
-											<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect the AI service before running search checks.', 'npcink-workflow-toolbox' ); ?></div>
-										<?php endif; ?>
-										<label>
-											<span><?php esc_html_e( 'Query', 'npcink-workflow-toolbox' ); ?></span>
-											<input type="text" name="query" value="latest WordPress AI search trends" />
-										</label>
-										<div class="npcink-toolbox__split">
-											<label>
-												<span><?php esc_html_e( 'Use case', 'npcink-workflow-toolbox' ); ?></span>
-												<select name="intent">
-													<option value="article_background" data-toolbox-query="latest WordPress AI search trends" data-toolbox-recency="30"><?php esc_html_e( 'Article background', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="fact_check" data-toolbox-query="official WordPress 6.9 release WordPress.org AI Experiments plugin" data-toolbox-recency="0"><?php esc_html_e( 'Fact check', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="competitor_research" data-toolbox-query="Surfer SEO Clearscope MarketMuse content optimization competitors pricing features 2026" data-toolbox-recency="30"><?php esc_html_e( 'Competitor research', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="pricing_snapshot" data-toolbox-query="Tavily API pricing official pricing page" data-toolbox-recency="0"><?php esc_html_e( 'Pricing snapshot', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="product_comparison" data-toolbox-query="Surfer SEO Clearscope MarketMuse product comparison official features" data-toolbox-recency="0"><?php esc_html_e( 'Product comparison', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="writing_context" data-toolbox-query="WordPress AI content workflow current best practices" data-toolbox-recency="30"><?php esc_html_e( 'Writing context', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="news" data-toolbox-query="latest WordPress AI search news" data-toolbox-recency="7"><?php esc_html_e( 'News', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="source_discovery" data-toolbox-query="official WordPress AI plugin source references" data-toolbox-recency="0"><?php esc_html_e( 'Source discovery', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="external_links" data-toolbox-query="WordPress AI content workflow authoritative references" data-toolbox-recency="0"><?php esc_html_e( 'External links', 'npcink-workflow-toolbox' ); ?></option>
-												</select>
-											</label>
-											<label>
-												<span><?php esc_html_e( 'Max results', 'npcink-workflow-toolbox' ); ?></span>
-												<input type="number" name="max_results" min="1" max="5" value="3" />
-											</label>
-										</div>
-										<div class="npcink-toolbox__split">
-											<label>
-												<span><?php esc_html_e( 'Recent days', 'npcink-workflow-toolbox' ); ?></span>
-												<input type="number" name="recency_days" min="0" max="30" value="7" />
-											</label>
-										</div>
-										<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run search check', 'npcink-workflow-toolbox' ); ?></button>
-										<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-									</form>
-								</div>
-								<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="zhihu-capability" hidden>
-									<form class="npcink-toolbox__inline-form" data-toolbox-endpoint="web-search/test">
-										<h3><?php esc_html_e( 'Support: Zhihu source', 'npcink-workflow-toolbox' ); ?></h3>
-										<p><?php esc_html_e( 'Use this only when Zhihu-based sources need troubleshooting. These checks are read-only and do not generate, rewrite, publish, or write WordPress content.', 'npcink-workflow-toolbox' ); ?></p>
-										<?php if ( ! $cloud_ready ) : ?>
-											<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect the AI service before running Zhihu source checks.', 'npcink-workflow-toolbox' ); ?></div>
-										<?php endif; ?>
-										<label>
-											<span><?php esc_html_e( 'Query', 'npcink-workflow-toolbox' ); ?></span>
-											<input type="text" name="query" value="AI 写作工具用户最关心什么" />
-										</label>
-										<div class="npcink-toolbox__split">
-											<label>
-												<span><?php esc_html_e( 'Source mode', 'npcink-workflow-toolbox' ); ?></span>
-												<select name="intent">
-													<option value="zhihu_global_search" data-toolbox-managed-source="zhihu_global_search" data-toolbox-query="AI 写作工具有哪些可靠资料来源" data-toolbox-recency="30" data-toolbox-max-results="3"><?php esc_html_e( '全网搜', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="zhihu_research" data-toolbox-managed-source="zhihu_research" data-toolbox-query="AI 写作工具用户最关心什么" data-toolbox-recency="30" data-toolbox-max-results="5"><?php esc_html_e( '知乎搜索', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="zhihu_hot_topics" data-toolbox-managed-source="zhihu_hot_topics" data-toolbox-query="知乎热榜" data-toolbox-recency="1" data-toolbox-max-results="5"><?php esc_html_e( '热榜', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="zhida_simple" data-toolbox-managed-source="zhida_simple" data-toolbox-query="什么是 AI Agent" data-toolbox-recency="30" data-toolbox-max-results="3"><?php esc_html_e( '直答 Simple', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="zhida_deep" data-toolbox-managed-source="zhida_deep" data-toolbox-query="AI Agent 在内容生产中有哪些真实使用场景" data-toolbox-recency="30" data-toolbox-max-results="3"><?php esc_html_e( '直答 Deep', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="zhida_deepsearch" data-toolbox-managed-source="zhida_deepsearch" data-toolbox-query="2026 年 AI Agent 内容生产工具有哪些新趋势" data-toolbox-recency="7" data-toolbox-max-results="3"><?php esc_html_e( '直答 DeepSearch', 'npcink-workflow-toolbox' ); ?></option>
-												</select>
-											</label>
-											<label>
-												<span><?php esc_html_e( 'Max results', 'npcink-workflow-toolbox' ); ?></span>
-												<input type="number" name="max_results" min="1" max="5" value="3" />
-											</label>
-										</div>
-										<div class="npcink-toolbox__split">
-											<label>
-												<span><?php esc_html_e( 'Recent days', 'npcink-workflow-toolbox' ); ?></span>
-												<input type="number" name="recency_days" min="0" max="30" value="30" />
-											</label>
-										</div>
-										<input type="hidden" name="managed_source" value="zhihu_global_search" />
-										<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run Zhihu check', 'npcink-workflow-toolbox' ); ?></button>
-										<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-									</form>
-								</div>
-								<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="search-diagnostic" hidden>
-									<form class="npcink-toolbox__inline-form" data-toolbox-endpoint="web-search/diagnostics">
-										<h3><?php esc_html_e( 'Suggestion evidence check', 'npcink-workflow-toolbox' ); ?></h3>
-										<p><?php esc_html_e( 'Run one read-only suggestion scenario and verify whether supporting web evidence is attached.', 'npcink-workflow-toolbox' ); ?></p>
-										<?php if ( ! $cloud_ready ) : ?>
-											<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect the AI service before running suggestion evidence checks.', 'npcink-workflow-toolbox' ); ?></div>
-										<?php endif; ?>
-										<div class="npcink-toolbox__split">
-											<label>
-												<span><?php esc_html_e( 'Check type', 'npcink-workflow-toolbox' ); ?></span>
-												<select name="scenario">
-													<option value="discoverability"><?php esc_html_e( 'Discoverability', 'npcink-workflow-toolbox' ); ?></option>
-													<option value="publish_preflight"><?php esc_html_e( 'Publish preflight', 'npcink-workflow-toolbox' ); ?></option>
-												</select>
-											</label>
-											<label>
-												<span><?php esc_html_e( 'Topic', 'npcink-workflow-toolbox' ); ?></span>
-												<input type="text" name="topic" value="latest WordPress AI search trends" />
-											</label>
-										</div>
-										<label>
-											<span><?php esc_html_e( 'Working title', 'npcink-workflow-toolbox' ); ?></span>
-											<input type="text" name="title" placeholder="<?php esc_attr_e( 'Optional title override', 'npcink-workflow-toolbox' ); ?>" />
-										</label>
-										<button type="submit" class="button" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run evidence check', 'npcink-workflow-toolbox' ); ?></button>
-										<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-									</form>
-								</div>
-							</div>
-						</div>
-				</section>
-
-				<section class="npcink-toolbox__card" data-toolbox-cloud-check-panel="image" hidden>
-					<div class="npcink-toolbox__cloud-check-group-workspace" data-toolbox-cloud-check-groups>
-							<nav class="npcink-toolbox__cloud-check-group-list" aria-label="<?php esc_attr_e( 'Image checks', 'npcink-workflow-toolbox' ); ?>">
-								<button type="button" class="npcink-toolbox__cloud-check-group-button is-active" data-toolbox-cloud-check-group-target="image-smoke" aria-selected="true">
-									<span><?php esc_html_e( 'Candidate check', 'npcink-workflow-toolbox' ); ?></span>
-									<small><?php esc_html_e( 'Candidates', 'npcink-workflow-toolbox' ); ?></small>
-								</button>
-								<button type="button" class="npcink-toolbox__cloud-check-group-button" data-toolbox-cloud-check-group-target="image-derivative-preview" aria-selected="false">
-									<span><?php esc_html_e( 'Existing image preview', 'npcink-workflow-toolbox' ); ?></span>
-									<small><?php esc_html_e( 'Derivative', 'npcink-workflow-toolbox' ); ?></small>
-								</button>
-								<button type="button" class="npcink-toolbox__cloud-check-group-button" data-toolbox-cloud-check-group-target="image-handoff" aria-selected="false">
-									<span><?php esc_html_e( 'Handoff', 'npcink-workflow-toolbox' ); ?></span>
-									<small><?php esc_html_e( 'Core review', 'npcink-workflow-toolbox' ); ?></small>
-								</button>
-							</nav>
-							<div>
-								<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="image-smoke">
-									<?php $this->render_image_source_candidates_smoke_form( $cloud_ready ); ?>
-									<?php $this->render_ai_image_generation_smoke_form( $cloud_ready ); ?>
-								</div>
-							<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="image-derivative-preview" hidden>
-								<?php $this->render_image_derivative_preview_check(); ?>
-							</div>
-							<div class="npcink-toolbox__cloud-check-group-panel" data-toolbox-cloud-check-group-panel="image-handoff" hidden>
-								<div class="npcink-toolbox__example">
-									<strong><?php esc_html_e( 'Reviewed changes stay in the image workflow', 'npcink-workflow-toolbox' ); ?></strong>
-									<span><?php esc_html_e( 'Start single-image optimization from the media library attachment details panel. Use Batch Image Optimization Review when multiple images or URL repair actions are needed.', 'npcink-workflow-toolbox' ); ?></span>
-								</div>
-									<a class="button" href="<?php echo esc_url( $this->media_library_url() ); ?>"><?php esc_html_e( 'Open Media Library', 'npcink-workflow-toolbox' ); ?></a>
-							</div>
-						</div>
-					</div>
-				</section>
-
-				<section class="npcink-toolbox__card" data-toolbox-cloud-check-panel="site-knowledge" hidden>
-					<div class="npcink-toolbox__section-heading">
-						<div>
-							<h3><?php esc_html_e( 'Site content index check', 'npcink-workflow-toolbox' ); ?></h3>
-							<p><?php esc_html_e( 'Use this only to check whether AI can search existing public posts and pages.', 'npcink-workflow-toolbox' ); ?></p>
-						</div>
-						<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=site-knowledge' ) ); ?>"><?php esc_html_e( 'Open site content index', 'npcink-workflow-toolbox' ); ?></a>
-					</div>
-					<?php $this->render_site_knowledge_search_check( false, $cloud_ready ); ?>
-				</section>
-
-				<section class="npcink-toolbox__cloud-check-panel-stack" data-toolbox-cloud-check-panel="nightly-inspection" hidden>
-					<section class="npcink-toolbox__card">
-						<div class="npcink-toolbox__section-heading">
-							<div>
-								<h3><?php esc_html_e( 'Morning Brief and run recovery', 'npcink-workflow-toolbox' ); ?></h3>
-								<p><?php esc_html_e( 'Preview the scheduled site review, inspect local fallback state, or recover a Cloud run. Daily article work stays in the editor sidebar.', 'npcink-workflow-toolbox' ); ?></p>
-							</div>
-							<a class="button" href="<?php echo esc_url( $this->nightly_inspection_preview_url() ); ?>"><?php esc_html_e( 'Preview Morning Brief', 'npcink-workflow-toolbox' ); ?></a>
-						</div>
-					</section>
-					<?php $this->render_nightly_inspection_preview( $nightly_preview ); ?>
-					<?php $this->render_nightly_inspection_basic_settings( $settings ); ?>
-				</section>
-
-			</div>
+			</section>
+			<?php $this->render_nightly_inspection_preview( $nightly_preview ); ?>
+			<details class="npcink-toolbox__start-advanced">
+				<summary>
+					<span><?php esc_html_e( 'Advanced: fallback and Cloud recovery', 'npcink-workflow-toolbox' ); ?></span>
+					<small><?php esc_html_e( 'Local fallback preview settings, Pro Cloud Runtime, and run recovery controls.', 'npcink-workflow-toolbox' ); ?></small>
+				</summary>
+				<?php $this->render_nightly_inspection_basic_settings( $settings ); ?>
 			</details>
 		</div>
 		<?php
-	}
-
-	private function requested_cloud_check(): string {
-		$requested = filter_input( INPUT_GET, 'toolbox_cloud_check', FILTER_UNSAFE_RAW );
-
-		return is_scalar( $requested ) ? sanitize_key( (string) $requested ) : '';
 	}
 
 	private function render_content_context_form( array $context ): void {
@@ -3747,99 +3488,6 @@ final class Admin_Page {
 		<?php
 	}
 
-	private function render_image_source_candidates_smoke_form( bool $cloud_ready = true ): void {
-		?>
-		<form class="npcink-toolbox__inline-form" data-toolbox-endpoint="image-candidates">
-			<h3><?php esc_html_e( 'Image source check', 'npcink-workflow-toolbox' ); ?></h3>
-			<p><?php esc_html_e( 'Test Cloud-managed Unsplash/Pixabay/Pexels image-source candidates and preserve attribution metadata.', 'npcink-workflow-toolbox' ); ?></p>
-			<?php if ( ! $cloud_ready ) : ?>
-				<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before testing Cloud image-source candidates.', 'npcink-workflow-toolbox' ); ?></div>
-			<?php endif; ?>
-			<div class="npcink-toolbox__example">
-				<strong><?php esc_html_e( 'Cloud smoke test', 'npcink-workflow-toolbox' ); ?></strong>
-				<span><?php esc_html_e( 'A successful result shows Cloud runtime, provider mode, candidate count, preview image, suggested filename, license review status, and any reviewed AI image generation handoff. This does not import media or write WordPress.', 'npcink-workflow-toolbox' ); ?></span>
-			</div>
-			<label>
-				<span><?php esc_html_e( 'Image search query', 'npcink-workflow-toolbox' ); ?></span>
-				<input type="text" name="query" value="<?php esc_attr_e( 'wordpress article hero image', 'npcink-workflow-toolbox' ); ?>" />
-			</label>
-			<div class="npcink-toolbox__split">
-				<label>
-					<span><?php esc_html_e( 'Provider', 'npcink-workflow-toolbox' ); ?></span>
-					<select name="provider">
-						<option value="auto"><?php esc_html_e( 'Cloud auto', 'npcink-workflow-toolbox' ); ?></option>
-						<option value="unsplash"><?php esc_html_e( 'Unsplash', 'npcink-workflow-toolbox' ); ?></option>
-						<option value="pixabay"><?php esc_html_e( 'Pixabay', 'npcink-workflow-toolbox' ); ?></option>
-						<option value="pexels"><?php esc_html_e( 'Pexels', 'npcink-workflow-toolbox' ); ?></option>
-					</select>
-				</label>
-				<label>
-					<span><?php esc_html_e( 'Orientation', 'npcink-workflow-toolbox' ); ?></span>
-					<select name="orientation">
-						<option value="landscape"><?php esc_html_e( 'Landscape', 'npcink-workflow-toolbox' ); ?></option>
-						<option value="portrait"><?php esc_html_e( 'Portrait', 'npcink-workflow-toolbox' ); ?></option>
-						<option value="squarish"><?php esc_html_e( 'Squarish', 'npcink-workflow-toolbox' ); ?></option>
-						<option value=""><?php esc_html_e( 'Any', 'npcink-workflow-toolbox' ); ?></option>
-					</select>
-				</label>
-			</div>
-			<div class="npcink-toolbox__split">
-				<label>
-					<span><?php esc_html_e( 'Candidate count', 'npcink-workflow-toolbox' ); ?></span>
-					<input type="number" min="1" max="8" step="1" name="per_page" value="3" />
-				</label>
-				<label>
-					<span><?php esc_html_e( 'Color filter', 'npcink-workflow-toolbox' ); ?></span>
-					<input type="text" name="color" placeholder="<?php esc_attr_e( 'Optional Unsplash color filter', 'npcink-workflow-toolbox' ); ?>" />
-				</label>
-			</div>
-			<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run image source check', 'npcink-workflow-toolbox' ); ?></button>
-			<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-		</form>
-		<?php
-	}
-
-	private function render_ai_image_generation_smoke_form( bool $cloud_ready = true ): void {
-		?>
-		<form class="npcink-toolbox__inline-form" data-toolbox-endpoint="ai/image-generation">
-			<h3><?php esc_html_e( 'AI image generation check', 'npcink-workflow-toolbox' ); ?></h3>
-			<p><?php esc_html_e( 'Generate one reviewed-prompt AI image candidate through hosted Cloud runtime. The result stays candidate-only and does not import media or write WordPress.', 'npcink-workflow-toolbox' ); ?></p>
-			<?php if ( ! $cloud_ready ) : ?>
-				<div class="npcink-toolbox__result-notice is-warning"><?php esc_html_e( 'Connect Cloud Addon before testing hosted AI image generation.', 'npcink-workflow-toolbox' ); ?></div>
-			<?php endif; ?>
-			<label>
-				<span><?php esc_html_e( 'Reviewed prompt', 'npcink-workflow-toolbox' ); ?></span>
-				<textarea name="prompt" rows="4"><?php echo esc_textarea( __( 'Create an original editorial header image for a WordPress article about AI image generation governance. Composition: 16:9 image suitable for a WordPress article. Style: clean editorial photo illustration, natural light, high quality. Avoid visible text, brand logos, watermarks, distorted hands or faces, and copyrighted characters.', 'npcink-workflow-toolbox' ) ); ?></textarea>
-			</label>
-			<div class="npcink-toolbox__split">
-				<label>
-					<span><?php esc_html_e( 'Aspect ratio', 'npcink-workflow-toolbox' ); ?></span>
-					<select name="aspect_ratio">
-						<option value="16:9"><?php esc_html_e( '16:9', 'npcink-workflow-toolbox' ); ?></option>
-						<option value="1:1"><?php esc_html_e( '1:1', 'npcink-workflow-toolbox' ); ?></option>
-						<option value="4:3"><?php esc_html_e( '4:3', 'npcink-workflow-toolbox' ); ?></option>
-						<option value="3:4"><?php esc_html_e( '3:4', 'npcink-workflow-toolbox' ); ?></option>
-						<option value="9:16"><?php esc_html_e( '9:16', 'npcink-workflow-toolbox' ); ?></option>
-					</select>
-				</label>
-				<label>
-					<span><?php esc_html_e( 'Candidate count', 'npcink-workflow-toolbox' ); ?></span>
-					<input type="number" min="1" max="4" step="1" name="n" value="1" />
-				</label>
-			</div>
-			<input type="hidden" name="resolution" value="high" />
-			<input type="hidden" name="response_format" value="url" />
-			<input type="hidden" name="purpose" value="cloud_check_ai_image_generation" />
-			<input type="hidden" name="prompt_reviewed_by_operator" value="1" />
-			<input type="hidden" name="media_title" value="<?php esc_attr_e( 'AI image generation governance', 'npcink-workflow-toolbox' ); ?>" />
-			<input type="hidden" name="media_alt" value="<?php esc_attr_e( 'Original editorial image for AI image generation governance.', 'npcink-workflow-toolbox' ); ?>" />
-			<input type="hidden" name="media_description" value="<?php esc_attr_e( 'AI-generated image candidate for the hosted image generation smoke test. Review it before importing or setting it as featured media.', 'npcink-workflow-toolbox' ); ?>" />
-			<button type="submit" class="button button-primary" <?php echo disabled( ! $cloud_ready, true, false ); ?>><?php esc_html_e( 'Run AI image check', 'npcink-workflow-toolbox' ); ?></button>
-			<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-		</form>
-		<?php
-	}
-
 	private function get_media_derivative_toolbox_policy(): array {
 		return $this->settings->media_optimization_policy_summary();
 	}
@@ -4030,23 +3678,6 @@ final class Admin_Page {
 				</label>
 			</div>
 		</div>
-		<?php
-	}
-
-	private function render_image_derivative_preview_check(): void {
-		$toolbox_policy = $this->get_media_derivative_toolbox_policy();
-		?>
-		<form class="npcink-toolbox__inline-form" data-toolbox-media-derivative data-toolbox-media-derivative-preview-only>
-			<h3><?php esc_html_e( 'Existing image preview', 'npcink-workflow-toolbox' ); ?></h3>
-			<p><?php esc_html_e( 'Generate a short-lived Cloud preview for one existing media-library image. This check does not submit a review request or write media.', 'npcink-workflow-toolbox' ); ?></p>
-			<?php $this->render_media_derivative_toolbox_defaults( $toolbox_policy ); ?>
-			<?php $this->render_media_derivative_picker_controls(); ?>
-			<?php $this->render_media_derivative_format_controls( $toolbox_policy ); ?>
-			<?php $this->render_media_derivative_crop_controls(); ?>
-			<?php $this->render_media_derivative_watermark_controls( $toolbox_policy ); ?>
-			<button type="button" class="button button-primary" data-toolbox-run-media-derivative><?php esc_html_e( 'Generate preview', 'npcink-workflow-toolbox' ); ?></button>
-			<div class="npcink-toolbox__result is-empty" aria-live="polite" hidden></div>
-		</form>
 		<?php
 	}
 

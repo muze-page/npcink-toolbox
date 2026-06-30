@@ -66,6 +66,7 @@ Start from the active documents below before changing code.
 ## Boundary Notes And Deprecated Surfaces
 
 - [Article Assistant Workbench](article-assistant-workbench.md)
+- [Cloud Diagnostics Transition Summary](cloud-diagnostics-transition-summary.md)
 - [Cloud Bulk Article Import](cloud-bulk-article-import.md)
 - [Content Assistant Surface Lessons](content-assistant-surface-lessons.md)
 - [OpenClaw Content Discoverability Handoff](openclaw-content-discoverability-handoff.md)

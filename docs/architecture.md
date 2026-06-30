@@ -553,17 +553,17 @@ administrator may explicitly run Cloud analysis and render the suggestion-only
 `site_ops_cloud_analysis_result.v1`. It is a manual review surface, not a
 Cloud batch owner, local queue, Core proposal creator, or WordPress write path.
 Nightly Inspection fallback preview settings, Pro Cloud Runtime checks, and
-run recovery keep the compatible `cloud-checks` deep link but are presented as
-**Scheduled Review / Morning Brief** when opened through the Nightly Inspection
-entry. That visible task framing keeps Morning Brief preview and Cloud run
-recovery separate from ordinary connection diagnostics while preserving old
-URLs. These controls do not belong in the visible top-level tabs or default
-Overview view, and Full-site Insights remains the ordinary manual site-check
-report. Site Knowledge status and refresh controls live in the secondary
-**Site Content Index** panel reached from the Advanced Setup group, not as a
-default top-level tab. Advanced is the single low-frequency directory and
-groups secondary links as Setup, Diagnostics, Review, and Planning/Handoff
-instead of duplicating them on Overview.
+run recovery live in the separate secondary **Scheduled Review / Morning
+Brief** panel reached from the Advanced Planning/Handoff group. They do not
+live inside Cloud Checks. That keeps Morning Brief preview and Cloud run
+recovery separate from ordinary connection diagnostics. These controls do not
+belong in the visible top-level tabs or default Overview view, and Full-site
+Insights remains the ordinary manual site-check report. Site Knowledge status
+and refresh controls live in the secondary **Site Content Index** panel reached
+from the Advanced Setup group, not as a default top-level tab. Advanced is the
+single low-frequency directory and groups secondary links as Setup,
+Review, and Planning/Handoff instead of duplicating them on
+Overview.
 
 The admin **Image Handling** tab groups image-first buttons by operator job and
 defaults to **Image Optimization**, with **Batch Optimize Images** as the first
@@ -693,30 +693,18 @@ replacement callbacks before Toolbox presents it as a fixed best-practice
 button. Toolbox may render review sets, selected previews, proposal submission,
 and returned execution outcomes; it must not own the batch execution semantics.
 
-Troubleshooting Checks default to one basic read-only connection test inside
-the secondary `cloud-checks` panel reached from the Advanced Diagnostics group.
-Detailed checks use compact folded tabs for Cloud-managed search, image-source,
-preview-only media derivative, and site content index search. The compatible
-Nightly Inspection deep link still uses the `cloud-checks` panel id, but its
-visible page header and first card must say Scheduled Review / Morning Brief so
-operators understand it is the low-frequency scheduled-review preview and
-Cloud run recovery path, not a duplicate manual Full-site Insights report or a
-generic connection test. Each panel opens directly into the relevant Toolbox
-ability reachability check or recovery task instead of repeating provider
-ownership detail. Search checks use Cloud auto execution only; provider
-selection, Jina Reader toggles, routing diagnostics, Cloud API key
-verification, entitlement, quota, billing, and request logs belong in Cloud
-Addon or Cloud service-plane surfaces. Image derivative checks may generate
-short-lived Cloud previews only, including bounded aspect-ratio crop overrides
-and one-run text or image/logo watermark overrides that match the
-Adapter/OpenClaw media derivative request shape; Core
-proposal submission, batch proposal submission, and URL repair handoffs stay in
-Workflows. The Site Knowledge check is read-only search verification and links
-back to the Site Knowledge tab for index status and refresh operations. The
-surface is not a billing, quota, request-log, marketplace, provider-routing,
-key-rotation, vector-provider, vector-lifecycle, content-operations coverage,
-or Agent quality summary surface. Toolbox links those read-only summaries to
-Cloud Addon Monitoring.
+Toolbox no longer renders a Cloud Checks or Troubleshooting Checks secondary
+panel. Cloud connection checks, hosted runtime health, provider/search/image
+diagnostics, key verification, entitlement, quota, billing, request logs,
+content-operations coverage, and Agent quality summaries belong in
+`npcink-cloud-addon` or Cloud service-plane surfaces. Toolbox keeps only
+task-owned product panels: Site Content Index for explicit content index
+operations, Full-site Insights for manual site reports, Morning Brief for
+scheduled-review preview and bounded Cloud run recovery, and Image Handling for
+selected-media review/handoff flows. Cloud runtime routes may remain bounded
+call sites for those product workflows, but standalone diagnostics do not live
+in Toolbox. Nightly Inspection / Morning Brief controls stay in the separate
+`morning-brief` secondary panel.
 
 ## Dependency Direction
 
