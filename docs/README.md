@@ -47,6 +47,7 @@ Start from the active documents below before changing code.
 - [Recommendation Eval](recommendation-eval.md)
 - [Summary Eval](summary-eval.md)
 - [Site Ops Cloud Analysis Contract](site-ops-cloud-analysis-contract.md)
+- [Site Knowledge Vector Operations Contract](site-knowledge-vector-operations-contract.md)
 
 ## Media And Site Operations
 

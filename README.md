@@ -129,6 +129,7 @@ Workflow and composition contracts remain indexed at
 [Full-site Insights Operator Loop](docs/full-site-insights-operator-loop.md),
 [AI Content Composition Abilities](docs/ai-content-composition-abilities.md),
 [Connector Ability Exposure](docs/connector-ability-exposure.md),
+[Site Knowledge Vector Operations Contract](docs/site-knowledge-vector-operations-contract.md),
 [Content Discoverability Context](docs/content-discoverability-context.md),
 [OpenClaw Content Discoverability Handoff](docs/openclaw-content-discoverability-handoff.md),
 [OpenClaw SEO/GEO/AEO Acceptance Summary](docs/openclaw-seo-geo-aeo-acceptance-summary.md),

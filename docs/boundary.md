@@ -110,7 +110,9 @@ WordPress write owner, second ability registry, or local control plane.
 Automatic public content-change delivery belongs to Cloud Addon when its Site
 Knowledge bridge is installed and verified. Toolbox must not keep a legacy
 standalone fallback queue; it may only show bridge health, clear retired local
-auto-sync state, and keep explicit manual sync/search surfaces.
+auto-sync state, and keep explicit manual refresh/search surfaces. Toolbox
+must reject local Site Knowledge `rebuild` and `delete` sync modes; those
+operations belong in Cloud Site Knowledge.
 
 ## REST Route Boundary
 

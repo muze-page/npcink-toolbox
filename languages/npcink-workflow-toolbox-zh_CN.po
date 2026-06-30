@@ -1631,14 +1631,17 @@ msgstr "读取 Cloud 托管站点知识覆盖和同步状态，不写入 WordPre
 msgid "Request Site Knowledge Sync"
 msgstr "请求站点知识同步"
 
-msgid "Request a Cloud-managed site knowledge sync or rebuild from bounded public WordPress content without writing WordPress content."
-msgstr "基于有边界的公开 WordPress 内容请求 Cloud 托管站点知识同步或重建，不写入 WordPress 内容。"
+msgid "Request a Cloud-managed public Site Knowledge refresh from bounded public WordPress content without writing WordPress content or managing index lifecycle."
+msgstr "基于有边界的公开 WordPress 内容请求 Cloud 托管的公开 Site Knowledge 刷新，不写入 WordPress 内容，也不管理索引生命周期。"
 
 msgid "Build Article Assistant Workbench"
 msgstr "生成文章助手工作台"
 
 msgid "Build one local article_draft_v1 workbench artifact from topic, evidence, site context, draft notes, and reviewed draft input without writing WordPress content."
 msgstr "根据主题、证据、站点上下文、草稿笔记和已审阅草稿输入，生成一个本地 article_draft_v1 工作台制品，不写入 WordPress 内容。"
+
+msgid "Toolbox only forwards public Site Knowledge refresh requests. Rebuild, delete, and collection lifecycle operations belong in Cloud Site Knowledge."
+msgstr "Toolbox 只转发公开 Site Knowledge 刷新请求。重建、删除和 collection 生命周期操作属于 Cloud Site Knowledge。"
 
 msgid "Build Article Write Plan"
 msgstr "生成文章写入计划"
