@@ -2619,7 +2619,7 @@ final class Admin_Page {
 		$download = 'data:application/json;charset=utf-8,' . rawurlencode( $json );
 		$brief    = isset( $replay['preview']['morning_brief'] ) && is_array( $replay['preview']['morning_brief'] ) ? $replay['preview']['morning_brief'] : array();
 		$summary  = isset( $brief['summary'] ) && is_array( $brief['summary'] ) ? $brief['summary'] : array();
-		$priority = isset( $brief['priorities'] ) && is_array( $brief['priorities'] ) ? array_slice( $brief['priorities'], 0, 6 ) : array();
+		$review_item_count = (int) ( $summary['actions_total'] ?? 0 );
 		?>
 		<section class="npcink-toolbox__card" data-toolbox-nightly-inspection-preview>
 			<div class="npcink-toolbox__section-heading">
@@ -2637,34 +2637,18 @@ final class Admin_Page {
 				$this->render_start_status_item( __( 'Execution', 'npcink-workflow-toolbox' ), 'ok', __( 'Disabled', 'npcink-workflow-toolbox' ), __( 'No cron, worker, Cloud call, Core proposal, or write.', 'npcink-workflow-toolbox' ) );
 				?>
 			</div>
-			<?php if ( array() === $priority ) : ?>
+			<?php if ( $review_item_count <= 0 ) : ?>
 				<div class="npcink-toolbox__result-notice is-success"><?php esc_html_e( 'No priority review items were found in this bounded preview.', 'npcink-workflow-toolbox' ); ?></div>
 			<?php else : ?>
-				<ul class="npcink-toolbox__usage-list">
-					<?php foreach ( $priority as $item ) : ?>
-						<?php
-						if ( ! is_array( $item ) ) {
-							continue;
-						}
-						$reason_codes = isset( $item['reason_codes'] ) && is_array( $item['reason_codes'] ) ? implode( ', ', array_map( 'strval', $item['reason_codes'] ) ) : '';
-						?>
-						<li>
-							<strong><?php echo esc_html( (string) ( $item['title'] ?? __( 'Untitled item', 'npcink-workflow-toolbox' ) ) ); ?></strong>
-							<span>
-								<?php
-								printf(
-									/* translators: 1: object type, 2: object id, 3: score, 4: reason codes. */
-									esc_html__( '%1$s #%2$d, score %3$d. %4$s', 'npcink-workflow-toolbox' ),
-									esc_html( (string) ( $item['object_type'] ?? 'post' ) ),
-									(int) ( $item['object_id'] ?? 0 ),
-									(int) ( $item['score'] ?? 0 ),
-									esc_html( $reason_codes )
-								);
-								?>
-							</span>
-						</li>
-					<?php endforeach; ?>
-				</ul>
+				<div class="npcink-toolbox__result-notice">
+					<?php
+					printf(
+						/* translators: %d: number of preview review items. */
+						esc_html__( 'Generated %d preview review items. This only proves the scheduled review can read local content; use Current check for ordinary site maintenance.', 'npcink-workflow-toolbox' ),
+						$review_item_count
+					);
+					?>
+				</div>
 			<?php endif; ?>
 			<details class="npcink-toolbox__result-details">
 				<summary><?php esc_html_e( 'Copy or download dry-run JSON', 'npcink-workflow-toolbox' ); ?></summary>

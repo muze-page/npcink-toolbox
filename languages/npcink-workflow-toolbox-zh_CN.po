@@ -5510,6 +5510,9 @@ msgstr "不裁剪"
 msgid "No priority review items were found in this bounded preview."
 msgstr "这个有边界的预览中没有发现优先审阅项。"
 
+msgid "Generated %d preview review items. This only proves the scheduled review can read local content; use Current check for ordinary site maintenance."
+msgstr "已生成 %d 个预览审阅项。这只用于确认定期巡检可以读取本地内容；日常站点维护请使用当前检查。"
+
 msgid "Oldest modified public posts and pages."
 msgstr "最早修改的公开文章和页面。"
 
