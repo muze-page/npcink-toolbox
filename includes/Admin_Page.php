@@ -486,9 +486,9 @@ final class Admin_Page {
 
 			<nav class="npcink-toolbox__tabs" data-toolbox-tabs aria-label="<?php esc_attr_e( 'Toolbox sections', 'npcink-workflow-toolbox' ); ?>">
 				<button type="button" class="npcink-toolbox__tab<?php echo 'start' === $active_tab ? ' is-active' : ''; ?>" data-toolbox-tab-target="start" aria-selected="<?php echo 'start' === $active_tab ? 'true' : 'false'; ?>"><?php esc_html_e( 'Overview', 'npcink-workflow-toolbox' ); ?></button>
+				<button type="button" class="npcink-toolbox__tab<?php echo 'operations-insights' === $active_tab ? ' is-active' : ''; ?>" data-toolbox-tab-target="operations-insights" aria-selected="<?php echo 'operations-insights' === $active_tab ? 'true' : 'false'; ?>"><?php esc_html_e( 'Site Check', 'npcink-workflow-toolbox' ); ?></button>
 				<button type="button" class="npcink-toolbox__tab<?php echo 'context' === $active_tab ? ' is-active' : ''; ?>" data-toolbox-tab-target="context" aria-selected="<?php echo 'context' === $active_tab ? 'true' : 'false'; ?>"><?php esc_html_e( 'Site Profile', 'npcink-workflow-toolbox' ); ?></button>
 				<button type="button" class="npcink-toolbox__tab<?php echo 'tools' === $active_tab ? ' is-active' : ''; ?>" data-toolbox-tab-target="tools" aria-selected="<?php echo 'tools' === $active_tab ? 'true' : 'false'; ?>"><?php esc_html_e( 'Image Handling', 'npcink-workflow-toolbox' ); ?></button>
-				<button type="button" class="npcink-toolbox__tab<?php echo 'advanced' === $active_tab ? ' is-active' : ''; ?>" data-toolbox-tab-target="advanced" aria-selected="<?php echo 'advanced' === $active_tab ? 'true' : 'false'; ?>"><?php esc_html_e( 'Advanced', 'npcink-workflow-toolbox' ); ?></button>
 			</nav>
 
 			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="start" aria-label="<?php esc_attr_e( 'Toolbox start', 'npcink-workflow-toolbox' ); ?>"<?php echo 'start' === $active_tab ? '' : ' hidden'; ?>>
@@ -505,10 +505,6 @@ final class Admin_Page {
 
 			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="tools" aria-label="<?php esc_attr_e( 'Image handling', 'npcink-workflow-toolbox' ); ?>"<?php echo 'tools' === $active_tab ? '' : ' hidden'; ?>>
 				<?php $this->render_tool_cards( $cloud_ready, 'image' ); ?>
-			</section>
-
-			<section class="npcink-toolbox__panel" data-toolbox-tab-panel="advanced" aria-label="<?php esc_attr_e( 'Advanced Toolbox entries', 'npcink-workflow-toolbox' ); ?>"<?php echo 'advanced' === $active_tab ? '' : ' hidden'; ?>>
-				<?php $this->render_advanced_panel(); ?>
 			</section>
 
 			<section class="npcink-toolbox__panel npcink-toolbox__panel--secondary" data-toolbox-tab-panel="site-knowledge" aria-label="<?php esc_attr_e( 'Content library usage', 'npcink-workflow-toolbox' ); ?>"<?php echo 'site-knowledge' === $active_tab ? '' : ' hidden'; ?>>
@@ -534,12 +530,14 @@ final class Admin_Page {
 		if ( 'content' === $requested || 'content-preparation' === $requested ) {
 			$requested = 'operations-insights';
 		}
+		if ( 'advanced' === $requested || 'site-check' === $requested || 'site_check' === $requested ) {
+			$requested = 'operations-insights';
+		}
 
 		$allowed = array(
 			'start'               => true,
 			'context'             => true,
 			'tools'               => true,
-			'advanced'            => true,
 			'operations-insights' => true,
 			'site-knowledge'      => true,
 			'morning-brief'       => true,
@@ -606,9 +604,9 @@ final class Admin_Page {
 					<strong><?php echo esc_html( $profile_action ); ?></strong>
 					<span><?php esc_html_e( 'Keep the basic site description, audience, tone, and keywords clear.', 'npcink-workflow-toolbox' ); ?></span>
 				</a>
-				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=advanced' ) ); ?>">
-					<strong><?php esc_html_e( 'Advanced setup', 'npcink-workflow-toolbox' ); ?></strong>
-					<span><?php esc_html_e( 'Use only when setup, review, or handoff previews are needed.', 'npcink-workflow-toolbox' ); ?></span>
+				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=operations-insights' ) ); ?>">
+					<strong><?php esc_html_e( 'Site Check', 'npcink-workflow-toolbox' ); ?></strong>
+					<span><?php esc_html_e( 'Review the site report first; scheduled review and Cloud recovery controls are folded there.', 'npcink-workflow-toolbox' ); ?></span>
 				</a>
 			</section>
 			<details class="npcink-toolbox__start-advanced">
@@ -648,28 +646,6 @@ final class Admin_Page {
 					);
 				}
 				?>
-			</div>
-		</section>
-		<?php
-	}
-
-	private function render_advanced_panel(): void {
-		?>
-		<div class="npcink-toolbox__panel-header">
-			<h2><?php esc_html_e( 'Advanced', 'npcink-workflow-toolbox' ); ?></h2>
-			<p><?php esc_html_e( 'Use these entries only when you need occasional review tools or governed handoff previews.', 'npcink-workflow-toolbox' ); ?></p>
-		</div>
-
-		<section class="npcink-toolbox__advanced-home" aria-label="<?php esc_attr_e( 'Advanced Toolbox directory', 'npcink-workflow-toolbox' ); ?>">
-			<div class="npcink-toolbox__advanced-group">
-				<div class="npcink-toolbox__advanced-group-heading">
-					<h3><?php esc_html_e( 'Site check and scheduled review', 'npcink-workflow-toolbox' ); ?></h3>
-					<p><?php esc_html_e( 'Open one review entry for the current site report, scheduled preview, and Cloud run recovery.', 'npcink-workflow-toolbox' ); ?></p>
-				</div>
-				<a class="npcink-toolbox__action-row" href="<?php echo esc_url( admin_url( 'admin.php?page=npcink-toolbox&toolbox_tab=operations-insights' ) ); ?>">
-					<strong><?php esc_html_e( 'Open site check and scheduled review', 'npcink-workflow-toolbox' ); ?></strong>
-					<span><?php esc_html_e( 'Review the current site report first. Preview scheduled review or open Cloud run recovery from the folded section when needed.', 'npcink-workflow-toolbox' ); ?></span>
-				</a>
 			</div>
 		</section>
 		<?php

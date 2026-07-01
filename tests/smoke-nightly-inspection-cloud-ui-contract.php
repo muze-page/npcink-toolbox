@@ -83,10 +83,9 @@ foreach (
 	array(
 		'cloud_addon_runtime_runs_url',
 		"'tab'  => 'runtime_runs'",
+		'data-toolbox-tab-target="operations-insights"',
+		'Site Check',
 		'Site check and scheduled review',
-		'Open one review entry for the current site report, scheduled preview, and Cloud run recovery.',
-		'Open site check and scheduled review',
-		'Review the current site report first. Preview scheduled review or open Cloud run recovery from the folded section when needed.',
 		'Open related controls',
 		'Preview scheduled review',
 		'Advanced: optional local fallback preview',
@@ -116,6 +115,11 @@ foreach (
 		'Advanced: local fallback and Cloud run link',
 		'Cloud owns entitlement, usage, queue, retry, and retention detail',
 		'no local job queue or write path is created',
+		'data-toolbox-tab-target="advanced"',
+		'data-toolbox-tab-panel="advanced"',
+		'Open one review entry for the current site report, scheduled preview, and Cloud run recovery.',
+		'Open site check and scheduled review',
+		'Review the current site report first. Preview scheduled review or open Cloud run recovery from the folded section when needed.',
 	) as $forbidden_admin_text
 ) {
 	$assert_not_contains( $admin_page, $forbidden_admin_text, 'Scheduled Review admin panel must not expose local Cloud run submit/recent/retry controls.' );

@@ -536,9 +536,9 @@ compatibility, and Core handoff boundary. This summary is not a generic Abilitie
 provider picker, request log, or connector approval surface. It does not create
 proposals or writes. Single-post article
 support stays in the post editor sidebar and is not rendered as an Overview
-work block. The visible top-level admin tabs after Overview are **Site
-Profile**, **Image Handling**, and **Advanced**. **Site Check** remains a
-secondary deep-link panel and is the Overview page's recommended site-check
+work block. The visible top-level admin tabs after Overview are **Site Check**,
+**Site Profile**, and **Image Handling**. **Site Check** is the direct
+operator-facing site-check tab and the Overview page's recommended site-check
 action; it builds a local
 `site_ops_insight_pack.v1` from bounded public content, approved comment signal
 counts, media metadata, taxonomy summaries, Site Context readiness, and Cloud
@@ -555,22 +555,18 @@ administrator may explicitly run Cloud detail and render the suggestion-only
 Cloud batch owner, local queue, Core proposal creator, or WordPress write path.
 Nightly Inspection fallback preview settings live in the low-frequency
 secondary **Scheduled Review** panel reached from the folded Site Check and
-Scheduled Review section inside Site Check. Advanced exposes one combined Site
-Check and Scheduled Review row that opens Site Check first; it does not list
-Site Check detail and Scheduled Review preview as parallel choices. Cloud run
-status, result reads, recent runs, and recovery live in Cloud Addon Runtime
-Runs. They do not live inside Cloud Checks. That keeps recurring inspection
-preview and Cloud run recovery separate from ordinary connection diagnostics
-while giving operators one review entry instead of separate Site Check and
-Scheduled Review destinations. These controls do not belong in the visible
-top-level tabs or default Overview view, and Site Check remains the ordinary
-manual site-maintenance entry. Site Knowledge
+Scheduled Review section inside Site Check. The former Advanced directory is
+not rendered as a separate top-level tab; `toolbox_tab=advanced` remains a
+compatibility alias into Site Check. Cloud run status, result reads, recent
+runs, and recovery live in Cloud Addon Runtime Runs. They do not live inside
+Cloud Checks. That keeps recurring inspection preview and Cloud run recovery
+separate from ordinary connection diagnostics while giving operators one direct
+Site Check entry instead of separate Site Check and Scheduled Review
+destinations. These controls do not belong in the default Overview view, and
+Site Check remains the ordinary manual site-maintenance entry. Site Knowledge
 connection, refresh, indexing, and deep delivery detail live in
 `npcink-cloud-addon`; Toolbox keeps only a secondary **Content Library Usage**
-panel for read-only status and best-practice result consumption. Advanced is the
-single low-frequency directory and now exposes one combined Site Check and
-Scheduled Review row instead of duplicating Site Check detail, scheduled review
-preview, and Cloud run recovery as parallel choices on Overview or Advanced.
+panel for read-only status and best-practice result consumption.
 
 The admin **Image Handling** tab groups image-first buttons by operator job and
 defaults to **Image Optimization**, with **Batch Optimize Images** as the first
@@ -709,9 +705,10 @@ task-owned product panels: Content Library Usage for read-only Site Knowledge
 status/result consumption, Site Check for manual site checks and the ordinary
 site-maintenance entry, Scheduled Review for Nightly/Morning Brief preview and
 optional local fallback settings, and Image Handling for selected-media
-review/handoff flows. Site Check and Scheduled Review share one combined review
-entry: Advanced opens Site Check, and Site Check's folded detail section exposes
-scheduled preview and Cloud recovery. Cloud Runtime Runs in Cloud Addon owns
+review/handoff flows. Site Check and Scheduled Review share the direct Site
+Check tab: Site Check's folded detail section exposes scheduled preview and
+Cloud recovery, while `toolbox_tab=advanced` may remain only as a compatibility
+alias into the same tab. Cloud Runtime Runs in Cloud Addon owns
 Nightly Inspection runtime
 entitlement, quota, batch limit, retention, recent/status/result, and retry
 detail. Cloud runtime routes may remain bounded call sites for compatibility,

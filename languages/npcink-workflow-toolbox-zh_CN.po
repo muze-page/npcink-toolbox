@@ -6476,6 +6476,9 @@ msgstr "站点内容索引"
 msgid "Content library usage"
 msgstr "内容库使用"
 
+msgid "Review the site report first; scheduled review and Cloud recovery controls are folded there."
+msgstr "先查看站点报告；定期巡检和 Cloud 恢复控制项折叠在这里。"
+
 msgid "Advanced setup"
 msgstr "高级设置"
 

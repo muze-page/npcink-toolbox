@@ -58,10 +58,10 @@ hosted runtime, search/image-source, entitlement, quota, and service health
 checks belong in Cloud Addon or Cloud service-plane surfaces. Site Knowledge
 connection, refresh, indexing, and delivery detail belong in Cloud Addon; the
 secondary **Content Library Usage** panel remains a compatibility/read-only
-usage surface and is not linked from Advanced. The Advanced page is now the
-single low-frequency directory and exposes one combined Site Check and
-Scheduled Review row that opens Site Check first instead of showing Site Check
-detail, Scheduled Review preview, and Cloud run recovery as parallel choices.
+usage surface and is not linked from Site Check. Site Check is now the direct
+top-level review tab; the former Advanced route may remain only as a
+compatibility alias into Site Check instead of showing Site Check detail,
+Scheduled Review preview, and Cloud run recovery as parallel choices.
 Nightly Inspection optional local fallback settings stay folded in the
 dedicated Scheduled Review panel; Cloud run status, result reads, and recovery
 open in Cloud Addon Runtime Runs instead of competing with the Start page's

@@ -43,7 +43,7 @@ The first version provides:
   review lives in **Site Check**; media
   ALT/caption helper contracts stay available for editor-sidebar use and future
   batch review sets, but the standalone admin tool is not exposed;
-- a **Site Check** secondary panel that acts as the fixed-button toolbox's
+- a **Site Check** top-level tab that acts as the fixed-button toolbox's
   read-only decision router. It builds a local
   `site_ops_insight_pack.v1` from bounded public content, approved comment
   signals, media metadata, taxonomy summaries, Site Context readiness, and
@@ -56,11 +56,11 @@ The first version provides:
   that request to Cloud runtime for a suggestion-only
   `site_ops_cloud_analysis_result.v1`, without local queues, local run tables,
   Core proposal creation, or WordPress writes;
-- a combined **Site Check and Scheduled Review** entry, reached from Site Check
-  and as a single Advanced directory row. The Advanced row opens Site Check
-  first; its folded detail section exposes low-frequency scheduled-review
-  preview and a link to Cloud-owned run recovery. Cloud run status, result
-  reads, and recovery live in the Cloud Addon Runtime Runs tab. The
+- a combined **Site Check and Scheduled Review** section inside Site Check.
+  The folded detail section exposes low-frequency scheduled-review preview and
+  a link to Cloud-owned run recovery. The former Advanced entry remains only as
+  a compatibility route into Site Check. Cloud run status, result reads, and
+  recovery live in the Cloud Addon Runtime Runs tab. The
   scheduled-review preview reads bounded local public-content evidence and
   renders a dry-run Nightly Site Inspection preview without cron, Cloud calls,
   Core proposals, persistence, or WordPress writes. **Site Check** remains the
@@ -235,9 +235,9 @@ Cloud Addon Runtime Runs can read recent/status/result detail and request
 Cloud-owned retry for known Nightly Inspection runs. Toolbox may retain
 compatibility REST bridges for existing callers, but runtime entitlement,
 quota, batch limit, retention, recent/status/result, and retry detail belong in
-Cloud Addon Runtime Runs. The visible Site Check and Scheduled Review entry
-links to Cloud Addon instead of presenting a second run-recovery workspace. Any
-local display of `pro_cloud_runtime` detail is not billing truth.
+Cloud Addon Runtime Runs. The visible Site Check tab links to Cloud Addon for
+run recovery instead of presenting a second run-recovery workspace. Any local
+display of `pro_cloud_runtime` detail is not billing truth.
 Action Scheduler is reserved as a future local fallback/substrate candidate only
 if a confirmed local-batch requirement justifies the added plugin complexity.
 ADR-005 freezes this current split: WP-Cron is the local fallback preview or

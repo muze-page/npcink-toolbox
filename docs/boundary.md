@@ -563,11 +563,12 @@ UI belongs outside Toolbox. Standalone diagnostics do not live in Toolbox.
 
 The **Scheduled Review** surface is a low-frequency secondary panel reached
 from the folded Site Check and Scheduled Review section inside Site Check.
-Advanced must expose only one combined Site Check and Scheduled Review row; it
-should not list Site Check detail and Scheduled Review preview as parallel
-choices. Scheduled Review owns the Nightly/Morning Brief preview entry and
-optional local fallback preview settings. Cloud run status, result reads,
-recent runs, and retry requests belong in the Cloud Addon Runtime Runs tab.
+The former Advanced entry may remain only as a compatibility route into Site
+Check; it must not render a separate directory that lists Site Check detail and
+Scheduled Review preview as parallel choices. Scheduled Review owns the
+Nightly/Morning Brief preview entry and optional local fallback preview
+settings. Cloud run status, result reads, recent runs, and retry requests
+belong in the Cloud Addon Runtime Runs tab.
 Scheduled Review must not live inside Cloud Checks and must not be presented as
 an ordinary connection diagnostic or as a second site-check product.
 
