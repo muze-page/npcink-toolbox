@@ -30,6 +30,7 @@ Start from the active documents below before changing code.
 - [Admin Surface Consolidation Summary](admin-surface-consolidation-summary.md)
 - [AI Plugin Overlap Boundary](ai-plugin-overlap-boundary.md)
 - [Content Support Product Readiness](content-support-product-readiness.md)
+- [Fixed Button Surface](fixed-button-surface.md)
 - [Content Support Writing Checkup History](content-support-writing-checkup-history.md)
 - [Editor Progressive Recommendations Trial](editor-progressive-recommendations-trial.md)
 - [Editor AI Image Recommendation Summary](editor-ai-image-recommendation-summary.md)

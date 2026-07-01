@@ -123,6 +123,7 @@ expect to stay discoverable from the root README:
 [Editor Progressive Recommendations Trial](docs/editor-progressive-recommendations-trial.md),
 [Editor Progressive Recommendations Closeout](docs/archive/2026-06/editor-progressive-recommendations-closeout.md),
 [Boundary Exceptions Registry](docs/boundary-exceptions.md),
+[Fixed Button Surface](docs/fixed-button-surface.md),
 [Local Automation Runtime Module](modules/local-automation-runtime/README.md),
 [ADR-004: Bundle Local Automation Runtime As An Isolated Module](docs/decisions/ADR-004-bundle-local-automation-runtime-as-isolated-module.md), and
 [ADR-005: Use WP-Cron Local Preview And Cloud Batch Runtime For Nightly Automation](docs/decisions/ADR-005-wp-cron-cloud-batch-orchestration.md).
